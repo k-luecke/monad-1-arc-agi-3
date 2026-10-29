@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use this software or cite the paper, please cite it as below."
-title: "From b.splosive to monad(1): Intent-Native Operating Systems for Falsification-Gated Discrete Reasoning, Conscious Top-Down Observation, 25-Shard LTP Knowledge Consolidation, and Autopoietic Self-Repair"
+message: "If you use this software or cite the papers, please cite it as below."
+title: "meta(OS): Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning"
 authors:
   - family-names: "Luecke"
     given-names: "Kyle W."
@@ -11,27 +11,20 @@ url: "https://github.com/k-luecke/monad-1-arc-agi-3"
 repository-code: "https://github.com/k-luecke/monad-1-arc-agi-3"
 license: Apache-2.0
 keywords:
-  - "artificial general intelligence"
-  - "arc-agi"
-  - "neuro-symbolic reasoning"
-  - "program synthesis"
-  - "cegis"
-  - "bitboard lattice"
-  - "view semantics"
-  - "huxleyan reducing valve"
-  - "conscious observer"
-  - "autopoietic self-repair"
-  - "monad(1)"
-  - "enki.1"
-  - "predictive processing"
-  - "operating systems"
+  - "arc-agi-3"
+  - "meta-operating-system"
+  - "phase-locked-evaluation"
+  - "fuzzy-merkle-forest"
+  - "neuro-symbolic-reasoning"
+  - "active-inference"
+  - "monad-1"
 preferred-citation:
   type: article
   authors:
     - family-names: "Luecke"
       given-names: "Kyle W."
       affiliation: "Drift Bound Labs"
-  title: "From b.splosive to monad(1): Intent-Native Operating Systems for Falsification-Gated Discrete Reasoning, Conscious Top-Down Observation, 25-Shard LTP Knowledge Consolidation, and Autopoietic Self-Repair"
+  title: "meta(OS): Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning"
   journal: "Drift Bound Labs Technical Report"
   year: 2026
   month: 10
