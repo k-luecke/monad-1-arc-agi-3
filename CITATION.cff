@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software or cite the paper, please cite it as below."
-title: "Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests"
+title: "Monad(1) V7: Unifying Local Qwen and Mistral Language Models with the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests for Interactive Reasoning"
 authors:
   - family-names: "Luecke"
     given-names: "Kyle W."
@@ -13,18 +13,19 @@ license: Apache-2.0
 keywords:
   - "monad-1-v7"
   - "inos"
+  - "qwen2.5"
+  - "mistral-nemo"
   - "arc-agi-3"
   - "phase-locked-evaluation"
   - "fuzzy-merkle-forest"
   - "neuro-symbolic-reasoning"
-  - "active-inference"
 preferred-citation:
   type: article
   authors:
     - family-names: "Luecke"
       given-names: "Kyle W."
       affiliation: "Drift Bound Labs"
-  title: "Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests"
+  title: "Monad(1) V7: Unifying Local Qwen and Mistral Language Models with the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests for Interactive Reasoning"
   journal: "Drift Bound Labs Technical Report"
   year: 2026
   month: 10

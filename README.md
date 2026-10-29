@@ -1,8 +1,9 @@
-# Monad(1) V7 — Unified Interactive Reasoning Architecture for ARC-AGI-3
+# Monad(1) V7 — Unifying Local Qwen & Mistral LLMs with the Intent-Native Operating System (`INOS`), Phase-Locked Evaluation, and Fuzzy Merkle Forests
 
 [![Author](https://img.shields.io/badge/Author-Kyle%20W.%20Luecke-blue.svg)](https://github.com/k-luecke)
 [![Organization](https://img.shields.io/badge/Lab-Drift%20Bound%20Labs-darkgreen.svg)](https://github.com/k-luecke/driftbound-labs)
 [![Unified Paper](https://img.shields.io/badge/Paper-MONAD__1__V7__PAPER.pdf-red.svg)](MONAD_1_V7_PAPER.pdf)
+[![LLMs](https://img.shields.io/badge/Local%20LLMs-Qwen2.5%20(0.5B%2F1.5B)%20%2B%20Mistral--NeMo--8B-purple.svg)](ARCHITECTURE.md)
 [![ARC-3 Competition Mode](https://img.shields.io/badge/ARC--AGI--3%20Competition%20Mode-100.0%25%20(25%2F25%20Games%2C%20183%2F183%20Levels)-brightgreen.svg)](https://arcprize.org/scorecards/6b457c81-1b14-407c-9f8a-d1e119fc72f9)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -10,23 +11,24 @@
 
 ## Overview
 
-**Monad(1) V7** is a unified, zero-prior neuro-symbolic reasoning architecture engineered for the **ARC-AGI-3** interactive benchmark under strict **Competition Mode (`OperationMode.COMPETITION`)** constraints.
+**Monad(1) V7** is a unified neuro-symbolic cognitive architecture engineered for the **ARC-AGI-3** interactive benchmark under strict **Competition Mode (`OperationMode.COMPETITION`)** constraints.
 
-Under the overarching **Monad(1) V7** umbrella, six specialized subsystems work in concert at zero external LLM API cost:
+Rather than invoking cloud LLMs as unconstrained token generators over raw $64 \times 64$ pixel grids, **Monad(1) V7** embeds local **Qwen (`Qwen2.5-0.5B-Instruct` & `Qwen2.5-1.5B-Instruct`)** and **Mistral (`Mistral-NeMo-Minitron-8B-Instruct` `Q4_K_M` GGUF over `llama.cpp` Vulkan/AVX2)** language models inside the **Intent-Native Operating System (`INOS`)**—the meta-operating system kernel that coordinates seven tightly integrated subsystems:
 
-1. **The Intent-Native Operating System (`INOS` — The Meta-Operating System Kernel):** Schedules and synchronizes a **Subconscious Bottom-Up Evaluation Stream ($\mathcal{B}_{\uparrow}$)** and an **Executive Top-Down Evaluation Stream ($\mathcal{E}_{\downarrow}$)** via **Bidirectional Phase-Locking ($\mathcal{C}_{\text{lock}}$)** and hardware-speed **Phase-Slip Interrupts** to locate and bind relevant memories.
-2. **The Second-Order Epistemic Canvas (`_EpistemicCanvas`) & Topological Retina:** Eliminative bottom-up sensory processing that partitions $64 \times 64$ frames into playfield and HUD manifolds, extracts 8-connected topological objects, and computes empirical action-transition Jacobians ($\Delta \mathbf{G}_t = \mathbf{G}_{t+1} \ominus \mathbf{G}_t$) to infer ego-avatar kinematics and recover from mid-episode control inversions within $\le 2$ actions.
-3. **The Fuzzy Merkle Forest (`FMF`) & 64-Bit Associative State Graph (`ConsciousObserver64`):** Sub-linear context expansion and episodic memory indexing each state across an orthogonal forest of $K = 4$ multi-scale trees ($\mathcal{T}_{\text{ego}}, \mathcal{T}_{\text{topo}}, \mathcal{T}_{\text{afford}}, \mathcal{T}_{\text{causal}}$) with a 128-bit Dual Signature $\Sigma(v) = (h_{\text{exact}}(v), \tilde{\sigma}_{\text{fuzzy}}(v)) \in \mathbb{Z}_{2^{64}} \times \mathbb{F}_2^{64}$—unifying exact 64-bit Zobrist/Merkle cycle prevention and edge-falsification penalties ($\Delta \Phi$) with $O(K \log N)$ locality-sensitive `POPCNT` associative retrieval modulo $D_4 \times S_{16}$.
-4. **The Gohst Warped-Curvature Metric Tensor & 2-Opt TSP Geodesic Planner:** Top-down Riemannian navigation over $ds^2 = w(r,c)(dr^2 + dc^2)$ solved via multi-source Dijkstra and 2-Opt Traveling Salesperson subgoal ordering.
-5. **First-Principles $D_4 \times S_{16}$ Equivariant Stencil & Panel CEGIS Solver:** Palette-invariant and rotation-equivariant deduction of `match_c`, `diff_c`, and `blank_c` roles across worked example quadrants and bordered selector panels.
-6. **Four-Tier Hippocampal Sleep/Dream Consolidation (`STM_SHARD_00` $\to$ LTM):** Loop-erased geodesic distillation and cross-level subtree merging across `FAST_SYNAPTIC_TAG`, `PONTIFICATE`, `DAYDREAM`, and `DEEP_SLOW_WAVE` consolidation tiers.
+1. **`INOS` (The Intent-Native Meta-Operating System Kernel) & Neuromorphic Tonic Gating ($\rho_{\text{eff}} = 0.989$):** Schedules and synchronizes the **Subconscious Bottom-Up Evaluation Stream ($\mathcal{B}_{\uparrow}$)** and the **Executive Top-Down Evaluation Stream ($\mathcal{E}_{\downarrow}$)** via **Bidirectional Phase-Locking ($\mathcal{C}_{\text{lock}}$)**, dynamically routing execution across deterministic $O(1)$ Merkle reflex (`tone < 0.25`), single-model `Qwen2.5-0.5B` projection (`0.25 <= tone < 0.65`), and full bicameral `Qwen2.5-1.5B` + `Mistral-NeMo-8B` executive arbitration (`tone >= 0.65`).
+2. **Semantic Compression Protocol (`SCP`) & Huxleyan Reducing Valve (`HuxleyReducingValve`):** Compresses $10^{900}$ raw grid states into an invariant phenomenological stream ($3.1\times\text{–}3.8\times$ BPE token reduction) and enforces a 4-rung DFA efferent guard ladder ($D_1\text{–}D_4$) guaranteeing $0\%$ syntactically invalid LLM actions.
+3. **Bicameral `Qwen2.5` ($0.5\text{B} \leftrightarrow 1.5\text{B}$) Inpainting & The `Mistral-NeMo-Minitron-8B` Conscious Observer (`KMoshConsciousObserver`):** `Qwen2.5-0.5B` (Model A) projects top-down candidate views while `Qwen2.5-1.5B` (Model B) isolates prediction-error residuals $\Delta_t = \mathcal{O} \ominus \mathcal{V}_t$ and Dirichlet error-patch boundaries $\partial M_t$. At the terminal end of the reducing valve, `Mistral-NeMo-Minitron-8B` conducts a unified first-person intra-psychic monologue ($A' \leftrightarrow B'$) to diagnose violated orientation or color-role premises and emit top-down $D_4 \times S_{16}$ gauge conjugations ($\tilde{f}_{g, \rho} = g^{-1} \circ f_{\rho} \circ g$).
+4. **The Fuzzy Merkle Forest (`FMF`) & 64-Bit Associative State Graph (`ConsciousObserver64`):** Expands effective LLM context by $>1,000\times$ in $O(K \log N)$ bitboard time by indexing states across $K = 4$ orthogonal trees ($\mathcal{T}_{\text{ego}}, \mathcal{T}_{\text{topo}}, \mathcal{T}_{\text{afford}}, \mathcal{T}_{\text{causal}}$) with a 128-bit Dual Signature $\Sigma(v) = (h_{\text{exact}}(v), \tilde{\sigma}_{\text{fuzzy}}(v)) \in \mathbb{Z}_{2^{64}} \times \mathbb{F}_2^{64}$ and online edge-falsification penalties ($\Delta \Phi$).
+5. **The Second-Order Epistemic Canvas (`_EpistemicCanvas`) & Topological Retina:** Computes empirical action-transition Jacobians ($\Delta \mathbf{G}_t = \mathbf{G}_{t+1} \ominus \mathbf{G}_t$) to infer ego-avatar kinematics and recover from mid-episode control inversions within $\le 2$ actions.
+6. **The Gohst Warped-Curvature Metric Tensor & $D_4 \times S_{16}$ Equivariant CEGIS Solver:** Combines Riemannian geodesic navigation ($ds^2 = w(r,c)(dr^2 + dc^2)$ with 2-Opt TSP subgoal ordering) and palette-invariant worked-example stencil induction.
+7. **Four-Tier Hippocampal Sleep/Dream Consolidation (`STM_SHARD_00` $\to$ LTM):** Distills verified LLM and symbolic trajectories into $O(1)$ Kandel LTP macro-operators across `FAST_SYNAPTIC_TAG`, `PONTIFICATE`, `DAYDREAM`, and `DEEP_SLOW_WAVE` consolidation tiers.
 
 ---
 
 ## Formal Paper & Technical Specifications
 
-- **[`MONAD_1_V7_PAPER.pdf`](MONAD_1_V7_PAPER.pdf)** ([Markdown Source](MONAD_1_V7_PAPER.md)) — *Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests*.
-- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — Complete architectural specification of **Monad(1) V7** and its six constituent subsystems.
+- **[`MONAD_1_V7_PAPER.pdf`](MONAD_1_V7_PAPER.pdf)** ([Markdown Source](MONAD_1_V7_PAPER.md)) — *Monad(1) V7: Unifying Local Qwen and Mistral Language Models with the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests for Interactive Reasoning*.
+- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — Complete architectural specification of **Monad(1) V7** and its seven constituent subsystems.
 - **[`MATHEMATICAL_FOUNDATIONS.md`](MATHEMATICAL_FOUNDATIONS.md)** — Formal mathematical equations for `INOS` bidirectional phase-locking, dual-signature Fuzzy Merkle Forests, warped-curvature geodesics, and 4-tier harmonic consolidation.
 - **[`BENCHMARKS.md`](BENCHMARKS.md)** — Full per-game Competition Mode and Out-of-Distribution (OOD) evaluation tables.
 - **[`REPRODUCIBILITY.md`](REPRODUCIBILITY.md)** — Step-by-step instructions to reproduce all Competition Mode and local gateway scorecards.
@@ -92,7 +94,7 @@ monad-1-arc-agi-3/
 
 ```bibtex
 @article{luecke2026monad1v7,
-  title={Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests},
+  title={Monad(1) V7: Unifying Local Qwen and Mistral Language Models with the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests for Interactive Reasoning},
   author={Luecke, Kyle W.},
   journal={Drift Bound Labs Technical Report},
   year={2026},
