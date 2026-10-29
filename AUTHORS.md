@@ -7,7 +7,7 @@ Founder & Principal Researcher
 **Drift Bound Labs**  
 
 - **Overarching System:** **Monad(1) V7**
-- **Core Subsystems:** Intent-Native Operating System (`INOS` meta-operating system kernel with neuromorphic tonic gating and bidirectional phase-locking), local `Qwen2.5` (`0.5B` Proposer $\leftrightarrow$ `1.5B` Critic) bicameral inpainting, local `Mistral-NeMo-Minitron-8B-Instruct` (`Q4_K_M` GGUF) Conscious Observer ($A' \leftrightarrow B'$ monologue and top-down $D_4 \times S_{16}$ conjugation), Fuzzy Merkle Forests for sub-linear LLM context expansion, 64-bit associative state graphs (`ConsciousObserver64`), Gohst warped-curvature Riemannian geodesics, $D_4 \times S_{16}$ equivariant stencil induction, and 4-tier hippocampal sleep/dream consolidation.
+- **Core Subsystems:** Intent-Native Operating System (`INOS` meta-operating system kernel with neuromorphic tonic gating and bidirectional phase-locking), local `Qwen2.5` (`0.5B` Proposer ↔ `1.5B` Critic) bicameral inpainting, local `Mistral-NeMo-Minitron-8B-Instruct` (`Q4_K_M` GGUF) Conscious Observer (`A' ↔ B'` monologue and top-down `D₄ × S₁₆` conjugation), Fuzzy Merkle Forests for sub-linear LLM context expansion, 64-bit associative state graphs (`ConsciousObserver64`), Gohst warped-curvature Riemannian geodesics, `D₄ × S₁₆` equivariant stencil induction, and 4-tier hippocampal sleep/dream consolidation.
 - **Affiliation:** Drift Bound Labs ([https://github.com/k-luecke/driftbound-labs](https://github.com/k-luecke/driftbound-labs))
 - **GitHub Profile:** [https://github.com/k-luecke](https://github.com/k-luecke)
 - **ARC-AGI-3 Repository:** [https://github.com/k-luecke/monad-1-arc-agi-3](https://github.com/k-luecke/monad-1-arc-agi-3)

@@ -7,7 +7,7 @@
 
 ## 1. System Requirements
 
-- **Python:** Python $\ge 3.10$
+- **Python:** Python `≥ 3.10`
 - **Packages:** `arc-agi>=0.9.5`, `arcengine>=0.9.0`, `numpy>=1.24.0`, `requests>=2.31.0`, `flask>=3.0.0`
 - **Hardware:** Standard CPU (zero GPU or external LLM API required; `< 300 MB` RAM)
 
@@ -44,7 +44,7 @@ python run_competition_eval.py --local-gateway --environments-dir /path/to/envir
 
 ## 4. Running the Self-Contained Kaggle Competition Notebook
 
-The complete, self-contained notebook is located at [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb) (`566,577` B):
+The complete, self-contained notebook is located at [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb) (`566,921` B):
 - **Cell 1:** Self-contained `MyAgent` (**Monad(1) V7**) implementation.
 - **Cell 2:** Unseen `D1 -> D5` Progressive Curriculum & 4-Tier Sleep/Dream consolidation verification (`5/5` won in `24` actions).
 - **Cell 3:** Automatic Competition Mode entry point (connects to `http://localhost:8001` inside the Kaggle rerun container or `https://three.arcprize.org` when `ARC_API_KEY` is provided).
