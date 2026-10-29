@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary of Monad(1) V7 Results
 
-All evaluations below were executed using the unified **Monad(1) V7** architecture ([`my_agent_v7_inos.py`](my_agent_v7_inos.py) / [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb)) with **zero external LLM API calls** (`~\$0.01` local CPU compute):
+All evaluations below were executed using the unified **Monad(1) V7** architecture ([`my_agent_v7_inos.py`](my_agent_v7_inos.py) / [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb)) with **zero external LLM API calls** (`~$0.01` local CPU compute):
 
 | Evaluation Suite | Execution Mode & Protocol | Score | Environments / Trials Won | Levels Completed | Total Actions | Elapsed Time | Archived Scorecard Artifact |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
