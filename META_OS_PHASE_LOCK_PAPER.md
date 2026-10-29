@@ -30,7 +30,7 @@ As the agent accumulates episodic experience across rooms and levels, a fundamen
 
 We resolve this dilemma by formulating the cognitive architecture as a **Meta-Operating System (`meta(OS)`)** whose primary kernel primitive is the **Phase-Lock Loop (PLL)** between **Subconscious Bottom-Up Evaluation ($\mathcal{B}_{\uparrow}$)** and **Executive Top-Down Evaluation ($\mathcal{E}_{\downarrow}$)**:
 
-$$\text{Memory Retrieval & Action Binding} \iff \text{PhaseLock}\!\Big( \mathcal{B}_{\uparrow}(\mathbf{G}_t, \Delta \mathbf{G}_t), \; \mathcal{E}_{\downarrow}(\mathcal{G}_{\text{goal}}, g, \rho) \Big)$$
+$$\text{Memory Retrieval \& Action Binding} \iff \text{PhaseLock}\!\Big( \mathcal{B}_{\uparrow}(\mathbf{G}_t, \Delta \mathbf{G}_t), \; \mathcal{E}_{\downarrow}(\mathcal{G}_{\text{goal}}, g, \rho) \Big)$$
 
 Rather than treating memory as a passive key-value table queried by a single vector, `meta(OS)` treats episodic memories as **oscillatory structural attractors** indexed inside a **Fuzzy Merkle Forest**. Bottom-up evaluation extracts gauge-covariant sensory evidence from the live frame transition, while top-down evaluation actively transforms candidate memory schemas across dihedral frames $g \in D_4$, role permutations $\rho \in S_{16}$, and control mappings $\pi_{\text{ctrl}} \in S_{|\mathcal{A}|}$ until an exact phase alignment ($\Delta_{\text{falsify}} = 0$) locks the memory into the active execution register.
 
