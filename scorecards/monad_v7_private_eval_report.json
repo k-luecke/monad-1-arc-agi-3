@@ -1,0 +1,389 @@
+{
+  "notebook_path": "C:\\Users\\Kyle W. Luecke\\arcagi\\monad_v7_hw_fast\\kaggle_monad_1p0\\monad-1p0-v7-inos-unified.ipynb",
+  "notebook_size_bytes": 566577,
+  "suite2_public_audit": {
+    "passed": 8,
+    "total": 8
+  },
+  "suite3a_offline_25_games": {
+    "games_won": 25,
+    "games_total": 25,
+    "levels_completed": 183,
+    "levels_total": 183,
+    "official_arcade_score": 100.0,
+    "per_game": [
+      {
+        "game_id": "ar25-0c556536",
+        "won": true,
+        "levels_completed": 8,
+        "win_levels": 8,
+        "actions": 253,
+        "elapsed_s": 11.474
+      },
+      {
+        "game_id": "bp35-0a0ad940",
+        "won": true,
+        "levels_completed": 9,
+        "win_levels": 9,
+        "actions": 362,
+        "elapsed_s": 56.289
+      },
+      {
+        "game_id": "cd82-fb555c5d",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 70,
+        "elapsed_s": 3.783
+      },
+      {
+        "game_id": "cn04-2fe56bfb",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 184,
+        "elapsed_s": 7.184
+      },
+      {
+        "game_id": "dc22-fdcac232",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 512,
+        "elapsed_s": 47.663
+      },
+      {
+        "game_id": "ft09-0d8bbf25",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 75,
+        "elapsed_s": 4.099
+      },
+      {
+        "game_id": "g50t-5849a774",
+        "won": true,
+        "levels_completed": 7,
+        "win_levels": 7,
+        "actions": 291,
+        "elapsed_s": 11.255
+      },
+      {
+        "game_id": "ka59-38d34dbb",
+        "won": true,
+        "levels_completed": 7,
+        "win_levels": 7,
+        "actions": 311,
+        "elapsed_s": 25.876
+      },
+      {
+        "game_id": "lf52-271a04aa",
+        "won": true,
+        "levels_completed": 10,
+        "win_levels": 10,
+        "actions": 726,
+        "elapsed_s": 37.002
+      },
+      {
+        "game_id": "lp85-305b61c3",
+        "won": true,
+        "levels_completed": 8,
+        "win_levels": 8,
+        "actions": 79,
+        "elapsed_s": 4.497
+      },
+      {
+        "game_id": "ls20-9607627b",
+        "won": true,
+        "levels_completed": 7,
+        "win_levels": 7,
+        "actions": 493,
+        "elapsed_s": 45.299
+      },
+      {
+        "game_id": "m0r0-492f87ba",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 183,
+        "elapsed_s": 19.408
+      },
+      {
+        "game_id": "r11l-495a7899",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 81,
+        "elapsed_s": 5.88
+      },
+      {
+        "game_id": "re86-8af5384d",
+        "won": true,
+        "levels_completed": 8,
+        "win_levels": 8,
+        "actions": 523,
+        "elapsed_s": 30.506
+      },
+      {
+        "game_id": "s5i5-18d95033",
+        "won": true,
+        "levels_completed": 8,
+        "win_levels": 8,
+        "actions": 286,
+        "elapsed_s": 23.089
+      },
+      {
+        "game_id": "sb26-7fbdac44",
+        "won": true,
+        "levels_completed": 8,
+        "win_levels": 8,
+        "actions": 124,
+        "elapsed_s": 5.698
+      },
+      {
+        "game_id": "sc25-635fd71a",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 122,
+        "elapsed_s": 5.551
+      },
+      {
+        "game_id": "sk48-d8078629",
+        "won": true,
+        "levels_completed": 8,
+        "win_levels": 8,
+        "actions": 304,
+        "elapsed_s": 26.614
+      },
+      {
+        "game_id": "sp80-589a99af",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 179,
+        "elapsed_s": 7.228
+      },
+      {
+        "game_id": "su15-1944f8ab",
+        "won": true,
+        "levels_completed": 9,
+        "win_levels": 9,
+        "actions": 87,
+        "elapsed_s": 5.298
+      },
+      {
+        "game_id": "tn36-ef4dde99",
+        "won": true,
+        "levels_completed": 7,
+        "win_levels": 7,
+        "actions": 100,
+        "elapsed_s": 5.183
+      },
+      {
+        "game_id": "tr87-cd924810",
+        "won": true,
+        "levels_completed": 6,
+        "win_levels": 6,
+        "actions": 132,
+        "elapsed_s": 6.288
+      },
+      {
+        "game_id": "tu93-0768757b",
+        "won": true,
+        "levels_completed": 9,
+        "win_levels": 9,
+        "actions": 185,
+        "elapsed_s": 42.346
+      },
+      {
+        "game_id": "vc33-5430563c",
+        "won": true,
+        "levels_completed": 7,
+        "win_levels": 7,
+        "actions": 173,
+        "elapsed_s": 11.206
+      },
+      {
+        "game_id": "wa30-ee6fef47",
+        "won": true,
+        "levels_completed": 9,
+        "win_levels": 9,
+        "actions": 609,
+        "elapsed_s": 34.92
+      }
+    ]
+  },
+  "suite3b_blinded_private_holdout": {
+    "passed": 15,
+    "total": 15,
+    "trials": [
+      {
+        "base_game": "tu93",
+        "blinded_game_id": "private_holdout_01",
+        "description": "Blinded ID + Unseen Palette Seed 101",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 18,
+        "changed_pixels": 1152570,
+        "remapped_actions": 0,
+        "elapsed_s": 6.117
+      },
+      {
+        "base_game": "tu93",
+        "blinded_game_id": "private_holdout_02",
+        "description": "Blinded ID + Unseen Palette Seed 202",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 18,
+        "changed_pixels": 1155072,
+        "remapped_actions": 0,
+        "elapsed_s": 6.089
+      },
+      {
+        "base_game": "tu93",
+        "blinded_game_id": "private_holdout_03",
+        "description": "Blinded ID + Mid-Episode Inverted Controls",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 20,
+        "changed_pixels": 0,
+        "remapped_actions": 18,
+        "elapsed_s": 6.472
+      },
+      {
+        "base_game": "tu93",
+        "blinded_game_id": "private_holdout_04",
+        "description": "Blinded ID + Unseen Palette 303 + Inverted Controls",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 20,
+        "changed_pixels": 1286144,
+        "remapped_actions": 18,
+        "elapsed_s": 6.593
+      },
+      {
+        "base_game": "dc22",
+        "blinded_game_id": "private_holdout_05",
+        "description": "Blinded ID + Unseen Palette Seed 101",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 20,
+        "changed_pixels": 167772,
+        "remapped_actions": 0,
+        "elapsed_s": 3.838
+      },
+      {
+        "base_game": "dc22",
+        "blinded_game_id": "private_holdout_06",
+        "description": "Blinded ID + Unseen Palette Seed 202",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 20,
+        "changed_pixels": 167936,
+        "remapped_actions": 0,
+        "elapsed_s": 3.873
+      },
+      {
+        "base_game": "dc22",
+        "blinded_game_id": "private_holdout_07",
+        "description": "Blinded ID + Mid-Episode Inverted Controls",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 24,
+        "changed_pixels": 0,
+        "remapped_actions": 20,
+        "elapsed_s": 4.27
+      },
+      {
+        "base_game": "dc22",
+        "blinded_game_id": "private_holdout_08",
+        "description": "Blinded ID + Unseen Palette 303 + Inverted Controls",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 24,
+        "changed_pixels": 200704,
+        "remapped_actions": 20,
+        "elapsed_s": 4.349
+      },
+      {
+        "base_game": "vc33",
+        "blinded_game_id": "private_holdout_09",
+        "description": "Blinded ID (Hydraulic Columns)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 3,
+        "changed_pixels": 0,
+        "remapped_actions": 0,
+        "elapsed_s": 1.223
+      },
+      {
+        "base_game": "ls20",
+        "blinded_game_id": "private_holdout_10",
+        "description": "Blinded ID + Mid-Episode Inverted Controls (Labyrinth)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 15,
+        "changed_pixels": 0,
+        "remapped_actions": 13,
+        "elapsed_s": 1.536
+      },
+      {
+        "base_game": "wa30",
+        "blinded_game_id": "private_holdout_11",
+        "description": "Blinded ID + Mid-Episode Inverted Controls (Warehouse)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 28,
+        "changed_pixels": 0,
+        "remapped_actions": 20,
+        "elapsed_s": 2.32
+      },
+      {
+        "base_game": "re86",
+        "blinded_game_id": "private_holdout_12",
+        "description": "Blinded ID + Mid-Episode Inverted Controls (Shape Alignment)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 29,
+        "changed_pixels": 0,
+        "remapped_actions": 25,
+        "elapsed_s": 2.207
+      },
+      {
+        "base_game": "ft09",
+        "blinded_game_id": "private_holdout_13",
+        "description": "Blinded ID + Unseen Palette Seed 404 (Stencil Constraint)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 4,
+        "changed_pixels": 31196,
+        "remapped_actions": 0,
+        "elapsed_s": 1.606
+      },
+      {
+        "base_game": "lp85",
+        "blinded_game_id": "private_holdout_14",
+        "description": "Blinded ID (Loop Tile Cycles)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 5,
+        "changed_pixels": 0,
+        "remapped_actions": 0,
+        "elapsed_s": 1.349
+      },
+      {
+        "base_game": "sb26",
+        "blinded_game_id": "private_holdout_15",
+        "description": "Blinded ID (Grammar Container Tree)",
+        "solved_level_1": true,
+        "levels_completed": 1,
+        "actions": 9,
+        "changed_pixels": 0,
+        "remapped_actions": 0,
+        "elapsed_s": 1.389
+      }
+    ]
+  },
+  "total_elapsed_seconds": 596.033
+}

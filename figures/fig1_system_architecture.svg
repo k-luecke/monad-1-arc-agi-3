@@ -1,0 +1,223 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" width="100%" height="100%" style="background:#ffffff; font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <style>
+      .title { font-size: 20px; font-weight: 700; fill: #0f172a; }
+      .subtitle { font-size: 13px; font-weight: 400; fill: #64748b; }
+      .plane-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+      .box-title { font-size: 14px; font-weight: 600; fill: #0f172a; }
+      .box-desc { font-size: 11.5px; font-weight: 400; fill: #475569; line-height: 1.4; }
+      .badge { font-size: 10px; font-weight: 600; padding: 2px 6px; }
+      .flow-text { font-size: 11px; font-weight: 600; fill: #475569; }
+      .shadow { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.04)) drop-shadow(0 1px 2px rgba(0,0,0,0.06)); }
+      .glow-border { stroke-dasharray: 4, 4; }
+    </style>
+    
+    <filter id="card-shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.06"/>
+    </filter>
+    
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#2563eb" />
+    </marker>
+    <marker id="arrow-teal" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#0d9488" />
+    </marker>
+    <marker id="arrow-indigo" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4f46e5" />
+    </marker>
+  </defs>
+
+  <!-- Canvas Header -->
+  <g transform="translate(40, 30)">
+    <text class="title" x="0" y="0">Figure 1: b.splosive (INOS v0.2) Cognitive Operating System Architecture</text>
+    <text class="subtitle" x="0" y="20">End-to-End Five-Plane System Topology Unifying Typed Boundaries, Bicameral Control, and Algebraic Memory</text>
+  </g>
+
+  <!-- Top Input: Raw Observation -->
+  <g transform="translate(350, 75)" filter="url(#card-shadow)">
+    <rect width="400" height="42" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+    <text x="200" y="22" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">RAW ENVIRONMENT OBSERVATION</text>
+    <text x="200" y="35" text-anchor="middle" font-size="10.5" fill="#64748b">2D Discrete ARC Grids (30×30) | Dynamic ARC-AGI-3 Game Frames (64×64)</text>
+  </g>
+
+  <!-- Connector Down to Plane 1 -->
+  <line x1="550" y1="117" x2="550" y2="135" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- PLANE 1: SCP Sensory Membrane -->
+  <g transform="translate(40, 140)">
+    <rect width="1020" height="110" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text class="plane-title" x="20" y="24" fill="#15803d">Plane 1: Semantic Compression Protocol (SCP Membrane)</text>
+    <rect x="760" y="12" width="240" height="20" rx="10" fill="#dcfce7"/>
+    <text x="880" y="25" text-anchor="middle" font-size="9.5" font-weight="700" fill="#166534">EFFERENT SAFETY &amp; 3.8× BPE COMPRESSION</text>
+
+    <!-- Sub-box 1.1: Compact Observation -->
+    <g transform="translate(20, 36)">
+      <rect width="310" height="60" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1"/>
+      <text class="box-title" x="12" y="20" fill="#166534">Compact Observation Projection</text>
+      <text class="box-desc" x="12" y="37">Compacts observations to <tspan font-family="monospace" font-weight="600">E{epoch}[path:size#sha±w]</tspan></text>
+      <text class="box-desc" x="12" y="51">Reduces BPE context tokens by <tspan font-weight="700">3.1× to 3.8×</tspan></text>
+    </g>
+
+    <!-- Sub-box 1.2: Simplex Logit Projection & DFA -->
+    <g transform="translate(345, 36)">
+      <rect width="320" height="60" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1"/>
+      <text class="box-title" x="12" y="20" fill="#166534">Simplex Logit Projection &amp; DFA</text>
+      <text class="box-desc" x="12" y="37">Grammar automaton clamps invalid logits to <tspan font-family="monospace">-1e9</tspan></text>
+      <text class="box-desc" x="12" y="51">Guarantees fail-closed syntax over intent capsules</text>
+    </g>
+
+    <!-- Sub-box 1.3: D1-D4 Guard Ladder -->
+    <g transform="translate(680, 36)">
+      <rect width="320" height="60" rx="6" fill="#ffffff" stroke="#bbf7d0" stroke-width="1"/>
+      <text class="box-title" x="12" y="20" fill="#166534">D1–D4 Deterministic Guard Ladder</text>
+      <text class="box-desc" x="12" y="37">D1 Syntax • D2 Policy • D3 Epistemic (1-retry repair)</text>
+      <text class="box-desc" x="12" y="51">D4 Idempotence (<tspan font-weight="600">ΔS = 0</tspan>) • <tspan font-weight="700">0 Invalid Actions</tspan></text>
+    </g>
+  </g>
+
+  <!-- Connector Down to Plane 2 & 3 Split -->
+  <line x1="550" y1="250" x2="550" y2="270" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text class="flow-text" x="560" y="264">Typed Intent Request</text>
+
+  <!-- PLANE 2: State-Verified Working Memory (NNC) -->
+  <g transform="translate(40, 275)">
+    <rect width="1020" height="95" rx="10" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text class="plane-title" x="20" y="24" fill="#0369a1">Plane 2: State-Verified Neural Network Cache (NNC Working Memory)</text>
+    <rect x="740" y="12" width="260" height="20" rx="10" fill="#e0f2fe"/>
+    <text x="870" y="25" text-anchor="middle" font-size="9.5" font-weight="700" fill="#0369a1">CRYPTOGRAPHIC STATE BINDING (0.0 ms HIT)</text>
+
+    <!-- Sub-box 2.1: Cryptographic Keying -->
+    <g transform="translate(20, 34)">
+      <rect width="310" height="48" rx="6" fill="#ffffff" stroke="#7dd3fc" stroke-width="1"/>
+      <text class="box-title" x="12" y="18" fill="#0369a1">State-Verified Keying</text>
+      <text class="box-desc" x="12" y="35"><tspan font-family="monospace">SHA256(Prompt || StateHash || Epoch)</tspan></text>
+    </g>
+
+    <!-- Sub-box 2.2: Dual-Tier Retrieval -->
+    <g transform="translate(345, 34)">
+      <rect width="320" height="48" rx="6" fill="#ffffff" stroke="#7dd3fc" stroke-width="1"/>
+      <text class="box-title" x="12" y="18" fill="#0369a1">Tier 1 &amp; Tier 1b Dual Retrieval</text>
+      <text class="box-desc" x="12" y="35">Tier 1 Exact (0.0 ms) • Tier 1b Associative Cosine</text>
+    </g>
+
+    <!-- Sub-box 2.3: CRDT Tombstones -->
+    <g transform="translate(680, 34)">
+      <rect width="320" height="48" rx="6" fill="#ffffff" stroke="#7dd3fc" stroke-width="1"/>
+      <text class="box-title" x="12" y="18" fill="#0369a1">CRDT OR-Set Tombstone Retraction</text>
+      <text class="box-desc" x="12" y="35">Lock-free staging + Causal Horizon Protection</text>
+    </g>
+  </g>
+
+  <!-- Connector Down to Plane 3 -->
+  <line x1="550" y1="370" x2="550" y2="390" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <text class="flow-text" x="560" y="384">Cache Miss / Novel Topology</text>
+
+  <!-- PLANE 3: Neuromorphic Tonic Gating & Bicameral Control Plane -->
+  <g transform="translate(40, 395)">
+    <rect width="1020" height="155" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text class="plane-title" x="20" y="24" fill="#7e22ce">Plane 3: Neuromorphic Tonic Gating &amp; INOS Bicameral Control</text>
+    <rect x="750" y="12" width="250" height="20" rx="10" fill="#f3e8ff"/>
+    <text x="875" y="25" text-anchor="middle" font-size="9.5" font-weight="700" fill="#7e22ce">HELMHOLTZ PREDICTIVE VIEW SEMANTICS</text>
+
+    <!-- Tonic Gate Controller -->
+    <g transform="translate(20, 36)">
+      <rect width="250" height="105" rx="6" fill="#ffffff" stroke="#c084fc" stroke-width="1"/>
+      <text class="box-title" x="12" y="20" fill="#6b21a8">Tonic Gating Governor</text>
+      <text class="box-desc" x="12" y="38">Drive: <tspan font-style="italic">z = σ(w<tspan baseline-shift="sub">a</tspan>A + w<tspan baseline-shift="sub">r</tspan>R + w<tspan baseline-shift="sub">u</tspan>U - b)</tspan></text>
+      <text class="box-desc" x="12" y="54">Tone Leak: <tspan font-weight="600">λ = 0.35</tspan> | Risk clamp: <tspan font-weight="600">≥ 0.8</tspan></text>
+      <text class="box-desc" x="12" y="70">Persistence: <tspan font-weight="600">ρ<tspan baseline-shift="sub">eff</tspan> = 0.989</tspan> (<tspan font-style="italic">T<tspan baseline-shift="sub">hold</tspan> ~ 27t</tspan>)</text>
+      <text class="box-desc" x="12" y="86">Clarity Bypass: <tspan font-weight="600">C<tspan baseline-shift="sub">t</tspan> ≥ 0.72</tspan> (0.0-lag snap)</text>
+    </g>
+
+    <!-- Model A: View Renderer -->
+    <g transform="translate(290, 36)">
+      <rect width="320" height="105" rx="6" fill="#ffffff" stroke="#a855f7" stroke-width="1.2"/>
+      <rect x="12" y="10" width="85" height="18" rx="4" fill="#ede9fe"/>
+      <text x="54" y="23" text-anchor="middle" font-size="9" font-weight="700" fill="#6b21a8">MODEL A (RH)</text>
+      <text class="box-title" x="105" y="24" fill="#4c1d95">Top-Down View Renderer</text>
+      <text class="box-desc" x="12" y="46">• Projects completed output with <tspan font-weight="700">subjective certainty</tspan></text>
+      <text class="box-desc" x="12" y="62">• Gestalt topological priors (containment, symmetry)</text>
+      <text class="box-desc" x="12" y="78">• Saliency focus &amp; macro-frame generation</text>
+      <text class="box-desc" x="12" y="94">• Generates <tspan font-weight="600">V<tspan baseline-shift="sub">projected</tspan> = Render(Prior)</tspan></text>
+    </g>
+
+    <!-- BRG1 Binary Wire Protocol Bridge -->
+    <g transform="translate(620, 68)">
+      <rect width="70" height="40" rx="4" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+      <text x="35" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#334155">BRG1</text>
+      <text x="35" y="30" text-anchor="middle" font-size="8" fill="#64748b">13-Byte Wire</text>
+      <line x1="-10" y1="20" x2="0" y2="20" stroke="#7e22ce" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="80" y1="20" x2="70" y2="20" stroke="#7e22ce" stroke-width="1.5" marker-end="url(#arrow)"/>
+    </g>
+
+    <!-- Model B: Residual Diff Engine -->
+    <g transform="translate(700, 36)">
+      <rect width="300" height="105" rx="6" fill="#ffffff" stroke="#a855f7" stroke-width="1.2"/>
+      <rect x="12" y="10" width="85" height="18" rx="4" fill="#ede9fe"/>
+      <text x="54" y="23" text-anchor="middle" font-size="9" font-weight="700" fill="#6b21a8">MODEL B (LH)</text>
+      <text class="box-title" x="105" y="24" fill="#4c1d95">Residual Diff Engine</text>
+      <text class="box-desc" x="12" y="46">• Evaluates prediction residual <tspan font-weight="700">Δ = Ground (-) V<tspan baseline-shift="sub">proj</tspan></tspan></text>
+      <text class="box-desc" x="12" y="62">• Counter-Example Guided Synthesis (CEGIS)</text>
+      <text class="box-desc" x="12" y="78">• Formal unit-testing across training exemplars</text>
+      <text class="box-desc" x="12" y="94">• Invariant certification &amp; bounded repair</text>
+    </g>
+  </g>
+
+  <!-- Connectors from Plane 3 down to Planes 4 & 5 -->
+  <line x1="330" y1="550" x2="330" y2="575" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-indigo)"/>
+  <line x1="770" y1="550" x2="770" y2="575" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-teal)"/>
+
+  <!-- PLANE 4: RH Algebraic Search & Merkle Atlas (Left Bottom) -->
+  <g transform="translate(40, 580)">
+    <rect width="490" height="110" rx="10" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text class="plane-title" x="18" y="22" fill="#3730a3">Plane 4: C SIMD / RH Algebraic Accelerators</text>
+    
+    <g transform="translate(15, 34)">
+      <rect width="220" height="62" rx="6" fill="#ffffff" stroke="#a5b4fc" stroke-width="1"/>
+      <text class="box-title" x="10" y="18" fill="#312e81">Meet-in-the-Middle (MitM)</text>
+      <text class="box-desc" x="10" y="34">Forward baby steps + backward giant</text>
+      <text class="box-desc" x="10" y="48">Pollard Kangaroo: <tspan font-weight="700">O(b<tspan baseline-shift="super">d/2</tspan>)</tspan> collision</text>
+    </g>
+
+    <g transform="translate(245, 34)">
+      <rect width="230" height="62" rx="6" fill="#ffffff" stroke="#a5b4fc" stroke-width="1"/>
+      <text class="box-title" x="10" y="18" fill="#312e81">D4 × S10 Canonical Atlas</text>
+      <text class="box-desc" x="10" y="34">AVX2 64-bit CID + 128-bit POPCNT</text>
+      <text class="box-desc" x="10" y="48">75×75 algebraic prune matrix</text>
+    </g>
+  </g>
+
+  <!-- PLANE 5: Rust Userspace Engine (Right Bottom) -->
+  <g transform="translate(570, 580)">
+    <rect width="490" height="110" rx="10" fill="#f0fdfa" stroke="#99f6e4" stroke-width="1.5" filter="url(#card-shadow)"/>
+    <text class="plane-title" x="18" y="22" fill="#0f766e">Plane 5: Freestanding Rust Userspace Engines</text>
+    
+    <g transform="translate(15, 34)">
+      <rect width="220" height="62" rx="6" fill="#ffffff" stroke="#5eead4" stroke-width="1"/>
+      <text class="box-title" x="10" y="18" fill="#134e4a">19 Freestanding Apps</text>
+      <text class="box-desc" x="10" y="34">Canvas, CAD, Sheet, Physics, Graph</text>
+      <text class="box-desc" x="10" y="48">ArcBitboard10 &amp; IntScript VM</text>
+    </g>
+
+    <g transform="translate(245, 34)">
+      <rect width="230" height="62" rx="6" fill="#ffffff" stroke="#5eead4" stroke-width="1"/>
+      <text class="box-title" x="10" y="18" fill="#134e4a">Static Monolith Link</text>
+      <text class="box-desc" x="10" y="34"><tspan font-family="monospace">inos_native_daemon.exe</tspan></text>
+      <text class="box-desc" x="10" y="48">100% offline air-gapped execution</text>
+    </g>
+  </g>
+
+  <!-- Final Convergence to Output -->
+  <line x1="285" y1="690" x2="520" y2="720" stroke="#4f46e5" stroke-width="2" marker-end="url(#arrow-indigo)"/>
+  <line x1="815" y1="690" x2="580" y2="720" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow-teal)"/>
+
+  <!-- Output Box -->
+  <g transform="translate(360, 715)" filter="url(#card-shadow)">
+    <rect width="380" height="42" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+    <text x="190" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#f8fafc">VERIFIED PASS@2 SOLUTION / ACTION</text>
+    <text x="190" y="34" text-anchor="middle" font-size="10" fill="#94a3b8">ARC-AGI-1/2 submission.json | ARC-AGI-3 submission.parquet</text>
+  </g>
+</svg>
