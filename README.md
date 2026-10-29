@@ -1,9 +1,8 @@
-# `meta(OS)` / Monad(1) V7 — Phase-Locked Neuro-Symbolic Reasoning & Fuzzy Merkle Forests for ARC-AGI-3
+# Monad(1) V7 — Unified Interactive Reasoning Architecture for ARC-AGI-3
 
 [![Author](https://img.shields.io/badge/Author-Kyle%20W.%20Luecke-blue.svg)](https://github.com/k-luecke)
 [![Organization](https://img.shields.io/badge/Lab-Drift%20Bound%20Labs-darkgreen.svg)](https://github.com/k-luecke/driftbound-labs)
-[![meta(OS) Paper](https://img.shields.io/badge/Paper%201-meta(OS)%20Phase--Lock%20PDF-red.svg)](META_OS_PHASE_LOCK_PAPER.pdf)
-[![FMF Paper](https://img.shields.io/badge/Paper%202-Fuzzy%20Merkle%20Forest%20PDF-crimson.svg)](FUZZY_MERKLE_FOREST_PAPER.pdf)
+[![Unified Paper](https://img.shields.io/badge/Paper-MONAD__1__V7__PAPER.pdf-red.svg)](MONAD_1_V7_PAPER.pdf)
 [![ARC-3 Competition Mode](https://img.shields.io/badge/ARC--AGI--3%20Competition%20Mode-100.0%25%20(25%2F25%20Games%2C%20183%2F183%20Levels)-brightgreen.svg)](https://arcprize.org/scorecards/6b457c81-1b14-407c-9f8a-d1e119fc72f9)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
@@ -11,28 +10,30 @@
 
 ## Overview
 
-**`meta(OS)` / Monad(1) V7** is a zero-prior interactive reasoning architecture engineered for the **ARC-AGI-3** benchmark under strict **Competition Mode (`OperationMode.COMPETITION`)** constraints.
+**Monad(1) V7** is a unified, zero-prior neuro-symbolic reasoning architecture engineered for the **ARC-AGI-3** interactive benchmark under strict **Competition Mode (`OperationMode.COMPETITION`)** constraints.
 
-Rather than relying on cloud language models or flat token histories that scale quadratically ($O(T^2)$) with episode length, `meta(OS)` coordinates interactive perception, associative memory retrieval, and trajectory planning through **bidirectional phase-locking** between two counter-propagating evaluation streams:
+Under the overarching **Monad(1) V7** umbrella, six specialized subsystems work in concert at zero external LLM API cost:
 
-1. **Subconscious Bottom-Up Evaluation ($\mathcal{B}_{\uparrow}$):** Compresses raw $64 \times 64$ frames into 8-connected topological objects, empirical action-transition Jacobians ($\Delta \mathbf{G}_t = \mathbf{G}_{t+1} \ominus \mathbf{G}_t$) on a **Second-Order Epistemic Canvas**, and $D_4 \times S_{16}$ invariant structural sketches.
-2. **Executive Top-Down Evaluation ($\mathcal{E}_{\downarrow}$):** Projects reference-frame gauge conjugations $\Gamma \in D_4 \times S_{16} \times S_{|\mathcal{A}|}$, **Gohst Warped-Curvature Riemannian Geodesics** ($g_{ij}(r,c)$ with **2-Opt TSP** subgoal ordering), and first-principles stencil/panel constraints downward onto the sensory manifold.
-3. **Phase-Locked Associative Memory & Fuzzy Merkle Forest (`ConsciousObserver64`):** Episodic states are indexed across an orthogonal 4-tree **Fuzzy Merkle Forest** ($\mathcal{F} = \{\mathcal{T}_{\text{ego}}, \mathcal{T}_{\text{topo}}, \mathcal{T}_{\text{afford}}, \mathcal{T}_{\text{causal}}\}$) pairing an exact 64-bit Zobrist/Merkle state digest (`ConsciousObserver64`) with a 64-bit locality-sensitive SimHash sketch. When $\mathcal{B}_{\uparrow}$ and $\mathcal{E}_{\downarrow}$ achieve phase lock ($\Delta_{\text{falsify}} = 0$), relevant memory schemas bind in $O(K \log N)$ bitboard time; when a premise shift or control inversion breaks phase lock ($\Delta_{\text{falsify}} > 0$), a **Phase-Slip Interrupt** quarantines the falsified edge and re-locks the gauge frame within $\le 2$ actions.
+1. **The Intent-Native Operating System (`INOS` — The Meta-Operating System Kernel):** Schedules and synchronizes a **Subconscious Bottom-Up Evaluation Stream ($\mathcal{B}_{\uparrow}$)** and an **Executive Top-Down Evaluation Stream ($\mathcal{E}_{\downarrow}$)** via **Bidirectional Phase-Locking ($\mathcal{C}_{\text{lock}}$)** and hardware-speed **Phase-Slip Interrupts** to locate and bind relevant memories.
+2. **The Second-Order Epistemic Canvas (`_EpistemicCanvas`) & Topological Retina:** Eliminative bottom-up sensory processing that partitions $64 \times 64$ frames into playfield and HUD manifolds, extracts 8-connected topological objects, and computes empirical action-transition Jacobians ($\Delta \mathbf{G}_t = \mathbf{G}_{t+1} \ominus \mathbf{G}_t$) to infer ego-avatar kinematics and recover from mid-episode control inversions within $\le 2$ actions.
+3. **The Fuzzy Merkle Forest (`FMF`) & 64-Bit Associative State Graph (`ConsciousObserver64`):** Sub-linear context expansion and episodic memory indexing each state across an orthogonal forest of $K = 4$ multi-scale trees ($\mathcal{T}_{\text{ego}}, \mathcal{T}_{\text{topo}}, \mathcal{T}_{\text{afford}}, \mathcal{T}_{\text{causal}}$) with a 128-bit Dual Signature $\Sigma(v) = (h_{\text{exact}}(v), \tilde{\sigma}_{\text{fuzzy}}(v)) \in \mathbb{Z}_{2^{64}} \times \mathbb{F}_2^{64}$—unifying exact 64-bit Zobrist/Merkle cycle prevention and edge-falsification penalties ($\Delta \Phi$) with $O(K \log N)$ locality-sensitive `POPCNT` associative retrieval modulo $D_4 \times S_{16}$.
+4. **The Gohst Warped-Curvature Metric Tensor & 2-Opt TSP Geodesic Planner:** Top-down Riemannian navigation over $ds^2 = w(r,c)(dr^2 + dc^2)$ solved via multi-source Dijkstra and 2-Opt Traveling Salesperson subgoal ordering.
+5. **First-Principles $D_4 \times S_{16}$ Equivariant Stencil & Panel CEGIS Solver:** Palette-invariant and rotation-equivariant deduction of `match_c`, `diff_c`, and `blank_c` roles across worked example quadrants and bordered selector panels.
+6. **Four-Tier Hippocampal Sleep/Dream Consolidation (`STM_SHARD_00` $\to$ LTM):** Loop-erased geodesic distillation and cross-level subtree merging across `FAST_SYNAPTIC_TAG`, `PONTIFICATE`, `DAYDREAM`, and `DEEP_SLOW_WAVE` consolidation tiers.
 
 ---
 
-## Formal Papers & Technical Specifications
+## Formal Paper & Technical Specifications
 
-- **[`META_OS_PHASE_LOCK_PAPER.pdf`](META_OS_PHASE_LOCK_PAPER.pdf)** ([Markdown Source](META_OS_PHASE_LOCK_PAPER.md)) — *`meta(OS)`: Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning*.
-- **[`FUZZY_MERKLE_FOREST_PAPER.pdf`](FUZZY_MERKLE_FOREST_PAPER.pdf)** ([Markdown Source](FUZZY_MERKLE_FOREST_PAPER.md)) — *Fuzzy Merkle Forests for Sub-Linear Context Expansion, Dihedral-Permutation Equivariant Associative Retrieval, and Falsification-Gated Episodic Memory in Long-Horizon Reasoning*.
-- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — Complete architectural specification of the final `meta(OS)` / Monad(1) V7 engine.
-- **[`MATHEMATICAL_FOUNDATIONS.md`](MATHEMATICAL_FOUNDATIONS.md)** — Formal mathematical equations for bidirectional phase-locking, dual-signature Fuzzy Merkle Forests, warped-curvature geodesics, and 4-tier harmonic consolidation.
+- **[`MONAD_1_V7_PAPER.pdf`](MONAD_1_V7_PAPER.pdf)** ([Markdown Source](MONAD_1_V7_PAPER.md)) — *Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests*.
+- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — Complete architectural specification of **Monad(1) V7** and its six constituent subsystems.
+- **[`MATHEMATICAL_FOUNDATIONS.md`](MATHEMATICAL_FOUNDATIONS.md)** — Formal mathematical equations for `INOS` bidirectional phase-locking, dual-signature Fuzzy Merkle Forests, warped-curvature geodesics, and 4-tier harmonic consolidation.
 - **[`BENCHMARKS.md`](BENCHMARKS.md)** — Full per-game Competition Mode and Out-of-Distribution (OOD) evaluation tables.
 - **[`REPRODUCIBILITY.md`](REPRODUCIBILITY.md)** — Step-by-step instructions to reproduce all Competition Mode and local gateway scorecards.
 
 ---
 
-## Verified Benchmark Results (Final Model)
+## Verified Benchmark Results (`Monad(1) V7`)
 
 | Evaluation Suite | Protocol & Endpoint | Score | Environments / Trials Won | Levels Completed | Total Actions | Elapsed Time | Verified Artifact |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -65,11 +66,9 @@ python run_competition_eval.py --local-gateway --environments-dir /path/to/envir
 ```text
 monad-1-arc-agi-3/
 ├── README.md                              # Overview, benchmark summary & quickstart
-├── META_OS_PHASE_LOCK_PAPER.pdf           # Paper 1 PDF: meta(OS) Phase-Locked Evaluation & Memory Retrieval
-├── META_OS_PHASE_LOCK_PAPER.md            # Paper 1 Markdown/LaTeX source
-├── FUZZY_MERKLE_FOREST_PAPER.pdf          # Paper 2 PDF: Fuzzy Merkle Forests for Expanded Context
-├── FUZZY_MERKLE_FOREST_PAPER.md           # Paper 2 Markdown/LaTeX source
-├── ARCHITECTURE.md                        # System architecture specification of the final model
+├── MONAD_1_V7_PAPER.pdf                   # Unified Formal Paper PDF
+├── MONAD_1_V7_PAPER.md                    # Unified Formal Paper Markdown/LaTeX source
+├── ARCHITECTURE.md                        # System architecture specification of Monad(1) V7
 ├── MATHEMATICAL_FOUNDATIONS.md            # Formal mathematical equations & proofs
 ├── BENCHMARKS.md                          # Per-game Competition Mode & OOD scorecards
 ├── REPRODUCIBILITY.md                     # Step-by-step reproduction guide
@@ -78,7 +77,7 @@ monad-1-arc-agi-3/
 ├── LICENSE                                # Apache License 2.0
 ├── requirements.txt                       # Python dependencies
 ├── run_competition_eval.py                # 1-command ARC-AGI-3 OperationMode.COMPETITION runner
-├── my_agent_v7_inos.py                    # Re-runnable meta(OS) / Monad(1) V7 interactive agent
+├── my_agent_v7_inos.py                    # Re-runnable Monad(1) V7 interactive agent
 ├── kaggle_monad_1p0/                      # Self-contained Kaggle & Competition Mode notebook
 │   └── monad-1p0-v7-inos-unified.ipynb
 └── scorecards/                            # Verified Competition Mode & OOD evaluation scorecards
@@ -92,16 +91,8 @@ monad-1-arc-agi-3/
 ## Citation
 
 ```bibtex
-@article{luecke2026metaos,
-  title={meta(OS): Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning},
-  author={Luecke, Kyle W.},
-  journal={Drift Bound Labs Technical Report},
-  year={2026},
-  month={October}
-}
-
-@article{luecke2026fmf,
-  title={Fuzzy Merkle Forests for Sub-Linear Context Expansion, Dihedral-Permutation Equivariant Associative Retrieval, and Falsification-Gated Episodic Memory in Long-Horizon Reasoning},
+@article{luecke2026monad1v7,
+  title={Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests},
   author={Luecke, Kyle W.},
   journal={Drift Bound Labs Technical Report},
   year={2026},

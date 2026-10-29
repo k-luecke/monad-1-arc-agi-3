@@ -1,4 +1,4 @@
-# `meta(OS)` / Monad(1) V7 — Verified ARC-AGI-3 Benchmark Scorecards
+# Monad(1) V7 — Verified ARC-AGI-3 Benchmark Scorecards
 
 **Author:** Kyle W. Luecke (`Drift Bound Labs`)  
 **Repository:** [https://github.com/k-luecke/monad-1-arc-agi-3](https://github.com/k-luecke/monad-1-arc-agi-3)  
@@ -6,9 +6,9 @@
 
 ---
 
-## 1. Executive Summary of Final Model Results
+## 1. Executive Summary of Monad(1) V7 Results
 
-All evaluations below were executed using the final **`meta(OS)` / Monad(1) V7** architecture ([`my_agent_v7_inos.py`](my_agent_v7_inos.py) / [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb)) with **zero external LLM API calls** (`~\$0.01` local CPU compute):
+All evaluations below were executed using the unified **Monad(1) V7** architecture ([`my_agent_v7_inos.py`](my_agent_v7_inos.py) / [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb)) with **zero external LLM API calls** (`~\$0.01` local CPU compute):
 
 | Evaluation Suite | Execution Mode & Protocol | Score | Environments / Trials Won | Levels Completed | Total Actions | Elapsed Time | Archived Scorecard Artifact |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -61,7 +61,7 @@ All evaluations below were executed using the final **`meta(OS)` / Monad(1) V7**
 
 ## 3. Out-of-Distribution (OOD) & Blinded Holdout Verification
 
-To verify that `meta(OS)` / Monad(1) V7 relies strictly on live phase-locked perception and action-diff discovery rather than game-ID dispatch or fixed palette indices, [`monad_v7_private_eval_report.json`](scorecards/monad_v7_private_eval_report.json) records three independent OOD verification suites:
+To verify that **Monad(1) V7** relies strictly on `INOS` phase-locked perception and action-diff discovery rather than game-ID dispatch or fixed palette indices, [`monad_v7_private_eval_report.json`](scorecards/monad_v7_private_eval_report.json) records three independent OOD verification suites:
 
 1. **Blinded-ID Private Holdout Suite (`15 / 15` Won — `100.0%`):**
    - Instantiates `MyAgent(game_id="private_holdout_01")` through `private_holdout_15` so the agent receives zero game-ID information, combined with unseen 16-color palette permutations (`palette_seed=701..715`) and dynamic mid-episode control inversions (`ACTION1 <-> ACTION2`, `ACTION3 <-> ACTION4`). All 15 trials achieved `GameState.WIN`.

@@ -1,30 +1,30 @@
 cff-version: 1.2.0
-message: "If you use this software or cite the papers, please cite it as below."
-title: "meta(OS): Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning"
+message: "If you use this software or cite the paper, please cite it as below."
+title: "Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests"
 authors:
   - family-names: "Luecke"
     given-names: "Kyle W."
     affiliation: "Drift Bound Labs"
-version: 0.7.0
+version: 7.0.0
 date-released: 2026-10-29
 url: "https://github.com/k-luecke/monad-1-arc-agi-3"
 repository-code: "https://github.com/k-luecke/monad-1-arc-agi-3"
 license: Apache-2.0
 keywords:
+  - "monad-1-v7"
+  - "inos"
   - "arc-agi-3"
-  - "meta-operating-system"
   - "phase-locked-evaluation"
   - "fuzzy-merkle-forest"
   - "neuro-symbolic-reasoning"
   - "active-inference"
-  - "monad-1"
 preferred-citation:
   type: article
   authors:
     - family-names: "Luecke"
       given-names: "Kyle W."
       affiliation: "Drift Bound Labs"
-  title: "meta(OS): Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning"
+  title: "Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests"
   journal: "Drift Bound Labs Technical Report"
   year: 2026
   month: 10

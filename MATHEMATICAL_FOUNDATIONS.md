@@ -1,19 +1,17 @@
-# `meta(OS)` / Monad(1) V7 — Mathematical Foundations & Formalisms
+# Monad(1) V7 — Mathematical Foundations & Formalisms
 
 **Author:** Kyle W. Luecke (`Drift Bound Labs`)  
-**Associated Papers:**
-- [`META_OS_PHASE_LOCK_PAPER.pdf`](META_OS_PHASE_LOCK_PAPER.pdf)
-- [`FUZZY_MERKLE_FOREST_PAPER.pdf`](FUZZY_MERKLE_FOREST_PAPER.pdf)
+**Associated Paper:** [`MONAD_1_V7_PAPER.pdf`](MONAD_1_V7_PAPER.pdf) ([Markdown Source](MONAD_1_V7_PAPER.md))
 
 ---
 
 ## Table of Contents
 1. [Discrete Retina Manifold & Topological Partitioning](#1-discrete-retina-manifold--topological-partitioning)
 2. [Dual-Signature Fuzzy Merkle Forests](#2-dual-signature-fuzzy-merkle-forests)
-3. [Bidirectional Phase-Locking & Phase-Slip Interrupts](#3-bidirectional-phase-locking--phase-slip-interrupts)
+3. [`INOS` Bidirectional Phase-Locking & Phase-Slip Interrupts](#3-inos-bidirectional-phase-locking--phase-slip-interrupts)
 4. [Gohst Warped-Curvature Riemannian Geodesics & 2-Opt TSP](#4-gohst-warped-curvature-riemannian-geodesics--2-opt-tsp)
 5. [First-Principles $D_4 \times S_{16}$ Equivariant Stencil Induction](#5-first-principles-d_4-times-s_16-equivariant-stencil-induction)
-6. [Four-Tier Harmonic Sleep/Dream Consolidation](#6-four-tier-harmonic-sleepdream-consolidation)
+6. [Four-Tier Hippocampal Sleep/Dream Consolidation](#6-four-tier-hippocampal-sleepdream-consolidation)
 
 ---
 
@@ -46,9 +44,9 @@ $$\sum_{k=1}^K \mathbb{I}\!\left[ \text{POPCNT}\!\Big( \tilde{\sigma}_{\text{fuz
 
 ---
 
-## 3. Bidirectional Phase-Locking & Phase-Slip Interrupts
+## 3. `INOS` Bidirectional Phase-Locking & Phase-Slip Interrupts
 
-Let $\tilde{\sigma}_{\uparrow}^{(k)}(\mathbf{G}_t) \in \{0, 1\}^{64}$ denote the ascending bottom-up sketch from $\mathcal{B}_{\uparrow}$ and $\tilde{\sigma}_{\downarrow}^{(k)}(m; \Gamma) \in \{0, 1\}^{64}$ denote the descending top-down sketch of memory schema $m$ under gauge frame $\Gamma = (g, \rho, \pi_{\text{ctrl}}) \in D_4 \times S_{16} \times S_{|\mathcal{A}|}$ from $\mathcal{E}_{\downarrow}$.
+Within **Monad(1) V7**, the **Intent-Native Operating System (`INOS`)** acts as the meta-operating system kernel synchronizing the ascending bottom-up sketch $\tilde{\sigma}_{\uparrow}^{(k)}(\mathbf{G}_t) \in \{0, 1\}^{64}$ from $\mathcal{B}_{\uparrow}$ with the descending top-down sketch $\tilde{\sigma}_{\downarrow}^{(k)}(m; \Gamma) \in \{0, 1\}^{64}$ of memory schema $m$ under gauge frame $\Gamma = (g, \rho, \pi_{\text{ctrl}}) \in D_4 \times S_{16} \times S_{|\mathcal{A}|}$ from $\mathcal{E}_{\downarrow}$.
 
 The normalized phase coherence between $\mathcal{B}_{\uparrow}$ and $\mathcal{E}_{\downarrow}$ is:
 $$\mathcal{R}_{\text{phase}}(\mathbf{G}_t, m; \Gamma) = 1 - \frac{2}{64 K} \sum_{k=1}^K \text{POPCNT}\!\Big( \tilde{\sigma}_{\uparrow}^{(k)}(\mathbf{G}_t) \oplus \tilde{\sigma}_{\downarrow}^{(k)}(m; \Gamma) \Big)$$
@@ -56,7 +54,7 @@ $$\mathcal{R}_{\text{phase}}(\mathbf{G}_t, m; \Gamma) = 1 - \frac{2}{64 K} \sum_
 Coupled with the empirical falsification residual $\Delta_{\text{falsify}}(m, \Gamma \mid \mathcal{H}_t)$ and `ConsciousObserver64` edge penalty functional $\Phi(h, a)$, **Bidirectional Phase Lock** holds iff:
 $$\mathcal{C}_{\text{lock}}(m, \Gamma \mid \mathbf{G}_t) = \mathcal{R}_{\text{phase}}(\mathbf{G}_t, m; \Gamma) \cdot \exp\!\big( -\lambda \, \Delta_{\text{falsify}}(m, \Gamma \mid \mathcal{H}_t) \big) \ge \theta_{\text{lock}} \quad \wedge \quad \Delta_{\text{falsify}} = 0$$
 
-Whenever $\Delta_{\text{falsify}} > 0$ (e.g., due to mid-episode control inversion or portal rotation), a **Phase-Slip Interrupt** quarantines $(h_t, a_t)$ and re-optimizes $\Gamma^* = \arg\max_{\Gamma} \mathcal{C}_{\text{lock}}(m, \Gamma \mid \mathbf{G}_{t+1})$ within $\le 2$ actions.
+Whenever $\Delta_{\text{falsify}} > 0$ (e.g., due to mid-episode control inversion or portal rotation), an **`INOS` Phase-Slip Interrupt** quarantines $(h_t, a_t)$ and re-optimizes $\Gamma^* = \arg\max_{\Gamma} \mathcal{C}_{\text{lock}}(m, \Gamma \mid \mathbf{G}_{t+1})$ within $\le 2$ actions.
 
 ---
 
@@ -81,6 +79,6 @@ Given worked example quadrants $\{\mathbf{Q}_{00}, \mathbf{Q}_{01}, \mathbf{Q}_{
 
 ---
 
-## 6. Four-Tier Harmonic Sleep/Dream Consolidation
+## 6. Four-Tier Hippocampal Sleep/Dream Consolidation
 
 Given raw exploratory trajectory $\tau_{\text{raw}} = (h_0 \xrightarrow{a_0} \dots \xrightarrow{a_{L-1}} h_{\text{win}})$, loop erasure over the `ConsciousObserver64` transition graph extracts the cycle-free geodesic witness $\gamma^*$ of length $L_{\min} \le L_{\text{raw}}$, promoting verified affordance invariants to $\mathcal{T}_{\text{topo}}$ (`DAYDREAM`) and merging phase-locked subtrees across episodes (`DEEP_SLOW_WAVE`).

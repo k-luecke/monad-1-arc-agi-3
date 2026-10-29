@@ -6,8 +6,8 @@
 Founder & Principal Researcher  
 **Drift Bound Labs**  
 
-- **Project:** `meta(OS)` / Monad(1) V7
-- **Core Research:** Phase-locked subconscious bottom-up and executive top-down evaluation, Fuzzy Merkle Forests for sub-linear context expansion, 64-bit associative state graphs (`ConsciousObserver64`), Gohst warped-curvature Riemannian geodesics, $D_4 \times S_{16}$ equivariant stencil induction, and 4-tier harmonic memory consolidation.
+- **Overarching System:** **Monad(1) V7**
+- **Core Subsystems:** Intent-Native Operating System (`INOS` meta-operating system kernel with bidirectional phase-locking between subconscious bottom-up and executive top-down evaluation), Fuzzy Merkle Forests for sub-linear context expansion, 64-bit associative state graphs (`ConsciousObserver64`), Gohst warped-curvature Riemannian geodesics, $D_4 \times S_{16}$ equivariant stencil induction, and 4-tier hippocampal sleep/dream consolidation.
 - **Affiliation:** Drift Bound Labs ([https://github.com/k-luecke/driftbound-labs](https://github.com/k-luecke/driftbound-labs))
 - **GitHub Profile:** [https://github.com/k-luecke](https://github.com/k-luecke)
 - **ARC-AGI-3 Repository:** [https://github.com/k-luecke/monad-1-arc-agi-3](https://github.com/k-luecke/monad-1-arc-agi-3)
@@ -17,16 +17,8 @@ Founder & Principal Researcher
 ## Academic Citation
 
 ```bibtex
-@article{luecke2026metaos,
-  title={meta(OS): Phase-Locked Subconscious Bottom-Up Evaluation and Executive Top-Down Projection for Associative Memory Retrieval in Interactive Reasoning},
-  author={Luecke, Kyle W.},
-  journal={Drift Bound Labs Technical Report},
-  year={2026},
-  month={October}
-}
-
-@article{luecke2026fmf,
-  title={Fuzzy Merkle Forests for Sub-Linear Context Expansion, Dihedral-Permutation Equivariant Associative Retrieval, and Falsification-Gated Episodic Memory in Long-Horizon Reasoning},
+@article{luecke2026monad1v7,
+  title={Monad(1) V7: A Unified Architecture for Interactive Discrete Reasoning via the Intent-Native Operating System (INOS), Phase-Locked Evaluation, and Fuzzy Merkle Forests},
   author={Luecke, Kyle W.},
   journal={Drift Bound Labs Technical Report},
   year={2026},

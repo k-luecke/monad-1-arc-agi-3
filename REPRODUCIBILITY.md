@@ -1,4 +1,4 @@
-# `meta(OS)` / Monad(1) V7 — Reproduction & Verification Guide
+# Monad(1) V7 — Reproduction & Verification Guide
 
 **Author:** Kyle W. Luecke (`Drift Bound Labs`)  
 **Repository:** [https://github.com/k-luecke/monad-1-arc-agi-3](https://github.com/k-luecke/monad-1-arc-agi-3)
@@ -45,6 +45,6 @@ python run_competition_eval.py --local-gateway --environments-dir /path/to/envir
 ## 4. Running the Self-Contained Kaggle Competition Notebook
 
 The complete, self-contained notebook is located at [`kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb`](kaggle_monad_1p0/monad-1p0-v7-inos-unified.ipynb) (`566,577` B):
-- **Cell 1:** Self-contained `MyAgent` (`meta(OS)` / Monad(1) V7) implementation.
+- **Cell 1:** Self-contained `MyAgent` (**Monad(1) V7**) implementation.
 - **Cell 2:** Unseen `D1 -> D5` Progressive Curriculum & 4-Tier Sleep/Dream consolidation verification (`5/5` won in `24` actions).
 - **Cell 3:** Automatic Competition Mode entry point (connects to `http://localhost:8001` inside the Kaggle rerun container or `https://three.arcprize.org` when `ARC_API_KEY` is provided).
