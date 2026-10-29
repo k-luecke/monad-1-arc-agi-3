@@ -502,6 +502,8 @@ class VectorShape:
         "click_y",
         "fill_color",
         "area",
+        "sig",
+        "shape_geom_sig",
     )
 
     def __init__(
@@ -525,14 +527,9 @@ class VectorShape:
         self.click_y = click_y
         self.fill_color = fill_color
         self.area = area
-
-    @property
-    def sig(self) -> ShapeSig:
-        return (int(self.shape_type), self.fill_color, self.w, self.h)
-
-    @property
-    def shape_geom_sig(self) -> tuple[int, int, int]:
-        return (int(self.shape_type), min(self.w, self.h), max(self.w, self.h))
+        st_int = int(shape_type)
+        self.sig: ShapeSig = (st_int, fill_color, w, h)
+        self.shape_geom_sig: tuple[int, int, int] = (st_int, min(w, h), max(w, h))
 
 
 class CanvasDocument:
@@ -5240,24 +5237,28 @@ class MyAgent(Agent):
                 for s in doc.shapes
                 if 1 <= s.area <= 256 and s.sig != self.avatar_sig
             ]
+            curr_by_sig: dict[ShapeSig, list[VectorShape]] = collections.defaultdict(list)
+            for c in curr_fg:
+                curr_by_sig[c.sig].append(c)
+            prev_by_sig: dict[ShapeSig, list[VectorShape]] = collections.defaultdict(list)
+            for s in prev_fg:
+                prev_by_sig[s.sig].append(s)
             vanished = [
                 s
                 for s in prev_fg
                 if not any(
-                    c.sig == s.sig
-                    and abs(c.click_x - s.click_x) <= tol
+                    abs(c.click_x - s.click_x) <= tol
                     and abs(c.click_y - s.click_y) <= tol
-                    for c in curr_fg
+                    for c in curr_by_sig.get(s.sig, ())
                 )
             ]
             appeared = [
                 c
                 for c in curr_fg
                 if not any(
-                    s.sig == c.sig
-                    and abs(c.click_x - s.click_x) <= tol
+                    abs(c.click_x - s.click_x) <= tol
                     and abs(c.click_y - s.click_y) <= tol
-                    for s in prev_fg
+                    for s in prev_by_sig.get(c.sig, ())
                 )
             ]
             for s_old in vanished:
@@ -17469,6 +17470,8 @@ class MyAgent(Agent):
                     sy = 6 * gy - tracked_cam
                     if 0 <= sy <= 57:
                         for gx in range(11):
+                            if not is_last and (gx, gy) in mem_grid and (gx, gy) in initial_grid:
+                                continue
                             patch = f_arr[sy : sy + 6, 6 * gx : 6 * gx + 6]
                             t = classify_patch(patch)
                             if (gx, gy) not in initial_grid:
@@ -17656,9 +17659,11 @@ class MyAgent(Agent):
                     bool,
                     Any,
                     dict[tuple[int, int], str],
+                    dict[tuple[int, int], str],
+                    tuple[tuple[tuple[int, int], str], ...],
                     list[tuple[Any, ...]],
                 ]
-            ] = collections.deque([(px, ry, grav, None, dict(init_map), [])])
+            ] = collections.deque([(px, ry, grav, None, dict(init_map), {}, (), [])])
             visited: set[tuple[Any, ...]] = {(px, ry, grav, None, ())}
             best_frontier_path: list[tuple[Any, ...]] | None = None
             best_frontier_key: tuple[int, int] | None = None
@@ -17673,7 +17678,7 @@ class MyAgent(Agent):
                 ):
                     break
                 iters += 1
-                cx, cy, cgrav, forced_act, cgrid, path = queue.popleft()
+                cx, cy, cgrav, forced_act, cgrid, cmods, cmods_t, path = queue.popleft()
                 dy = -1 if cgrav else 1
                 c_sy_p = 36 if cgrav else 26
 
@@ -17725,6 +17730,8 @@ class MyAgent(Agent):
                             max_yx = max(y_xs) if y_xs else -1
                             for gx in range(11):
                                 t = cgrid.get((gx, gy), "empty")
+                                if t == "empty" or t == "xcjjwqfzjfe":
+                                    continue
                                 if t == "etlsaqqtjvn":
                                     if gx == cx and gy == cy + dy:
                                         if (
@@ -17910,15 +17917,30 @@ class MyAgent(Agent):
                             ):
                                 next_forced = "G"
 
-                    nmods = []
-                    for k, v in ngrid.items():
-                        if k not in isolated_g_cells and init_map.get(k, "empty") != v:
-                            nmods.append((k, v))
-                    nmods_t = tuple(sorted(nmods))
+                    if act[0] == "MOVE":
+                        nmods = cmods
+                        nmods_t = cmods_t
+                    else:
+                        nmods = dict(cmods)
+                        gx_c, gy_c = int(act[1]), int(act[2])
+                        for mk in (
+                            (gx_c, gy_c),
+                            (gx_c - 1, gy_c),
+                            (gx_c + 1, gy_c),
+                            (gx_c, gy_c - 1),
+                            (gx_c, gy_c + 1),
+                        ):
+                            if mk in ngrid and mk not in isolated_g_cells:
+                                nv = ngrid[mk]
+                                if init_map.get(mk, "empty") != nv:
+                                    nmods[mk] = nv
+                                else:
+                                    nmods.pop(mk, None)
+                        nmods_t = tuple(sorted(nmods.items()))
                     state_key = (nx, ny, ngrav, next_forced, nmods_t)
                     if state_key not in visited:
                         visited.add(state_key)
-                        queue.append((nx, ny, ngrav, next_forced, ngrid, npath))
+                        queue.append((nx, ny, ngrav, next_forced, ngrid, nmods, nmods_t, npath))
 
             return best_frontier_path
 
@@ -22269,13 +22291,22 @@ class MyAgent(Agent):
             and h_curr != self.prev_hash
         ):
             diff_set = set(playfield_diffs)
+            n_diffs = len(diff_set)
             for s in doc.shapes:
                 if s.sig == self.avatar_sig or s.area > 144:
                     continue
-                if any(
-                    s.x <= c < s.x + s.w and s.y <= r < s.y + s.h
-                    for r, c in diff_set
-                ):
+                if n_diffs > s.w * s.h:
+                    hit_diff = any(
+                        (r, c) in diff_set
+                        for r in range(s.y, s.y + s.h)
+                        for c in range(s.x, s.x + s.w)
+                    )
+                else:
+                    hit_diff = any(
+                        s.x <= c < s.x + s.w and s.y <= r < s.y + s.h
+                        for r, c in diff_set
+                    )
+                if hit_diff:
                     self.mutable_object_coords.add((s.click_x, s.click_y))
                     self.mutable_object_sigs.add(s.sig)
                     self.level_interacted_sigs[s.sig] += 1
