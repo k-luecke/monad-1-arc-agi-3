@@ -279,6 +279,7 @@ def play_single_game(
     env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
     goal_report = None
+    win_records = None
     try:
         agent = MyAgent(
             card_id=card_id,
@@ -296,6 +297,12 @@ def play_single_game(
                 goal_report = agent._ggl_build_report()
         except Exception:
             goal_report = None
+        try:
+            records = getattr(agent, "win_records", None)
+            if records:
+                win_records = list(records)
+        except Exception:
+            win_records = None
         if blind_id:
             assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
             for frame in getattr(agent, "frames", []):
@@ -313,6 +320,11 @@ def play_single_game(
     goal_tag = ""
     if goal_report is not None:
         goal_tag = f" | goal={goal_report.get('confirmed_type') or '-'}"
+        pred = goal_report.get("prediction") or {}
+        if pred.get("scored"):
+            goal_tag += f" | pred={pred.get('hits')}/{pred.get('scored')}"
+        if goal_report.get("memory_retrievals"):
+            goal_tag += f" | mem={goal_report.get('memory_retrievals')}"
     print(
         f"  [{idx:02d}/{total:02d}] {gid:16s}{blind_tag} | state={state_name:9s} | "
         f"levels={lvls:2d} | actions={steps:4d} | {dt:6.2f}s{goal_tag}",
@@ -328,6 +340,8 @@ def play_single_game(
     }
     if goal_report is not None:
         result["goal_report"] = goal_report
+    if win_records:
+        result["win_records"] = win_records
     return result
 
 

@@ -3351,6 +3351,9 @@ class SecondOrderCognitiveCanvas:                                               
         self.audit_reason: str = "uninitialized"
         self.audit_score: float = 0.0
         self.render_step: int = 0
+        self.rehearsal_scores: list[float] = []
+        self.rehearsal_best: int | None = None
+        self.rehearsal_note: str = ""
 
     def reset(self) -> None:
         h, w = self.height, self.width
@@ -3368,6 +3371,9 @@ class SecondOrderCognitiveCanvas:                                               
         self.audit_reason = "reset"
         self.audit_score = 0.0
         self.render_step = 0
+        self.rehearsal_scores = []
+        self.rehearsal_best = None
+        self.rehearsal_note = ""
 
     def _paint_box(
         self,
@@ -3753,7 +3759,19 @@ class SecondOrderCognitiveCanvas:                                               
             "audit_passed": self.audit_passed,
             "audit_reason": self.audit_reason,
             "audit_score": round(self.audit_score, 2),
+            "rehearsal_best": self.rehearsal_best,
+            "rehearsal_scores": list(self.rehearsal_scores),
+            "rehearsal_note": self.rehearsal_note,
         }
+
+    def note_forward_rehearsal(
+        self, scores: list[float], best_index: int | None, note: str
+    ) -> None:
+        """Record a forward-model rehearsal on the canvas. Does not change the
+        d-pad tie-break (`audited_first_raw_aid`); the caller commits the plan."""
+        self.rehearsal_scores = list(scores)
+        self.rehearsal_best = best_index
+        self.rehearsal_note = note
 
     def composite_grid(self) -> list[list[int]]:
         """Returns the 64x64 second-order visual canvas combining semantic experience roles
@@ -4439,6 +4457,19 @@ class MyAgent(Agent):
             and os.getenv("MONAD1_DISABLE_GOAL_ENGINE", "0") != "1"
         ) or os.getenv("MONAD1_FORCE_GOAL_ENGINE", "0") == "1"
         self._ggl_init_game_state()
+        # Round-2 metacognition. All default off so solvers-on and the measured
+        # goal loop are unchanged unless a flag is set.
+        #   MONAD1_EFFECT_MODEL=1      probe actions and learn an object-level forward model
+        #   MONAD1_CANVAS_REHEARSAL=1  roll candidate plans through that model before acting
+        #   MONAD1_WINS_TEACH=1        log general win records and call inos_merkle_log_solved_pattern
+        #   MONAD1_RELATION_MEMORY=path  load relation-keyed records (no game ids) and bias goal type
+        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1"
+        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1"
+        self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "0") == "1"
+        self.relation_memory_path = os.getenv("MONAD1_RELATION_MEMORY", "").strip()
+        self._fx_init_game_state()
+        if self.relation_memory_path:
+            self._wt_load_memory(self.relation_memory_path)
         if self.game_specific_solvers_disabled:
             self._disable_game_specific_solvers()
 
@@ -4652,6 +4683,8 @@ class MyAgent(Agent):
         self.stm_shard = Monad1ShortTermMemoryShard(task_id=f"{self.game_id}_L{self.current_level}", level_idx=self.current_level)
         if hasattr(self, "ggl_enabled"):
             self._ggl_reset_level_state()
+        if hasattr(self, "fx_enabled"):
+            self._fx_reset_level_state()
         self._reset_cnn_for_level()
     def _rehash_world_model_after_hud_update(self) -> None:
         if not self.state_grids and self.prev_grid is None and self.level_start_grid is None:
@@ -5027,6 +5060,12 @@ class MyAgent(Agent):
             if getattr(self, "ggl_enabled", False):
                 try:
                     self._ggl_on_level_completed(lvl_done)
+                except Exception:
+                    pass
+            if getattr(self, "wins_teach", False):
+                try:
+                    end_grid = _grid_from_frame(latest_frame) or self.prev_grid
+                    self._wins_teach_on_level(end_grid)
                 except Exception:
                     pass
             self.current_level = lvl_done
@@ -17159,7 +17198,628 @@ class MyAgent(Agent):
                 aid: (votes.most_common(1)[0] if votes else None)
                 for aid, votes in self.ggl_dir_votes.items()
             },
+            "prediction": {
+                "scored": int(getattr(self, "fx_pred_scored", 0)),
+                "hits": int(getattr(self, "fx_pred_hits", 0)),
+                "mismatches": int(getattr(self, "fx_mismatches", 0)),
+                "replans": int(getattr(self, "fx_replans", 0)),
+                "probes": int(getattr(self, "fx_probes", 0)),
+            },
+            "effects_learned": {
+                "dpad_dirs": int(sum(1 for v in getattr(self, "fx_dpad", {}).values() if v)),
+                "push_colors": int(
+                    len({c for votes in getattr(self, "fx_push", {}).values() for c in votes})
+                ),
+                "toggles": int(
+                    sum(int(c["TOGGLE"]) for c in getattr(self, "fx_click", {}).values())
+                ),
+                "appear_colors": int(len(getattr(self, "fx_appear", {}))),
+                "vanish_colors": int(len(getattr(self, "fx_vanish", {}))),
+            },
+            "memory_retrievals": int(getattr(self, "wt_retrievals", 0)),
+            "win_records": len(getattr(self, "win_records", [])),
         }
+
+    # ---------------- action-effect model, rehearsal, wins, relation memory ----------------
+
+    def _fx_init_game_state(self) -> None:
+        self.fx_dpad: dict[int, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.fx_push: dict[int, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.fx_mover: collections.Counter = collections.Counter()
+        self.fx_click: dict[tuple, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        # Toggle pairs live beside the click counter. A Counter value that is
+        # itself a Counter breaks most_common() comparisons.
+        self.fx_toggle_pairs: dict[tuple, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.fx_appear: collections.Counter = collections.Counter()
+        self.fx_vanish: collections.Counter = collections.Counter()
+        self.fx_action5_seen = False
+        self.fx_probes = 0
+        self.fx_pred_scored = 0
+        self.fx_pred_hits = 0
+        self.fx_mismatches = 0
+        self.fx_replans = 0
+        self.fx_pending: dict[str, Any] | None = None
+        self.win_records: list[dict[str, Any]] = []
+        self.wt_memory: list[dict[str, Any]] = []
+        self.wt_retrievals = 0
+        self._fx_reset_level_state()
+
+    def _fx_reset_level_state(self) -> None:
+        self.fx_probed_level: set = set()
+        self.fx_probe_count_level = 0
+        self.fx_click_probes_level = 0
+        self.fx_pending = None
+
+    def _fx_summary(self, arr0: Any, arr1: Any) -> dict[str, Any]:
+        changed = int(np.sum(arr0 != arr1))
+        movers: list[tuple[int, int, int]] = []
+        cols: set[int] = set()
+        if changed and changed <= 2500:
+            cols = set(int(c) for c in arr0[arr0 != arr1].tolist())
+            cols.update(int(c) for c in arr1[arr0 != arr1].tolist())
+            bg = self._ggl_bg_color(arr1)
+            cols.discard(bg)
+            for c in list(cols)[:10]:
+                s = self._ggl_rigid_shift(arr0, arr1, c)
+                if s is not None and s != (0, 0):
+                    movers.append((int(c), int(s[0]), int(s[1])))
+        mover_colors = {c for c, _dx, _dy in movers}
+        appeared: list[int] = []
+        vanished: list[int] = []
+        if changed and changed <= 2500:
+            for c in list(cols)[:10]:
+                if c in mover_colors:
+                    continue
+                n0 = int(np.sum(arr0 == c))
+                n1 = int(np.sum(arr1 == c))
+                if n1 > n0:
+                    appeared.append(int(c))
+                elif n0 > n1:
+                    vanished.append(int(c))
+        return {
+            "changed": changed,
+            "inert": changed == 0,
+            "movers": tuple(sorted(movers)),
+            "appeared": tuple(sorted(appeared)),
+            "vanished": tuple(sorted(vanished)),
+        }
+
+    def _fx_apply_shifts(
+        self, arr: Any, shifts: list[tuple[int, tuple[int, int]]]
+    ) -> Any | None:
+        if not shifts:
+            return None
+        bg = np.int16(self._ggl_bg_color(arr))
+        out = arr.copy()
+        staged: list[tuple[Any, int, int, int]] = []
+        for color, (dx, dy) in shifts:
+            pts = np.argwhere(arr == color)
+            if len(pts) == 0 or len(pts) > 400:
+                return None
+            staged.append((pts, int(color), int(dx), int(dy)))
+            out[pts[:, 0], pts[:, 1]] = bg
+        gh, gw = arr.shape
+        for pts, color, dx, dy in staged:
+            ny = pts[:, 0] + dy
+            nx = pts[:, 1] + dx
+            if (
+                (ny < 0).any()
+                or (nx < 0).any()
+                or (ny >= gh).any()
+                or (nx >= gw).any()
+            ):
+                return None
+            out[ny, nx] = np.int16(color)
+        return out
+
+    def _fx_component_at(
+        self, arr: Any, x: int, y: int
+    ) -> tuple[int, int, int] | None:
+        gh, gw = arr.shape
+        if not (0 <= y < gh and 0 <= x < gw):
+            return None
+        color = int(arr[y, x])
+        bg = self._ggl_bg_color(arr)
+        if color == bg:
+            return None
+        for o in self._ggl_components(arr, bg, max_objs=40):
+            if o["color"] != color:
+                continue
+            if o["x"] <= x <= o["x"] + o["w"] - 1 and o["y"] <= y <= o["y"] + o["h"] - 1:
+                return (o["color"], o["w"], o["h"])
+        return (color, 1, 1)
+
+    def _fx_predict(self, arr: Any, action: ActionKey) -> Any | None:
+        """One-step object-level forward model. None means 'not enough evidence'."""
+        if action[0] == "SIMPLE" and int(action[1]) in (1, 2, 3, 4):
+            aid = int(action[1])
+            votes = self.fx_dpad.get(aid)
+            if not votes:
+                return None
+            shift, n = votes.most_common(1)[0]
+            if n < 2 or shift == (0, 0):
+                return None
+            if not self.fx_mover:
+                return None
+            avatar_color = self.fx_mover.most_common(1)[0][0]
+            shifts = [(avatar_color, shift)]
+            for color, pn in self.fx_push.get(aid, {}).items():
+                if pn >= 2 and color != avatar_color:
+                    shifts.append((int(color), shift))
+            return self._fx_apply_shifts(arr, shifts)
+        if action[0] == "CLICK" and len(action) >= 3:
+            sig = self._fx_component_at(arr, int(action[1]), int(action[2]))
+            if sig is None:
+                return None
+            rec = self.fx_click.get(sig)
+            if not rec:
+                return None
+            if rec["INERT"] >= 1 and rec["CHANGE"] == 0 and rec["TOGGLE"] == 0:
+                return arr.copy()
+            if rec["TOGGLE"] >= 1:
+                pair = self.fx_toggle_pairs.get(sig)
+                if not pair:
+                    return None
+                (a, b), _n = pair.most_common(1)[0]
+                color = int(arr[int(action[2]), int(action[1])])
+                if color == a:
+                    other = b
+                elif color == b:
+                    other = a
+                else:
+                    return None
+                return self._fx_recolor_component(
+                    arr, int(action[1]), int(action[2]), int(other)
+                )
+        return None
+
+    def _fx_recolor_component(self, arr: Any, x: int, y: int, new_color: int) -> Any | None:
+        """Recolor the connected component under a click. Local, not a full-board swap."""
+        gh, gw = arr.shape
+        if not (0 <= y < gh and 0 <= x < gw):
+            return None
+        src = int(arr[y, x])
+        if src == int(new_color):
+            return arr.copy()
+        bg = self._ggl_bg_color(arr)
+        if src == bg:
+            return None
+        out = arr.copy()
+        stack = [(y, x)]
+        seen = {(y, x)}
+        n = 0
+        while stack and n < 400:
+            cy, cx = stack.pop()
+            if int(out[cy, cx]) != src:
+                continue
+            out[cy, cx] = np.int16(new_color)
+            n += 1
+            for ny, nx in ((cy + 1, cx), (cy - 1, cx), (cy, cx + 1), (cy, cx - 1)):
+                if (
+                    0 <= ny < gh
+                    and 0 <= nx < gw
+                    and (ny, nx) not in seen
+                    and int(arr[ny, nx]) == src
+                ):
+                    seen.add((ny, nx))
+                    stack.append((ny, nx))
+        if n == 0:
+            return None
+        return out
+
+    def _fx_learn(self, arr0: Any, arr1: Any, action: ActionKey) -> None:
+        summary = self._fx_summary(arr0, arr1)
+        if action[0] == "SIMPLE" and int(action[1]) in (1, 2, 3, 4):
+            aid = int(action[1])
+            for color, dx, dy in summary["movers"]:
+                self.fx_mover[color] += 1
+            if summary["movers"] and self.fx_mover:
+                avatar_color = max(
+                    (c for c, _, _ in summary["movers"]),
+                    key=lambda c: self.fx_mover[c],
+                )
+                av = next(m for m in summary["movers"] if m[0] == avatar_color)
+                self.fx_dpad[aid][(av[1], av[2])] += 1
+                for color, dx, dy in summary["movers"]:
+                    if color != avatar_color and (dx, dy) == (av[1], av[2]):
+                        self.fx_push[aid][color] += 1
+            for color in summary["appeared"]:
+                self.fx_appear[color] += 1
+            for color in summary["vanished"]:
+                self.fx_vanish[color] += 1
+        elif action[0] == "SIMPLE" and int(action[1]) == 5:
+            self.fx_action5_seen = True
+            for color in summary["appeared"]:
+                self.fx_appear[color] += 1
+            for color in summary["vanished"]:
+                self.fx_vanish[color] += 1
+        elif action[0] == "CLICK" and len(action) >= 3:
+            sig = self._fx_component_at(arr0, int(action[1]), int(action[2]))
+            if sig is None:
+                for color in summary["appeared"]:
+                    self.fx_appear[color] += 1
+                for color in summary["vanished"]:
+                    self.fx_vanish[color] += 1
+                return
+            if summary["inert"]:
+                self.fx_click[sig]["INERT"] += 1
+            else:
+                self.fx_click[sig]["CHANGE"] += 1
+                # Two colors exchanged the same number of pixels: a toggle.
+                diff = arr0 != arr1
+                if int(diff.sum()) <= 400:
+                    lost = collections.Counter(int(c) for c in arr0[diff].tolist())
+                    gained = collections.Counter(int(c) for c in arr1[diff].tolist())
+                    if (
+                        len(lost) == 1
+                        and len(gained) == 1
+                        and list(lost.values()) == list(gained.values())
+                    ):
+                        a, b = next(iter(lost)), next(iter(gained))
+                        if a != b:
+                            self.fx_click[sig]["TOGGLE"] += 1
+                            self.fx_toggle_pairs[sig][(min(a, b), max(a, b))] += 1
+            for color in summary["appeared"]:
+                self.fx_appear[color] += 1
+            for color in summary["vanished"]:
+                self.fx_vanish[color] += 1
+
+    def _fx_on_transition(self, grid: list[list[int]], h_curr: int, blackout: bool) -> None:
+        if blackout or self.prev_grid is None or self.prev_action is None:
+            self.fx_pending = None
+            return
+        arr0 = np.asarray(self.prev_grid, dtype=np.int16)
+        arr1 = np.asarray(grid, dtype=np.int16)
+        if arr0.shape != arr1.shape:
+            self.fx_pending = None
+            return
+        if self.fx_enabled:
+            self._fx_learn(arr0, arr1, self.prev_action)
+        pending = self.fx_pending
+        self.fx_pending = None
+        if pending and pending.get("summary") is not None:
+            actual = self._fx_summary(arr0, arr1)
+            pred = pending["summary"]
+            self.fx_pred_scored += 1
+            hit = (
+                pred["movers"] == actual["movers"]
+                and pred["inert"] == actual["inert"]
+                and pred.get("appeared") == actual.get("appeared")
+                and pred.get("vanished") == actual.get("vanished")
+            )
+            if hit:
+                self.fx_pred_hits += 1
+            else:
+                self.fx_mismatches += 1
+                if (
+                    self.rehearse_enabled
+                    and self.ggl_active is not None
+                    and self.active_macro_family == "online_general_goal"
+                ):
+                    self.ggl_active = None
+                    self.planned_queue.clear()
+                    self.fx_replans += 1
+
+    def _fx_arm_prediction(self, grid: list[list[int]], action: ActionKey) -> None:
+        if not (self.fx_enabled or self.rehearse_enabled):
+            self.fx_pending = None
+            return
+        arr = np.asarray(grid, dtype=np.int16)
+        pred = self._fx_predict(arr, action)
+        if pred is None:
+            self.fx_pending = {"summary": None}
+            return
+        self.fx_pending = {"summary": self._fx_summary(arr, pred)}
+
+    def _fx_probe_action(
+        self, arr: Any, avail_ids: list[int], h_curr: int
+    ) -> ActionKey | None:
+        if self.fx_probe_count_level >= 7 or self.steps_in_level >= 12:
+            return None
+        for aid in (1, 2, 3, 4):
+            if aid not in avail_ids or self.fx_dpad.get(aid):
+                continue
+            key = ("D", aid)
+            if key in self.fx_probed_level:
+                continue
+            self.fx_probed_level.add(key)
+            self.fx_probe_count_level += 1
+            return ("SIMPLE", aid)
+        if (
+            5 in avail_ids
+            and ("A", 5) not in self.fx_probed_level
+            and not self.fx_action5_seen
+        ):
+            self.fx_probed_level.add(("A", 5))
+            self.fx_probe_count_level += 1
+            return ("SIMPLE", 5)
+        if 6 in avail_ids and self.fx_click_probes_level < 2:
+            bg = self._ggl_bg_color(arr)
+            comps = [
+                o
+                for o in self._ggl_components(arr, bg, max_objs=24)
+                if 2 <= o["n"] <= 80
+            ]
+            comps.sort(key=lambda o: o["n"])
+            for o in comps:
+                sig = (o["color"], o["w"], o["h"])
+                if sig in self.fx_click or sig in self.fx_probed_level:
+                    continue
+                self.fx_probed_level.add(sig)
+                self.fx_click_probes_level += 1
+                self.fx_probe_count_level += 1
+                return ("CLICK", int(round(o["cx"])), int(round(o["cy"])))
+        return None
+
+    def _fx_score_plan(
+        self, arr: Any, plan: list[ActionKey], goal: dict[str, Any] | None
+    ) -> float | None:
+        if goal is None:
+            return None
+        cur = arr
+        for act in plan[:6]:
+            nxt = self._fx_predict(cur, act)
+            if nxt is None:
+                return None
+            cur = nxt
+        return self._fx_progress_delta(arr, cur, goal)
+
+    def _fx_progress_delta(self, before: Any, after: Any, goal: dict[str, Any]) -> float | None:
+        gtype = goal.get("type")
+        if gtype == "REACH":
+            target = goal.get("target")
+            if not target:
+                return None
+            _c, (tx, ty, tw, th) = target
+            ac = self.fx_mover.most_common(1)[0][0] if self.fx_mover else None
+            if ac is None:
+                return None
+
+            def dist(a: Any) -> float | None:
+                pts = np.argwhere(a == ac)
+                if len(pts) == 0:
+                    return None
+                cy, cx = pts.mean(axis=0)
+                return abs(float(cx) - (tx + tw / 2.0)) + abs(float(cy) - (ty + th / 2.0))
+
+            d0, d1 = dist(before), dist(after)
+            if d0 is None or d1 is None:
+                return None
+            return float(d0 - d1)
+        if gtype == "PLACE":
+            bc = goal.get("box_color")
+            tb = goal.get("target_bbox")
+            if bc is None or tb is None:
+                return None
+            tx, ty, tw, th = tb
+
+            def dist(a: Any) -> float | None:
+                pts = np.argwhere(a == bc)
+                if len(pts) == 0:
+                    return None
+                cy, cx = pts.mean(axis=0)
+                return abs(float(cx) - (tx + tw / 2.0)) + abs(float(cy) - (ty + th / 2.0))
+
+            d0, d1 = dist(before), dist(after)
+            if d0 is None or d1 is None:
+                return None
+            return float(d0 - d1)
+        if gtype == "MATCH":
+            panels = goal.get("panels")
+            if not panels:
+                return None
+            pa, pb = panels
+
+            def mis(a: Any) -> float:
+                return float(
+                    np.sum(
+                        a[pa[0] : pa[0] + pa[2], pa[1] : pa[1] + pa[3]]
+                        != a[pb[0] : pb[0] + pb[2], pb[1] : pb[1] + pb[3]]
+                    )
+                )
+
+            try:
+                return mis(before) - mis(after)
+            except Exception:
+                return None
+        return None
+
+    def _fx_pick_rehearsed(
+        self, arr: Any, options: list[tuple[list[ActionKey], dict[str, Any] | None]]
+    ) -> tuple[int, list[ActionKey], dict[str, Any] | None]:
+        scores: list[float] = []
+        best_i = 0
+        best_s = -1e9
+        any_known = False
+        for i, (plan, goal) in enumerate(options):
+            sc = self._fx_score_plan(arr, plan, goal)
+            if sc is None:
+                scores.append(float("nan"))
+                continue
+            any_known = True
+            scores.append(float(sc))
+            if sc > best_s:
+                best_s = sc
+                best_i = i
+        if not any_known or best_s <= 0:
+            best_i = 0
+            note = "no_confident_gain" if not any_known else "nonpositive"
+        else:
+            note = "forward_gain"
+        try:
+            self.second_order_canvas.note_forward_rehearsal(scores, best_i, note)
+        except Exception:
+            pass
+        plan, goal = options[best_i]
+        return best_i, plan, goal
+
+    def _wt_abstract(self, actions: list[ActionKey]) -> str:
+        toks: list[str] = []
+        for act in actions[:80]:
+            if not act:
+                continue
+            if act[0] == "CLICK":
+                toks.append("C")
+            elif act[0] == "SIMPLE" and int(act[1]) in (1, 2, 3, 4):
+                toks.append("D")
+            elif act[0] == "SIMPLE":
+                toks.append("A" + str(int(act[1])))
+        out: list[str] = []
+        for t in toks:
+            if out and out[-1].split("*")[0] == t:
+                base, _, n = out[-1].partition("*")
+                out[-1] = base + "*" + str((int(n) if n else 1) + 1)
+            else:
+                out.append(t)
+        return ",".join(out[:24])
+
+    def _wt_infer_goal(self, start: list[list[int]] | None, end: list[list[int]] | None) -> str:
+        if not start or not end or len(start) != len(end):
+            return "UNKNOWN"
+        a0 = np.asarray(start, dtype=np.int16)
+        a1 = np.asarray(end, dtype=np.int16)
+        if a0.shape != a1.shape:
+            return "UNKNOWN"
+        try:
+            pair = self._ggl_find_panel_pair(a0)
+        except Exception:
+            pair = None
+        if pair is not None:
+            pa, pb, k0 = pair
+            try:
+                k1 = int(
+                    np.sum(
+                        a1[pa[0] : pa[0] + pa[2], pa[1] : pa[1] + pa[3]]
+                        != a1[pb[0] : pb[0] + pb[2], pb[1] : pb[1] + pb[3]]
+                    )
+                )
+            except Exception:
+                k1 = k0
+            if k1 < k0:
+                return "MATCH"
+        summary = self._fx_summary(a0, a1)
+        if len(summary["movers"]) >= 2:
+            return "PLACE"
+        if len(summary["movers"]) == 1:
+            return "REACH"
+        return "UNKNOWN"
+
+    def _wins_teach_on_level(self, end_grid: list[list[int]] | None) -> None:
+        if not self.wins_teach:
+            return
+        actions = [act for (_h, act, _n) in self.level_step_history]
+        if self.prev_action is not None and (not actions or actions[-1] != self.prev_action):
+            actions = actions + [self.prev_action]
+        abstract = self._wt_abstract(actions)
+        credited = None
+        if self.ggl_enabled and self.ggl_level_events:
+            credited = self.ggl_level_events[-1].get("credited_type")
+        inferred = self._wt_infer_goal(self.level_start_grid, end_grid)
+        gtype = credited or inferred
+        arr = None
+        if end_grid is not None:
+            arr = np.asarray(end_grid, dtype=np.int16)
+        elif self.level_start_grid is not None:
+            arr = np.asarray(self.level_start_grid, dtype=np.int16)
+        avail: list[int] = []
+        if any(a[0] == "SIMPLE" and int(a[1]) in (1, 2, 3, 4) for a in actions if a):
+            avail.extend([1, 2, 3, 4])
+        if any(a[0] == "CLICK" for a in actions if a):
+            avail.append(6)
+        sig16 = 1
+        has_panel = False
+        n_colors = 0
+        if arr is not None and arr.ndim == 2 and arr.shape[0] >= 8:
+            try:
+                sig16 = int(self._ggl_relational_sig16(None, arr, avail))
+                has_panel = self._ggl_find_panel_pair(arr) is not None
+                n_colors = int(len(np.unique(arr)))
+            except Exception:
+                pass
+        record = {
+            "sig16": int(sig16),
+            "goal_type": gtype if gtype in self.GGL_GOAL_TYPES else "UNKNOWN",
+            "abstract": abstract,
+            "relations": {
+                "n_colors": n_colors,
+                "has_panel": bool(has_panel),
+                "n_actions": len(actions),
+                "credited": credited,
+                "inferred": inferred,
+            },
+            "level": int(self.current_level),
+        }
+        self.win_records.append(record)
+        if record["goal_type"] in self.GGL_GOAL_TYPES:
+            try:
+                self.associative_merkle_tree.inos_merkle_log_solved_pattern(
+                    int(sig16),
+                    "SOLVED:" + record["goal_type"],
+                    level_idx=int(self.current_level),
+                    payload={"abstract": abstract, "relations": record["relations"]},
+                )
+            except Exception:
+                pass
+
+    def _wt_load_memory(self, path: str) -> None:
+        try:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+        except Exception:
+            return
+        records = data.get("records", data if isinstance(data, list) else [])
+        seen: set[tuple[int, str]] = set()
+        for rec in records:
+            gtype = str(rec.get("goal_type", ""))
+            if gtype not in self.GGL_GOAL_TYPES:
+                continue
+            sig16 = int(rec.get("sig16", 0)) & 0xFFFF
+            if sig16 == 0:
+                continue
+            key = (sig16, gtype)
+            if key in seen:
+                continue
+            seen.add(key)
+            item = {
+                "sig16": sig16,
+                "goal_type": gtype,
+                "abstract": str(rec.get("abstract", ""))[:80],
+            }
+            self.wt_memory.append(item)
+            try:
+                self.associative_merkle_tree.inos_merkle_log_solved_pattern(
+                    sig16,
+                    "SOLVED:" + gtype,
+                    level_idx=-1,
+                    payload={"abstract": item["abstract"], "loaded": True},
+                )
+            except Exception:
+                pass
+
+    def _wt_memory_bonus(self, sig16: int) -> dict[str, float]:
+        bonus = {t: 0.0 for t in self.GGL_GOAL_TYPES}
+        if not self.wt_memory:
+            return bonus
+        votes: collections.Counter = collections.Counter()
+        for rec in self.wt_memory:
+            dist = int(bin((int(rec["sig16"]) ^ int(sig16)) & 0xFFFF).count("1"))
+            if dist <= 2:
+                votes[rec["goal_type"]] += 1
+        if not votes:
+            return bonus
+        self.wt_retrievals += 1
+        gtype, n = votes.most_common(1)[0]
+        # Cap the prior. Replaying another game's action list is not done:
+        # loaded action memory has transferred negatively before.
+        bonus[gtype] = min(3.0, float(n))
+        return bonus
 
     # ---------------- forest integration (object-relational keying) ----------------
 
@@ -17674,6 +18334,10 @@ class MyAgent(Agent):
         if self.ggl_confirmed_type is not None and prior[self.ggl_confirmed_type] > 0:
             prior[self.ggl_confirmed_type] += 4.0
         sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
+        if getattr(self, "wt_memory", None):
+            bonus = self._wt_memory_bonus(sig16)
+            for t in self.GGL_GOAL_TYPES:
+                prior[t] = prior.get(t, 0.0) + bonus.get(t, 0.0)
         scored = sorted(
             (t for t in self.GGL_GOAL_TYPES if prior[t] > 0),
             key=lambda t: -(prior[t] + self._ggl_forest_weight(sig16, t) / float(0x0400)),
@@ -17687,6 +18351,17 @@ class MyAgent(Agent):
         h_curr: int,
         avail_ids: list[int],
     ) -> list[ActionKey] | None:
+        # Probes run in the first moves, before the plan gate, and are not a goal type.
+        if getattr(self, "fx_enabled", False) and self.ggl_active is None:
+            try:
+                arr_p = np.asarray(grid, dtype=np.int16)
+                if arr_p.ndim == 2 and arr_p.shape[0] >= 8 and arr_p.shape[1] >= 8:
+                    probe = self._fx_probe_action(arr_p, avail_ids, h_curr)
+                    if probe is not None:
+                        self.fx_probes += 1
+                        return [probe]
+            except Exception:
+                pass
         if self.steps_in_level < 8 or self.steps_in_level < self.ggl_backoff_until:
             return None
         if self.ggl_level_steps >= max(40, int(0.5 * self.steps_in_level)):
@@ -17720,6 +18395,9 @@ class MyAgent(Agent):
             for a in (1, 2, 3, 4)
             if a in avail_ids and ("SIMPLE", a) not in tried_here
         ]
+        rehearse = bool(getattr(self, "rehearse_enabled", False))
+        options: list[tuple[list[ActionKey], dict[str, Any] | None]] = []
+        option_refuted: list[bool] = []
         for gtype in self._ggl_type_order(arr, doc, avail_ids):
             # Type-level revision: a type that issued many plans this level without a
             # single progress event is suspended for the rest of the level.
@@ -17738,6 +18416,7 @@ class MyAgent(Agent):
             ):
                 continue
             plan: list[ActionKey] | None = None
+            refuted_before_type = self.ggl_match_refuted
             if gtype == "REACH" and has_dpad:
                 if untried_dpad_here and self.steps_since_novel_atom < 4:
                     continue
@@ -17749,13 +18428,37 @@ class MyAgent(Agent):
             elif gtype == "PLACE" and has_dpad:
                 plan = self._ggl_plan_push(arr, doc, h_curr, avail_ids)
             if plan:
-                self.ggl_plans_issued += 1
-                self.ggl_level_types_used.add(gtype)
-                self.ggl_level_type_plans[gtype] += 1
-                if gtype == "MATCH":
-                    self.ggl_match_clicks += 1
-                self.ggl_last_plan_step = self.steps_in_level
-                return plan
+                if not rehearse:
+                    self.ggl_plans_issued += 1
+                    self.ggl_level_types_used.add(gtype)
+                    self.ggl_level_type_plans[gtype] += 1
+                    if gtype == "MATCH":
+                        self.ggl_match_clicks += 1
+                    self.ggl_last_plan_step = self.steps_in_level
+                    return plan
+                options.append((list(plan), self.ggl_active))
+                option_refuted.append(bool(self.ggl_match_refuted))
+                self.ggl_active = None
+                # Hold this type's refute until it is the plan we commit.
+                # A type tried only because rehearsal wants alternatives must
+                # not change the flag when an earlier plan is committed.
+                self.ggl_match_refuted = refuted_before_type
+                if len(options) >= 3:
+                    break
+            elif options and self.ggl_match_refuted != refuted_before_type:
+                self.ggl_match_refuted = refuted_before_type
+        if rehearse and options:
+            _best_i, plan, goal = self._fx_pick_rehearsed(arr, options)
+            self.ggl_match_refuted = option_refuted[_best_i]
+            self.ggl_active = goal
+            gtype = str(goal["type"]) if goal is not None else "REACH"
+            self.ggl_plans_issued += 1
+            self.ggl_level_types_used.add(gtype)
+            self.ggl_level_type_plans[gtype] += 1
+            if gtype == "MATCH":
+                self.ggl_match_clicks += 1
+            self.ggl_last_plan_step = self.steps_in_level
+            return plan
         return None
 
     def _order_simple_actions(
@@ -23571,6 +24274,13 @@ class MyAgent(Agent):
                 )
             except Exception:
                 pass
+        if self.fx_enabled or self.wins_teach or self.rehearse_enabled:
+            try:
+                self._fx_on_transition(
+                    grid, h_curr, is_blackout or was_blackout_last_step
+                )
+            except Exception:
+                pass
 
         if self.level_dpad_successes > 0 and self.level_click_successes > 0:
             self.self_narrative["control_law"] = "Hybrid"
@@ -24470,6 +25180,14 @@ class MyAgent(Agent):
             self.controller_state = ControllerState.USE
             self.level_action_counter = 0
             chosen = self.planned_queue.popleft()
+            if (
+                self.active_macro_family == "online_general_goal"
+                and (self.fx_enabled or self.rehearse_enabled)
+            ):
+                try:
+                    self._fx_arm_prediction(grid, chosen)
+                except Exception:
+                    self.fx_pending = None
             if self.warehouse_sim is not None and chosen[0] == "SIMPLE":
                 try:
                     self.warehouse_prev_sim = self.warehouse_sim.clone()

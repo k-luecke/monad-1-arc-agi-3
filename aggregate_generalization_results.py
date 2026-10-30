@@ -132,6 +132,32 @@ def main() -> int:
             (held_gain if g in HELD_OUT_FOLD0 else train_gain).append(e - b)
         print(f"mean level delta, tuning games (n={len(train_gain)}): {sum(train_gain):+.1f} total")
         print(f"mean level delta, held-out fold-0 games (n={len(held_gain)}): {sum(held_gain):+.1f} total")
+
+    def pred_totals(runs: list[dict], only: set[str] | None = None) -> tuple[int, int, int, int, int, int]:
+        scored = hits = mismatches = replans = probes = retrievals = 0
+        for run in runs:
+            for g, r in run.items():
+                if only is not None and g not in only:
+                    continue
+                rep = r.get("goal_report") or {}
+                pred = rep.get("prediction") or {}
+                scored += int(pred.get("scored") or 0)
+                hits += int(pred.get("hits") or 0)
+                mismatches += int(pred.get("mismatches") or 0)
+                replans += int(pred.get("replans") or 0)
+                probes += int(pred.get("probes") or 0)
+                retrievals += int(rep.get("memory_retrievals") or 0)
+        return scored, hits, mismatches, replans, probes, retrievals
+
+    for label, only in (("all games", None), ("held-out fold-0", HELD_OUT_FOLD0)):
+        scored, hits, mismatches, replans, probes, retrievals = pred_totals(eng, only)
+        acc = (hits / scored) if scored else float("nan")
+        acc_s = f"{acc:.3f}" if scored else "n/a"
+        print(
+            f"prediction {label}: hits={hits}/{scored} acc={acc_s} "
+            f"mismatches={mismatches} replans={replans} probes={probes} "
+            f"memory_retrievals={retrievals}"
+        )
     return 0
 
 
