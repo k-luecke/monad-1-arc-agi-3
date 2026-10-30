@@ -16773,6 +16773,8 @@ class MyAgent(Agent):
         self.ggl_level_types_used: set = set()
         self.ggl_level_progress_types: set = set()
         self.ggl_level_type_plans: collections.Counter = collections.Counter()
+        self.ggl_level_decoys: collections.Counter = collections.Counter()
+        self.ggl_level_type_progress: collections.Counter = collections.Counter()
         self.ggl_match_clicks = 0
         self.ggl_match_progress = 0
         self.ggl_panel_cache: tuple | None = None
@@ -17003,6 +17005,7 @@ class MyAgent(Agent):
                 # reached/zeroed the measure but the level did not complete: decoy
                 self.ggl_refuted_targets.add(goal.get("target_key"))
                 self.ggl_type_stats[gtype]["decoys"] += 1
+                self.ggl_level_decoys[gtype] += 1
                 self.decoy_goals_rejected += 1
                 self.ggl_active = None
             return
@@ -17010,6 +17013,7 @@ class MyAgent(Agent):
             # target vanished: usually consumed/absorbed -> treat as progress
             self.ggl_type_stats[gtype]["progress"] += 1
             self.ggl_level_progress_types.add(gtype)
+            self.ggl_level_type_progress[gtype] += 1
             self.ggl_fail_streak = 0
             self.ggl_active = None
             return
@@ -17022,6 +17026,7 @@ class MyAgent(Agent):
         if m < last - goal.get("min_gain", 0.5):
             self.ggl_type_stats[gtype]["progress"] += 1
             self.ggl_level_progress_types.add(gtype)
+            self.ggl_level_type_progress[gtype] += 1
             if gtype == "MATCH":
                 self.ggl_match_progress += 1
             self.ggl_fail_streak = 0
@@ -17382,6 +17387,16 @@ class MyAgent(Agent):
 
             return test
 
+        # With moving hazards/sentries on the board, execute closed-loop (short
+        # plan prefixes, re-plan every couple of steps around the sentry motion).
+        prefix = (
+            2
+            if any(
+                n >= 3 and c != ac for c, n in self.ggl_dynamic_colors.items()
+            )
+            else 6
+        )
+
         if continue_goal is not None:
             tc, (tx, ty, tw, th) = continue_goal["target"]
             t = {"x": tx, "y": ty, "w": tw, "h": th, "color": tc}
@@ -17390,10 +17405,10 @@ class MyAgent(Agent):
                     arr, (ax, ay), (aw, ah), moves, make_goal_test(t), blocked
                 )
                 if path:
-                    continue_goal["pending"] = len(path[:6])
+                    continue_goal["pending"] = len(path[:prefix])
                     continue_goal["plan_len"] = len(path)
                     continue_goal["last_measure"] = float(len(path))
-                    return [("SIMPLE", aid) for aid in path[:6]]
+                    return [("SIMPLE", aid) for aid in path[:prefix]]
             continue_goal["fails"] = continue_goal.get("fails", 0) + 2
             return None
 
@@ -17418,12 +17433,12 @@ class MyAgent(Agent):
                         "last_measure": float(len(path) * step),
                         "min_gain": float(step) * 0.9,
                         "done_eps": float(step) * 1.5,
-                        "pending": len(path[:6]),
+                        "pending": len(path[:prefix]),
                         "plan_len": len(path),
                         "sig16": sig16,
                         "fails": 0,
                     }
-                    return [("SIMPLE", aid) for aid in path[:6]]
+                    return [("SIMPLE", aid) for aid in path[:prefix]]
         return None
 
     def _ggl_find_panel_pair(
@@ -17711,6 +17726,15 @@ class MyAgent(Agent):
             if (
                 self.ggl_level_type_plans[gtype] >= 25
                 and gtype not in self.ggl_level_progress_types
+            ):
+                continue
+            # Many reached-but-no-level-up targets and little measurable progress:
+            # the "reach a rare object" proxy is wrong here, so stand down this level.
+            if (
+                self.ggl_level_decoys[gtype] >= 20
+                and self.ggl_type_stats[gtype]["level_credits"] == 0
+                and self.ggl_level_type_progress[gtype] * 3
+                < self.ggl_level_decoys[gtype]
             ):
                 continue
             plan: list[ActionKey] | None = None
