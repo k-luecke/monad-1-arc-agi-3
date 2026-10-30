@@ -38,6 +38,39 @@ python run_competition_eval.py --self-test --blind-id
 
 ---
 
+## 2b. Blind Generalization Mode (`--no-game-solvers`): Game-Specific Solvers Disabled
+
+To measure fluid, game-agnostic performance, all 27 game-family solver methods
+(23 `_try_solve_*` plus `_try_plan_hybrid_switch_navigation`,
+`_step_gravity_shaft_mechanics`, `_step_peg_track_mechanics`, and
+`_try_monad1_scp_cegis_panel_solver`) can be disabled at runtime without editing
+the agent. The agent then runs on its generic tiers plus the **General Goal
+Engine** (goal hypothesis → subgoal → plan → verify/revise over REACH / PLACE /
+MATCH goal types, with per-type progress measures, decoy inhibition, learned
+walls/hazards, and object-relational goal memory in the Fuzzy Merkle Forest):
+
+```bash
+# Generalization eval (reports totals; win/level/action reference numbers are not asserted)
+python run_competition_eval.py --offline --blind-id --no-game-solvers --output scorecards/generalization.json
+
+# Ablation of the General Goal Engine itself (generic tiers only)
+MONAD1_DISABLE_GOAL_ENGINE=1 python run_competition_eval.py --offline --blind-id --no-game-solvers
+
+# Aggregate one or more runs into a per-game table with the goal-type identification metric
+python aggregate_generalization_results.py --engine-runs scorecards/generalization.json
+```
+
+Environment variables: `MONAD1_DISABLE_GAME_SOLVERS=1` (set automatically by
+`--no-game-solvers`) stubs the 27 game-specific methods;
+`MONAD1_DISABLE_GOAL_ENGINE=1` turns the General Goal Engine off;
+`MONAD1_FORCE_GOAL_ENGINE=1` enables the engine even with solvers on (note that
+this changes the solvers-on action trace, so the strict `6,444`-action
+verification applies only to the default configuration). Run-to-run variation
+of ±2 levels arises from Python hash randomization; fix `PYTHONHASHSEED` for
+reproducible runs.
+
+---
+
 ## 3. Local Kaggle Competition Mode Rerun Gateway (`--local-gateway --blind-id`)
 
 In the official Kaggle evaluation container, the agent communicates over HTTP with a local `listen_and_serve(port=8001, competition_mode=True)` server with local environment files disabled (`environments_dir=""`) on the client. To reproduce this exact setup locally (including verifying the `HTTP 403` in-flight scorecard lock before `close_scorecard()` and asserting `25/25` wins, `183/183` levels, and `6,444` actions):
