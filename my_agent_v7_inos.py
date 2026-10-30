@@ -92,9 +92,88 @@ except Exception:
         from ..agent import Agent  # type: ignore
     except Exception:
         class Agent:  # type: ignore
-            def __init__(self, *args: Any, **kwargs: Any) -> None:
-                self.game_id = str(kwargs.get("game_id", args[0] if args else "unknown"))
-                self.frames: list[Any] = []
+            """Self-contained ARC-AGI-3 Agent base class when running outside the ARC-AGI-3-Agents repo."""
+            MAX_ACTIONS: int = 80
+            action_counter: int = 0
+            timer: float = 0.0
+
+            def __init__(
+                self,
+                card_id: str = "",
+                game_id: str = "unknown",
+                agent_name: str = "monad(1)-v7-inos",
+                ROOT_URL: str = "http://localhost:8001",
+                record: bool = False,
+                arc_env: Any = None,
+                tags: list[str] | None = None,
+                *args: Any,
+                **kwargs: Any,
+            ) -> None:
+                self.ROOT_URL = ROOT_URL
+                self.card_id = card_id
+                self.game_id = str(game_id)
+                self.guid = ""
+                self.agent_name = agent_name
+                self.tags = tags or []
+                self.frames: list[Any] = [FrameData(levels_completed=0)]
+                self._cleanup = True
+                self.action_counter = 0
+                self.timer = 0.0
+                self.headers = {
+                    "X-API-Key": os.getenv("ARC_API_KEY", ""),
+                    "Accept": "application/json",
+                }
+                self.arc_env = arc_env
+
+            def main(self) -> None:
+                self.timer = time.time()
+                while (
+                    not self.is_done(self.frames, self.frames[-1])
+                    and self.action_counter <= self.MAX_ACTIONS
+                ):
+                    obs = getattr(self.arc_env, "observation_space", None) if self.arc_env is not None else None
+                    action = self.choose_action(
+                        self.frames,
+                        self._convert_raw_frame_data(obs),
+                    )
+                    if frame := self.take_action(action):
+                        self.append_frame(frame)
+                    self.action_counter += 1
+                self.cleanup()
+
+            @property
+            def state(self) -> GameState:
+                return self.frames[-1].state
+
+            @property
+            def levels_completed(self) -> int:
+                return int(self.frames[-1].levels_completed)
+
+            @property
+            def seconds(self) -> float:
+                return (time.time() - self.timer) * 100 // 1 / 100
+
+            @property
+            def fps(self) -> float:
+                if self.action_counter == 0:
+                    return 0.0
+                return round(self.action_counter / max(self.seconds, 0.1), 2)
+
+            @property
+            def is_playback(self) -> bool:
+                return False
+
+            def take_action(self, action: GameAction) -> FrameData | None:
+                frame_data = self.do_action_request(action)
+                if hasattr(FrameData, "model_validate"):
+                    try:
+                        return FrameData.model_validate(frame_data)
+                    except Exception:
+                        return None
+                return frame_data
+
+            def cleanup(self, scorecard: Any = None) -> None:
+                self._cleanup = False
 
 ActionKey = tuple[Any, ...]
 ShapeSig = tuple[int, int, int, int]  # (ShapeType, fill_color, w, h)
@@ -2666,7 +2745,7 @@ class BicameralSmallQwenAB:                                                     
     def __init__(self) -> None:                                                             # Control / block header: def __init__(self) -> None:
         self.model_a_url = os.environ.get("INOS_MODEL_A_URL", "http://127.0.0.1:8087/v1/chat/completions")  # Execute collaborative step: self.model_a_url = os.environ.get("INOS_MODEL_A_URL"
         self.model_b_url = os.environ.get("INOS_BICAMERAL_MODEL_B_URL", "http://127.0.0.1:8088/v1/chat/completions")  # Execute collaborative step: self.model_b_url = os.environ.get("INOS_BICAMERAL_MO
-        self.enable_http = os.environ.get("MONAD1_ENABLE_QWEN_AB_HTTP", "0") == "1"         # Execute collaborative step: self.enable_http = os.environ.get("MONAD1_ENABLE_QWE
+        self.enable_http = os.environ.get("MONAD1_ENABLE_QWEN_AB_HTTP", os.environ.get("INOS_ENABLE_QWEN_HTTP", "0")) == "1"  # Enable optional Qwen A/B HTTP inference
         self.open_corridor_noop_streak: int = 0                                             # Execute collaborative step: self.open_corridor_noop_streak: int = 0
         self.total_handoffs: int = 0                                                        # Execute collaborative step: self.total_handoffs: int = 0
 

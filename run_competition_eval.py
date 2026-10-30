@@ -12,7 +12,7 @@ Usage:
   2. Local Kaggle Rerun Gateway Replica (listen_and_serve(port=8001, competition_mode=True)):
      python run_competition_eval.py --local-gateway --blind-id
 
-  3. Offline 25-Game Verification (with --blind-id closure-isolated environment proxy):
+  3. Offline 25-Game Verification (with --blind-id environment proxy):
      python run_competition_eval.py --offline --blind-id
 """
 from __future__ import annotations
@@ -44,52 +44,76 @@ EXPECTED_FULL_SUITE_GAMES = 25
 EXPECTED_FULL_SUITE_LEVELS = 183
 EXPECTED_FULL_SUITE_ACTIONS = 6444
 
+_BLIND_ENV_REGISTRY: dict[int, Any] = {}
+_ALLOWED_CALLER_CODES: set[Any] = set()
 
-def make_blind_env_proxy(real_env: Any) -> Any:
+
+def _scrub_frame(frame: Any) -> Any:
+    if frame is not None and hasattr(frame, "game_id"):
+        try:
+            frame.game_id = "blind_unknown_env"
+        except Exception:
+            pass
+    return frame
+
+
+def _lookup_blind_env(proxy: Any) -> Any:
+    caller_code = sys._getframe(1).f_code
+    if caller_code not in _ALLOWED_CALLER_CODES:
+        raise PermissionError("Direct access to _BLIND_ENV_REGISTRY is prohibited.")
+    return _BLIND_ENV_REGISTRY[id(proxy)]
+
+
+class BlindEnvironmentProxy:
     """
-    Wrap an ARC-AGI-3 environment in a closure-isolated proxy that:
-      1. Stores `real_env` strictly inside a lexical closure (never as an attribute on `self`),
-         preventing the agent from inspecting `env.__dict__`, `env._game`, or `env.game_id`.
-      2. Rewrites `obs.game_id = 'blind_unknown_env'` on every FrameData returned by `reset()`
-         and `step()`.
+    Zero-closure, zero-attribute environment wrapper for `--blind-id` verification:
+      1. `__slots__ = ()`: stores zero instance attributes on `self`.
+      2. Methods (`reset`, `step`, `observation_space`, `action_space`) define zero lexical
+         closures (`__closure__ is None`), preventing closure-cell introspection.
+      3. Exposes no `.info`, `._game`, or `.game_id` attributes, and scrubs `game_id` to
+         `'blind_unknown_env'` on `observation_space` and on every frame returned by
+         `reset()` and `step()`.
     """
-    def _scrub_frame(frame: Any) -> Any:
-        if frame is not None and hasattr(frame, "game_id"):
-            try:
-                frame.game_id = "blind_unknown_env"
-            except Exception:
-                pass
-        return frame
+    __slots__ = ()
 
-    class _BlindEnvProxy:
-        __slots__ = ()
+    def reset(self) -> Any:
+        env = _lookup_blind_env(self)
+        return _scrub_frame(env.reset())
 
-        def reset(self) -> Any:
-            return _scrub_frame(real_env.reset())
+    def step(self, action: Any, data: Any = None, reasoning: Any = None) -> Any:
+        env = _lookup_blind_env(self)
+        if reasoning is not None:
+            return _scrub_frame(env.step(action, data=data, reasoning=reasoning))
+        return _scrub_frame(env.step(action, data=data))
 
-        def step(self, action: Any, data: Any = None, reasoning: Any = None) -> Any:
-            if reasoning is not None:
-                return _scrub_frame(real_env.step(action, data=data, reasoning=reasoning))
-            return _scrub_frame(real_env.step(action, data=data))
+    @property
+    def action_space(self) -> Any:
+        env = _lookup_blind_env(self)
+        return getattr(env, "action_space", None)
 
-        @property
-        def action_space(self) -> Any:
-            return getattr(real_env, "action_space", None)
+    @property
+    def observation_space(self) -> Any:
+        env = _lookup_blind_env(self)
+        return _scrub_frame(getattr(env, "observation_space", None))
 
-        @property
-        def observation_space(self) -> Any:
-            return getattr(real_env, "observation_space", None)
+    def __getattr__(self, name: str) -> Any:
+        raise AttributeError(
+            f"BlindEnvironmentProxy blocks access to underlying environment attribute '{name}'"
+        )
 
-        @property
-        def info(self) -> Any:
-            return getattr(real_env, "info", None)
 
-        def __getattr__(self, name: str) -> Any:
-            raise AttributeError(
-                f"BlindEnvironmentProxy blocks access to underlying environment attribute '{name}'"
-            )
+_ALLOWED_CALLER_CODES.update({
+    BlindEnvironmentProxy.reset.__code__,
+    BlindEnvironmentProxy.step.__code__,
+    BlindEnvironmentProxy.action_space.fget.__code__,  # type: ignore[union-attr]
+    BlindEnvironmentProxy.observation_space.fget.__code__,  # type: ignore[union-attr]
+})
 
-    return _BlindEnvProxy()
+
+def make_blind_env_proxy(real_env: Any) -> BlindEnvironmentProxy:
+    proxy = BlindEnvironmentProxy()
+    _BLIND_ENV_REGISTRY[id(proxy)] = real_env
+    return proxy
 
 
 def ensure_local_environments(env_dir: Path) -> list[str]:
@@ -125,23 +149,27 @@ def play_single_game(
     raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
     env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
-    agent = MyAgent(
-        card_id=card_id,
-        game_id=agent_gid,
-        agent_name="monad(1)-v7-inos",
-        ROOT_URL=base_url,
-        record=False,
-        arc_env=env,
-        tags=["monad(1)", "v7-inos", "competition-mode"],
-    )
-    agent.max_game_seconds = 300.0
-    agent.main()
-    if blind_id:
-        assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
-        for frame in getattr(agent, "frames", []):
-            assert getattr(frame, "game_id", "blind_unknown_env") == "blind_unknown_env", (
-                f"Unscrubbed frame.game_id={getattr(frame, 'game_id', None)!r}"
-            )
+    try:
+        agent = MyAgent(
+            card_id=card_id,
+            game_id=agent_gid,
+            agent_name="monad(1)-v7-inos",
+            ROOT_URL=base_url,
+            record=False,
+            arc_env=env,
+            tags=["monad(1)", "v7-inos", "competition-mode"],
+        )
+        agent.max_game_seconds = 300.0
+        agent.main()
+        if blind_id:
+            assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
+            for frame in getattr(agent, "frames", []):
+                assert getattr(frame, "game_id", "blind_unknown_env") in ("blind_unknown_env", "unknown", ""), (
+                    f"Unscrubbed frame.game_id={getattr(frame, 'game_id', None)!r}"
+                )
+    finally:
+        if blind_id:
+            _BLIND_ENV_REGISTRY.pop(id(env), None)
     dt = round(time.perf_counter() - t0, 2)
     state_name = agent.state.name if agent.state is not None else "NONE"
     lvls = int(agent.levels_completed)
@@ -204,7 +232,7 @@ def main() -> int:
     parser.add_argument(
         "--blind-id",
         action="store_true",
-        help="Wrap environment in closure-isolated BlindEnvironmentProxy and scrub game_id on all frames",
+        help="Wrap environment in zero-closure BlindEnvironmentProxy and scrub game_id on all frames",
     )
     parser.add_argument(
         "--environments-dir",

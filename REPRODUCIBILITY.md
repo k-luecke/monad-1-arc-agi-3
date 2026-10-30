@@ -11,8 +11,8 @@
 - **Packages:** `arc-agi>=0.9.5`, `arcengine>=0.9.0`, `numpy>=1.24.0`, `requests>=2.31.0`, `flask>=3.0.0`
 - **Hardware:** Standard CPU (zero GPU or external LLM API required; `< 300 MB` RAM)
 - **Execution Modes:**
-  - **Deterministic In-Memory Mode (`STATIC_MONOLITH_IN_MEMORY`, default `INOS_ENABLE_QWEN_HTTP=0`):** Runs 100% deterministically on CPU with zero external network or LLM server dependencies. All `100.0%` (`25/25` wins, `183/183` levels, `6,444` actions) benchmark runs execute out-of-the-box in this default mode.
-  - **Optional Local Neural Escalation (`INOS_ENABLE_QWEN_HTTP=1` & `INOS_MISTRAL_NEMO_GGUF`):** Routes high-surprise `INOS` Tonic Gate escalations (`tone ≥ 0.25` / `tone ≥ 0.65`) to local `Qwen2.5-0.5B/1.5B` HTTP endpoints and local `Mistral-NeMo-Minitron-8B-Instruct` (`Q4_K_M` GGUF via `llama.cpp`).
+  - **Deterministic In-Memory Mode (`STATIC_MONOLITH_IN_MEMORY`, default `MONAD1_ENABLE_QWEN_AB_HTTP=0`):** Runs 100% deterministically on CPU with zero external network or LLM server dependencies. All `100.0%` (`25/25` wins, `183/183` levels, `6,444` actions) benchmark runs execute out-of-the-box in this default mode.
+  - **Optional Local Neural Escalation (`MONAD1_ENABLE_QWEN_AB_HTTP=1` & `INOS_MISTRAL_NEMO_GGUF`):** Routes high-surprise `INOS` Tonic Gate escalations (`tone ≥ 0.25` / `tone ≥ 0.65`) to local `Qwen2.5-0.5B/1.5B` HTTP endpoints and local `Mistral-NeMo-Minitron-8B-Instruct` (`Q4_K_M` GGUF via `llama.cpp`).
 
 ```bash
 git clone https://github.com/k-luecke/monad-1-arc-agi-3.git
