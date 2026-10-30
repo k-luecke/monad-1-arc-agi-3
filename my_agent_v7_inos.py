@@ -17201,9 +17201,11 @@ class MyAgent(Agent):
             "prediction": {
                 "scored": int(getattr(self, "fx_pred_scored", 0)),
                 "hits": int(getattr(self, "fx_pred_hits", 0)),
+                "exact": int(getattr(self, "fx_pred_exact", 0)),
                 "mismatches": int(getattr(self, "fx_mismatches", 0)),
                 "replans": int(getattr(self, "fx_replans", 0)),
                 "probes": int(getattr(self, "fx_probes", 0)),
+                "first_miss": getattr(self, "fx_first_miss", None),
             },
             "effects_learned": {
                 "dpad_dirs": int(sum(1 for v in getattr(self, "fx_dpad", {}).values() if v)),
@@ -17217,6 +17219,16 @@ class MyAgent(Agent):
                 "vanish_colors": int(len(getattr(self, "fx_vanish", {}))),
             },
             "memory_retrievals": int(getattr(self, "wt_retrievals", 0)),
+            "memory_mean_band_agree": (
+                round(self.wt_agree_sum / self.wt_retrievals, 3)
+                if getattr(self, "wt_retrievals", 0)
+                else None
+            ),
+            "memory_mean_hamming": (
+                round(self.wt_dist_sum / self.wt_retrievals, 3)
+                if getattr(self, "wt_retrievals", 0)
+                else None
+            ),
             "win_records": len(getattr(self, "win_records", [])),
         }
 
@@ -17240,16 +17252,25 @@ class MyAgent(Agent):
         )
         self.fx_appear: collections.Counter = collections.Counter()
         self.fx_vanish: collections.Counter = collections.Counter()
+        # Per d-pad, per color, the rigid shifts actually observed.
+        self.fx_color_shift: dict[int, dict[int, collections.Counter]] = collections.defaultdict(
+            lambda: collections.defaultdict(collections.Counter)
+        )
         self.fx_action5_seen = False
+        self.fx_first_miss: dict[str, Any] | None = None
         self.fx_probes = 0
         self.fx_pred_scored = 0
         self.fx_pred_hits = 0
+        self.fx_pred_exact = 0
         self.fx_mismatches = 0
         self.fx_replans = 0
         self.fx_pending: dict[str, Any] | None = None
         self.win_records: list[dict[str, Any]] = []
         self.wt_memory: list[dict[str, Any]] = []
+        self.wt_band_index: list[dict[int, list[int]]] = [dict() for _ in range(8)]
         self.wt_retrievals = 0
+        self.wt_agree_sum = 0
+        self.wt_dist_sum = 0
         self._fx_reset_level_state()
 
     def _fx_reset_level_state(self) -> None:
@@ -17341,19 +17362,26 @@ class MyAgent(Agent):
         """One-step object-level forward model. None means 'not enough evidence'."""
         if action[0] == "SIMPLE" and int(action[1]) in (1, 2, 3, 4):
             aid = int(action[1])
-            votes = self.fx_dpad.get(aid)
-            if not votes:
+            # Predict only colors whose shift for this action is stable.
+            # A color that sometimes rides along is recorded, not baked in.
+            chosen: list[tuple[int, tuple[int, int], int]] = []
+            for color, votes in self.fx_color_shift.get(aid, {}).items():
+                if not votes:
+                    continue
+                shift, n = votes.most_common(1)[0]
+                total = sum(votes.values())
+                if n < 2 or shift == (0, 0) or total <= 0 or n < 0.6 * total:
+                    continue
+                chosen.append((int(color), shift, int(n)))
+            if not chosen:
                 return None
-            shift, n = votes.most_common(1)[0]
-            if n < 2 or shift == (0, 0):
-                return None
-            if not self.fx_mover:
-                return None
-            avatar_color = self.fx_mover.most_common(1)[0][0]
-            shifts = [(avatar_color, shift)]
-            for color, pn in self.fx_push.get(aid, {}).items():
-                if pn >= 2 and color != avatar_color:
-                    shifts.append((int(color), shift))
+            chosen.sort(key=lambda item: -item[2])
+            primary_shift = chosen[0][1]
+            shifts = [
+                (color, shift)
+                for color, shift, _n in chosen
+                if shift == primary_shift
+            ][:4]
             return self._fx_apply_shifts(arr, shifts)
         if action[0] == "CLICK" and len(action) >= 3:
             sig = self._fx_component_at(arr, int(action[1]), int(action[2]))
@@ -17380,6 +17408,20 @@ class MyAgent(Agent):
                     arr, int(action[1]), int(action[2]), int(other)
                 )
         return None
+
+    def _fx_body_color(self) -> int | None:
+        """Color whose action-conditional shift is stable. Used as the body in REACH scores."""
+        best_c: int | None = None
+        best_n = 0
+        for per in self.fx_color_shift.values():
+            for color, votes in per.items():
+                if not votes:
+                    continue
+                _shift, n = votes.most_common(1)[0]
+                total = sum(votes.values())
+                if n >= 2 and total > 0 and n >= 0.6 * total and n > best_n:
+                    best_c, best_n = int(color), int(n)
+        return best_c
 
     def _fx_recolor_component(self, arr: Any, x: int, y: int, new_color: int) -> Any | None:
         """Recolor the connected component under a click. Local, not a full-board swap."""
@@ -17421,16 +17463,25 @@ class MyAgent(Agent):
             aid = int(action[1])
             for color, dx, dy in summary["movers"]:
                 self.fx_mover[color] += 1
-            if summary["movers"] and self.fx_mover:
-                avatar_color = max(
-                    (c for c, _, _ in summary["movers"]),
-                    key=lambda c: self.fx_mover[c],
-                )
-                av = next(m for m in summary["movers"] if m[0] == avatar_color)
-                self.fx_dpad[aid][(av[1], av[2])] += 1
+                self.fx_color_shift[aid][color][(dx, dy)] += 1
+            if summary["movers"]:
+                # Stable body: the color whose shift for this action repeats,
+                # not whichever color has moved most often on the whole board.
+                avatar_color = None
+                avatar_n = 0
+                avatar_shift = (0, 0)
                 for color, dx, dy in summary["movers"]:
-                    if color != avatar_color and (dx, dy) == (av[1], av[2]):
-                        self.fx_push[aid][color] += 1
+                    votes = self.fx_color_shift[aid][color]
+                    shift, n = votes.most_common(1)[0]
+                    if shift != (dx, dy):
+                        continue
+                    if n > avatar_n or (n == avatar_n and self.fx_mover[color] > self.fx_mover.get(avatar_color, 0)):
+                        avatar_color, avatar_n, avatar_shift = color, n, shift
+                if avatar_color is not None:
+                    self.fx_dpad[aid][avatar_shift] += 1
+                    for color, dx, dy in summary["movers"]:
+                        if color != avatar_color and (dx, dy) == avatar_shift:
+                            self.fx_push[aid][color] += 1
             for color in summary["appeared"]:
                 self.fx_appear[color] += 1
             for color in summary["vanished"]:
@@ -17464,7 +17515,14 @@ class MyAgent(Agent):
                         and list(lost.values()) == list(gained.values())
                     ):
                         a, b = next(iter(lost)), next(iter(gained))
-                        if a != b:
+                        clicked = int(arr0[int(action[2]), int(action[1])])
+                        ys, xs = np.nonzero(diff)
+                        local = (
+                            len(ys) > 0
+                            and int(ys.max() - ys.min()) <= 12
+                            and int(xs.max() - xs.min()) <= 12
+                        )
+                        if a != b and clicked in (a, b) and local:
                             self.fx_click[sig]["TOGGLE"] += 1
                             self.fx_toggle_pairs[sig][(min(a, b), max(a, b))] += 1
             for color in summary["appeared"]:
@@ -17489,16 +17547,26 @@ class MyAgent(Agent):
             actual = self._fx_summary(arr0, arr1)
             pred = pending["summary"]
             self.fx_pred_scored += 1
-            hit = (
-                pred["movers"] == actual["movers"]
-                and pred["inert"] == actual["inert"]
-                and pred.get("appeared") == actual.get("appeared")
-                and pred.get("vanished") == actual.get("vanished")
-            )
+            # A hit asserts nothing false: every predicted mover occurred.
+            # Extra actual movers (a second sprite color, an animation) stay
+            # in `exact`, which requires the sets to match.
+            pred_set = set(pred["movers"])
+            act_set = set(actual["movers"])
+            exact = pred["movers"] == actual["movers"] and pred["inert"] == actual["inert"]
+            hit = pred["inert"] == actual["inert"] and pred_set <= act_set
+            if exact:
+                self.fx_pred_exact += 1
             if hit:
                 self.fx_pred_hits += 1
             else:
                 self.fx_mismatches += 1
+                if self.fx_first_miss is None:
+                    self.fx_first_miss = {
+                        "pred_movers": [list(m) for m in pred["movers"][:6]],
+                        "act_movers": [list(m) for m in actual["movers"][:6]],
+                        "pred_changed": int(pred["changed"]),
+                        "act_changed": int(actual["changed"]),
+                    }
                 if (
                     self.rehearse_enabled
                     and self.ggl_active is not None
@@ -17522,7 +17590,11 @@ class MyAgent(Agent):
     def _fx_probe_action(
         self, arr: Any, avail_ids: list[int], h_curr: int
     ) -> ActionKey | None:
-        if self.fx_probe_count_level >= 7 or self.steps_in_level >= 12:
+        if self.fx_probe_count_level >= 7 or self.steps_in_level < 8 or self.steps_in_level >= 24:
+            return None
+        # While the explorer is still seeing new states, do not displace it.
+        # Probes are for actions the live policy has not revealed.
+        if self.steps_since_novel_atom < 4:
             return None
         for aid in (1, 2, 3, 4):
             if aid not in avail_ids or self.fx_dpad.get(aid):
@@ -17538,10 +17610,14 @@ class MyAgent(Agent):
             and ("A", 5) not in self.fx_probed_level
             and not self.fx_action5_seen
         ):
+            if not any(self.fx_color_shift.get(a) for a in (1, 2, 3, 4)):
+                return None
             self.fx_probed_level.add(("A", 5))
             self.fx_probe_count_level += 1
             return ("SIMPLE", 5)
         if 6 in avail_ids and self.fx_click_probes_level < 2:
+            if not any(self.fx_color_shift.get(a) for a in (1, 2, 3, 4)):
+                return None
             bg = self._ggl_bg_color(arr)
             comps = [
                 o
@@ -17579,7 +17655,7 @@ class MyAgent(Agent):
             if not target:
                 return None
             _c, (tx, ty, tw, th) = target
-            ac = self.fx_mover.most_common(1)[0][0] if self.fx_mover else None
+            ac = self._fx_body_color()
             if ac is None:
                 return None
 
@@ -17735,17 +17811,28 @@ class MyAgent(Agent):
         if any(a[0] == "CLICK" for a in actions if a):
             avail.append(6)
         sig16 = 1
+        sig64 = 0
+        bands = [0, 0, 0, 0]
         has_panel = False
         n_colors = 0
         if arr is not None and arr.ndim == 2 and arr.shape[0] >= 8:
             try:
-                sig16 = int(self._ggl_relational_sig16(None, arr, avail))
+                sig64, bands = self._lsh_situation(
+                    arr,
+                    avail,
+                    actions=actions,
+                    start=self.level_start_grid,
+                    end=end_grid,
+                )
+                sig16 = int(bands[0]) or 1
                 has_panel = self._ggl_find_panel_pair(arr) is not None
                 n_colors = int(len(np.unique(arr)))
             except Exception:
                 pass
         record = {
             "sig16": int(sig16),
+            "sig64": int(sig64),
+            "bands": [int(b) for b in bands],
             "goal_type": gtype if gtype in self.GGL_GOAL_TYPES else "UNKNOWN",
             "abstract": abstract,
             "relations": {
@@ -17764,7 +17851,12 @@ class MyAgent(Agent):
                     int(sig16),
                     "SOLVED:" + record["goal_type"],
                     level_idx=int(self.current_level),
-                    payload={"abstract": abstract, "relations": record["relations"]},
+                    payload={
+                        "abstract": abstract,
+                        "relations": record["relations"],
+                        "sig64": int(sig64),
+                        "bands": [int(b) for b in bands],
+                    },
                 )
             except Exception:
                 pass
@@ -17776,50 +17868,359 @@ class MyAgent(Agent):
             return
         records = data.get("records", data if isinstance(data, list) else [])
         seen: set[tuple[int, str]] = set()
+        self.wt_band_index = [dict() for _ in range(8)]
         for rec in records:
             gtype = str(rec.get("goal_type", ""))
             if gtype not in self.GGL_GOAL_TYPES:
                 continue
-            sig16 = int(rec.get("sig16", 0)) & 0xFFFF
-            if sig16 == 0:
+            sig64 = self._lsh_parse_sig64(rec)
+            if sig64 == 0:
                 continue
-            key = (sig16, gtype)
+            bands = rec.get("bands")
+            if not isinstance(bands, list) or len(bands) != 4:
+                bands = [(sig64 >> (16 * i)) & 0xFFFF for i in range(4)]
+            key = (sig64, gtype)
             if key in seen:
                 continue
             seen.add(key)
             item = {
-                "sig16": sig16,
+                "sig64": int(sig64),
+                "bands": [int(b) & 0xFFFF for b in bands],
+                "sig16": int(bands[0]) & 0xFFFF or 1,
                 "goal_type": gtype,
                 "abstract": str(rec.get("abstract", ""))[:80],
             }
+            idx = len(self.wt_memory)
             self.wt_memory.append(item)
+            for s in range(8):
+                piece = (sig64 >> (8 * s)) & 0xFF
+                self.wt_band_index[s].setdefault(piece, []).append(idx)
             try:
                 self.associative_merkle_tree.inos_merkle_log_solved_pattern(
-                    sig16,
+                    item["sig16"],
                     "SOLVED:" + gtype,
                     level_idx=-1,
-                    payload={"abstract": item["abstract"], "loaded": True},
+                    payload={"abstract": item["abstract"], "loaded": True, "sig64": int(sig64)},
                 )
             except Exception:
                 pass
 
-    def _wt_memory_bonus(self, sig16: int) -> dict[str, float]:
+    def _wt_memory_bonus(self, sig64: int, bands: list[int] | None = None) -> dict[str, float]:
+        """Banded multi-probe LSH over the 64-bit minutiae hash.
+
+        Eight 8-bit bands. A candidate is probed on an exact band hit or a
+        one-bit neighbor, then reranked by per-family Hamming. The effect
+        family is ignored when this situation has not learned one yet.
+        The prior is a capped goal-type vote. Action lists are not replayed.
+        """
         bonus = {t: 0.0 for t in self.GGL_GOAL_TYPES}
         if not self.wt_memory:
             return bonus
+        sig64 = int(sig64) & 0xFFFFFFFFFFFFFFFF
+        if bands is None or len(bands) != 4:
+            bands = [(sig64 >> (16 * i)) & 0xFFFF for i in range(4)]
+        effect_unknown = int(bands[3]) == 0
+        cand_hits: collections.Counter = collections.Counter()
+        n_bands = 6 if effect_unknown else 8
+        for s in range(n_bands):
+            piece = (sig64 >> (8 * s)) & 0xFF
+            probes = [piece]
+            for bit in range(8):
+                probes.append(piece ^ (1 << bit))
+            seen_idx: set[int] = set()
+            for probe in probes:
+                for idx in self.wt_band_index[s].get(probe, ()):
+                    if idx in seen_idx:
+                        continue
+                    seen_idx.add(idx)
+                    cand_hits[idx] += 1
         votes: collections.Counter = collections.Counter()
-        for rec in self.wt_memory:
-            dist = int(bin((int(rec["sig16"]) ^ int(sig16)) & 0xFFFF).count("1"))
-            if dist <= 2:
-                votes[rec["goal_type"]] += 1
+        best_agree = 0
+        best_dist = 99
+        for idx, _hits in cand_hits.items():
+            if cand_hits[idx] < 2:
+                continue
+            rec = self.wt_memory[idx]
+            fam_dist = [
+                (int(bands[fam]) ^ int(rec["bands"][fam])).bit_count() for fam in range(4)
+            ]
+            # Control agreement alone is not a match: d-pad games share that band.
+            # At least one structural family (census or relations) must be close.
+            struct_agree = int(fam_dist[0] <= 4) + int(fam_dist[1] <= 4)
+            ctrl_ok = fam_dist[2] <= 4
+            if effect_unknown:
+                fx_ok = True
+                mask = (1 << 48) - 1
+                limit = 16
+            else:
+                fx_ok = fam_dist[3] <= 4
+                mask = (1 << 64) - 1
+                limit = 22
+            dist = ((sig64 ^ int(rec["sig64"])) & mask).bit_count()
+            agree = struct_agree + int(ctrl_ok) + (0 if effect_unknown else int(fx_ok))
+            if struct_agree < 1 or not ctrl_ok or not fx_ok or dist > limit:
+                continue
+            votes[rec["goal_type"]] += 1
+            if agree > best_agree or (agree == best_agree and dist < best_dist):
+                best_agree = agree
+                best_dist = dist
         if not votes:
             return bonus
         self.wt_retrievals += 1
+        self.wt_agree_sum += int(best_agree)
+        self.wt_dist_sum += int(best_dist)
         gtype, n = votes.most_common(1)[0]
         # Cap the prior. Replaying another game's action list is not done:
         # loaded action memory has transferred negatively before.
         bonus[gtype] = min(3.0, float(n))
         return bonus
+
+    @staticmethod
+    def _lsh_parse_sig64(rec: dict[str, Any]) -> int:
+        raw = rec.get("sig64", 0)
+        try:
+            sig = int(raw)
+        except (TypeError, ValueError):
+            sig = 0
+        if sig == 0 and rec.get("sig64_hex"):
+            try:
+                sig = int(str(rec["sig64_hex"]), 16)
+            except (TypeError, ValueError):
+                sig = 0
+        return sig & 0xFFFFFFFFFFFFFFFF
+
+    @staticmethod
+    def _lsh_token_planes(token: str) -> int:
+        """Non-cryptographic 64-bit mixer. Each minutia token votes a sign per bit."""
+        h = 0xCBF29CE484222325
+        for ch in token.encode("utf-8"):
+            h ^= ch
+            h = (h * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+        h ^= h >> 30
+        h = (h * 0xBF58476D1CE4E5B9) & 0xFFFFFFFFFFFFFFFF
+        h ^= h >> 27
+        h = (h * 0x94D049BB133111EB) & 0xFFFFFFFFFFFFFFFF
+        h ^= h >> 31
+        return h
+
+    @classmethod
+    def _lsh_simhash16(cls, tokens: list[tuple[str, int]]) -> int:
+        """16-bit SimHash. An empty token list is an uninformed band (0)."""
+        accum = [0] * 16
+        used = False
+        for tok, weight in tokens:
+            w = int(weight)
+            if w <= 0 or not tok:
+                continue
+            used = True
+            h = cls._lsh_token_planes(tok)
+            for bit in range(16):
+                accum[bit] += w if ((h >> bit) & 1) else -w
+        if not used:
+            return 0
+        out = 0
+        for bit in range(16):
+            if accum[bit] > 0:
+                out |= 1 << bit
+        return out
+
+    @staticmethod
+    def _lsh_shape_key(obj: dict[str, Any]) -> tuple[int, int, int]:
+        """Size, aspect, fill. Aspect uses min/max so a quarter-turn does not change it."""
+        area = int(obj["n"])
+        w = max(1, int(obj["w"]))
+        h = max(1, int(obj["h"]))
+        if area <= 4:
+            size = 0
+        elif area <= 16:
+            size = 1
+        elif area <= 64:
+            size = 2
+        else:
+            size = 3
+        aspect = min(w, h) / float(max(w, h))
+        asp = 0 if aspect >= 0.75 else (1 if aspect >= 0.4 else 2)
+        fill = area / float(w * h)
+        fil = 0 if fill >= 0.8 else (1 if fill >= 0.45 else 2)
+        return (size, asp, fil)
+
+    def _lsh_census_relation_tokens(
+        self, arr: Any
+    ) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+        """Object census and pairwise relations. No absolute position, no raw color id."""
+        bg = self._ggl_bg_color(arr)
+        comps = [
+            o
+            for o in self._ggl_components(arr, bg, max_objs=64)
+            if int(o["n"]) >= 2
+        ]
+        comps.sort(key=lambda o: (-int(o["n"]), -int(o["w"]) * int(o["h"])))
+        objs = comps[:16]
+        census: list[tuple[str, int]] = [(f"nobj:{min(4, len(objs))}", 2)]
+        if not objs:
+            return census, []
+        shapes = [self._lsh_shape_key(o) for o in objs]
+        counts: collections.Counter = collections.Counter(shapes)
+        for (size, asp, fil), n in counts.items():
+            census.append((f"obj:{size}:{asp}:{fil}", min(4, int(n))))
+        census.append((f"nshape:{min(4, len(counts))}", 1))
+        # Role/frequency canonicalization: how many non-background colors, not which ids.
+        census.append((f"ncol:{min(6, len({int(o['color']) for o in objs}))}", 1))
+        rel_names: list[str] = []
+        ccx = sum(float(o["cx"]) for o in objs) / len(objs)
+        ccy = sum(float(o["cy"]) for o in objs) / len(objs)
+
+        def inside(inner: dict[str, Any], outer: dict[str, Any]) -> bool:
+            return (
+                int(inner["n"]) < int(outer["n"])
+                and inner["x"] >= outer["x"] - 1
+                and inner["y"] >= outer["y"] - 1
+                and inner["x"] + inner["w"] <= outer["x"] + outer["w"] + 1
+                and inner["y"] + inner["h"] <= outer["y"] + outer["h"] + 1
+            )
+
+        for i in range(len(objs)):
+            for j in range(i + 1, len(objs)):
+                a, b = objs[i], objs[j]
+                gap_x = max(0, max(a["x"], b["x"]) - min(a["x"] + a["w"], b["x"] + b["w"]))
+                gap_y = max(0, max(a["y"], b["y"]) - min(a["y"] + a["h"], b["y"] + b["h"]))
+                if inside(a, b) or inside(b, a):
+                    rel_names.append("rel:contains")
+                elif gap_x <= 1 and gap_y <= 1:
+                    rel_names.append("rel:adj")
+                if abs(a["cx"] - b["cx"]) <= 1.5 or abs(a["cy"] - b["cy"]) <= 1.5:
+                    rel_names.append("rel:align")
+                if shapes[i] == shapes[j]:
+                    rel_names.append("rel:sameshape")
+                    mx = (float(a["cx"]) + float(b["cx"])) / 2.0
+                    my = (float(a["cy"]) + float(b["cy"])) / 2.0
+                    dx = abs(float(a["cx"]) - float(b["cx"]))
+                    dy = abs(float(a["cy"]) - float(b["cy"]))
+                    axis = dx <= 1.5 or dy <= 1.5 or abs(dx - dy) <= 1.5
+                    if axis and abs(mx - ccx) <= 2.0 and abs(my - ccy) <= 2.0 and (dx + dy) >= 4.0:
+                        rel_names.append("rel:sym")
+        relations: list[tuple[str, int]] = []
+        counted = collections.Counter(rel_names)
+        for name, n in counted.items():
+            if n <= 0:
+                continue
+            relations.append((f"{name}:{min(3, int(n))}", min(3, int(n))))
+        return census, relations
+
+    def _lsh_control_tokens(
+        self, avail_ids: list[int] | None, actions: list[ActionKey] | None
+    ) -> list[tuple[str, int]]:
+        has_d = False
+        has_p = False
+        for aid in avail_ids or []:
+            if aid in (1, 2, 3, 4):
+                has_d = True
+            elif aid == 6:
+                has_p = True
+        for act in actions or []:
+            if not act:
+                continue
+            if act[0] == "CLICK":
+                has_p = True
+            elif act[0] == "SIMPLE" and int(act[1]) in (1, 2, 3, 4):
+                has_d = True
+        if has_d and has_p:
+            return [("ctrl:hybrid", 2)]
+        if has_d:
+            return [("ctrl:dpad", 2)]
+        if has_p:
+            return [("ctrl:ptr", 2)]
+        return []
+
+    def _lsh_effect_tokens(
+        self,
+        start: list[list[int]] | None = None,
+        end: list[list[int]] | None = None,
+    ) -> list[tuple[str, int]]:
+        """Action-effect signature from the step-1 model, plus the observed transition."""
+        tokens: list[tuple[str, int]] = []
+        stable = 0
+        steps: collections.Counter = collections.Counter()
+        for _aid, per in getattr(self, "fx_color_shift", {}).items():
+            best_n = 0
+            best_shift: tuple[int, int] | None = None
+            best_total = 0
+            for _color, votes in per.items():
+                if not votes:
+                    continue
+                shift, n = votes.most_common(1)[0]
+                total = int(sum(votes.values()))
+                if n > best_n:
+                    best_n, best_shift, best_total = int(n), (int(shift[0]), int(shift[1])), total
+            if (
+                best_shift is not None
+                and best_n >= 2
+                and best_total > 0
+                and best_n >= 0.6 * best_total
+                and best_shift != (0, 0)
+            ):
+                stable += 1
+                mag = abs(best_shift[0]) + abs(best_shift[1])
+                bucket = 1 if mag <= 2 else (2 if mag <= 4 else (3 if mag <= 8 else 4))
+                steps[bucket] += 1
+        if stable:
+            tokens.append((f"fx:dirs:{min(4, stable)}", 2))
+            tokens.append((f"fx:step:{steps.most_common(1)[0][0]}", 2))
+        if any(int(n) >= 2 for votes in getattr(self, "fx_push", {}).values() for n in votes.values()):
+            tokens.append(("fx:push", 2))
+        if any(int(c["TOGGLE"]) >= 1 for c in getattr(self, "fx_click", {}).values()):
+            tokens.append(("fx:toggle", 2))
+        if getattr(self, "fx_appear", None):
+            tokens.append(("fx:appear", 1))
+        if getattr(self, "fx_vanish", None):
+            tokens.append(("fx:vanish", 1))
+        if start is not None and end is not None:
+            try:
+                a0 = np.asarray(start, dtype=np.int16)
+                a1 = np.asarray(end, dtype=np.int16)
+                if a0.shape == a1.shape and a0.size:
+                    summary = self._fx_summary(a0, a1)
+                    n_mov = len(summary["movers"])
+                    if n_mov >= 2:
+                        tokens.append(("fx:movers:2", 1))
+                    elif n_mov == 1:
+                        tokens.append(("fx:movers:1", 1))
+                    if summary["appeared"]:
+                        tokens.append(("fx:end-appear", 1))
+                    if summary["vanished"]:
+                        tokens.append(("fx:end-vanish", 1))
+            except Exception:
+                pass
+        return tokens
+
+    def _lsh_situation(
+        self,
+        arr: Any,
+        avail_ids: list[int] | None = None,
+        actions: list[ActionKey] | None = None,
+        start: list[list[int]] | None = None,
+        end: list[list[int]] | None = None,
+    ) -> tuple[int, list[int]]:
+        """64-bit biometric hash: 4 family bands of 16 SimHash bits.
+
+        [15:0] object census, [31:16] pairwise relations, [47:32] control type,
+        [63:48] action-effect signature. Near situations land at small Hamming
+        distance inside a band. Packing into the Merkle node uses the census
+        band as the 16-bit board half; retrieval uses all four bands.
+        """
+        census, relations = self._lsh_census_relation_tokens(arr)
+        control = self._lsh_control_tokens(avail_ids, actions)
+        effects = self._lsh_effect_tokens(start=start, end=end)
+        bands = [
+            self._lsh_simhash16(census),
+            self._lsh_simhash16(relations),
+            self._lsh_simhash16(control),
+            self._lsh_simhash16(effects),
+        ]
+        sig64 = 0
+        for i, band in enumerate(bands):
+            sig64 |= (int(band) & 0xFFFF) << (16 * i)
+        return sig64, bands
 
     # ---------------- forest integration (object-relational keying) ----------------
 
@@ -18335,7 +18736,11 @@ class MyAgent(Agent):
             prior[self.ggl_confirmed_type] += 4.0
         sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
         if getattr(self, "wt_memory", None):
-            bonus = self._wt_memory_bonus(sig16)
+            try:
+                sig64, bands = self._lsh_situation(arr, avail_ids)
+                bonus = self._wt_memory_bonus(sig64, bands)
+            except Exception:
+                bonus = {}
             for t in self.GGL_GOAL_TYPES:
                 prior[t] = prior.get(t, 0.0) + bonus.get(t, 0.0)
         scored = sorted(
@@ -18351,17 +18756,6 @@ class MyAgent(Agent):
         h_curr: int,
         avail_ids: list[int],
     ) -> list[ActionKey] | None:
-        # Probes run in the first moves, before the plan gate, and are not a goal type.
-        if getattr(self, "fx_enabled", False) and self.ggl_active is None:
-            try:
-                arr_p = np.asarray(grid, dtype=np.int16)
-                if arr_p.ndim == 2 and arr_p.shape[0] >= 8 and arr_p.shape[1] >= 8:
-                    probe = self._fx_probe_action(arr_p, avail_ids, h_curr)
-                    if probe is not None:
-                        self.fx_probes += 1
-                        return [probe]
-            except Exception:
-                pass
         if self.steps_in_level < 8 or self.steps_in_level < self.ggl_backoff_until:
             return None
         if self.ggl_level_steps >= max(40, int(0.5 * self.steps_in_level)):
@@ -18459,6 +18853,16 @@ class MyAgent(Agent):
                 self.ggl_match_clicks += 1
             self.ggl_last_plan_step = self.steps_in_level
             return plan
+        # The goal loop is idle. Probe an action the forward model has not seen.
+        # This does not preempt the opening explorer steps or a real plan.
+        if getattr(self, "fx_enabled", False) and self.ggl_active is None:
+            try:
+                probe = self._fx_probe_action(arr, avail_ids, h_curr)
+            except Exception:
+                probe = None
+            if probe is not None:
+                self.fx_probes += 1
+                return [probe]
         return None
 
     def _order_simple_actions(

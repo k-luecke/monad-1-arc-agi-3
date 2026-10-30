@@ -41,17 +41,31 @@ def main() -> int:
             gtype = str(rec.get("goal_type", ""))
             if gtype not in GOAL_TYPES:
                 continue
-            sig16 = int(rec.get("sig16", 0)) & 0xFFFF
-            if sig16 == 0:
+            sig64 = 0
+            try:
+                sig64 = int(rec.get("sig64") or 0)
+            except (TypeError, ValueError):
+                sig64 = 0
+            if sig64 == 0 and rec.get("sig64_hex"):
+                try:
+                    sig64 = int(str(rec["sig64_hex"]), 16)
+                except (TypeError, ValueError):
+                    sig64 = 0
+            sig64 &= 0xFFFFFFFFFFFFFFFF
+            if sig64 == 0:
                 continue
-            key = (sig16, gtype)
+            bands = rec.get("bands")
+            if not isinstance(bands, list) or len(bands) != 4:
+                bands = [(sig64 >> (16 * i)) & 0xFFFF for i in range(4)]
+            key = (sig64, gtype)
             if key in seen:
                 continue
             seen.add(key)
             relations = rec.get("relations") or {}
             records.append(
                 {
-                    "sig16": sig16,
+                    "sig64": sig64,
+                    "bands": [int(b) & 0xFFFF for b in bands],
                     "goal_type": gtype,
                     "abstract": str(rec.get("abstract", ""))[:80],
                     "relations": {
