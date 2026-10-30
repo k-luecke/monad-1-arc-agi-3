@@ -5064,7 +5064,9 @@ class MyAgent(Agent):
                     pass
             if getattr(self, "wins_teach", False):
                 try:
-                    end_grid = _grid_from_frame(latest_frame) or self.prev_grid
+                    # Prefer the last in-level board. The completion frame is often
+                    # already the next level, which is not the situation that was solved.
+                    end_grid = self.prev_grid or _grid_from_frame(latest_frame)
                     self._wins_teach_on_level(end_grid)
                 except Exception:
                     pass
@@ -18066,6 +18068,8 @@ class MyAgent(Agent):
         census.append((f"nshape:{min(4, len(counts))}", 1))
         # Role/frequency canonicalization: how many non-background colors, not which ids.
         census.append((f"ncol:{min(6, len({int(o['color']) for o in objs}))}", 1))
+        top = shapes[0]
+        census.append((f"largest:{top[0]}:{top[1]}:{top[2]}", 3))
         rel_names: list[str] = []
         ccx = sum(float(o["cx"]) for o in objs) / len(objs)
         ccy = sum(float(o["cy"]) for o in objs) / len(objs)
@@ -18090,7 +18094,15 @@ class MyAgent(Agent):
                     rel_names.append("rel:adj")
                 if abs(a["cx"] - b["cx"]) <= 1.5 or abs(a["cy"] - b["cy"]) <= 1.5:
                     rel_names.append("rel:align")
-                if shapes[i] == shapes[j]:
+                sa, sb = shapes[i], shapes[j]
+                pair = tuple(sorted((sa, sb)))
+                rel_names.append(
+                    f"rel:pair:{pair[0][0]}{pair[0][1]}{pair[0][2]}:{pair[1][0]}{pair[1][1]}{pair[1][2]}"
+                )
+                dist = max(abs(float(a["cx"]) - float(b["cx"])), abs(float(a["cy"]) - float(b["cy"])))
+                db = 0 if dist <= 8 else (1 if dist <= 20 else (2 if dist <= 40 else 3))
+                rel_names.append(f"rel:dist:{db}:{1 if sa == sb else 0}")
+                if sa == sb:
                     rel_names.append("rel:sameshape")
                     mx = (float(a["cx"]) + float(b["cx"])) / 2.0
                     my = (float(a["cy"]) + float(b["cy"])) / 2.0
