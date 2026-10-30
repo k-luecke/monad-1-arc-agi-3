@@ -10,9 +10,9 @@ Usage:
      python run_competition_eval.py
 
   2. Local Kaggle Rerun Gateway Replica (listen_and_serve(port=8001, competition_mode=True)):
-     python run_competition_eval.py --local-gateway
+     python run_competition_eval.py --local-gateway --blind-id
 
-  3. Offline 25-Game Verification (with optional --blind-id to strip game_id):
+  3. Offline 25-Game Verification (with --blind-id closure-isolated environment proxy):
      python run_competition_eval.py --offline --blind-id
 """
 from __future__ import annotations
@@ -28,6 +28,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 os.environ.setdefault("INOS_BRIDGE_MODE", "STATIC_MONOLITH_IN_MEMORY")
 os.environ.setdefault("INOS_USE_EXTERNAL_DAEMON", "0")
@@ -39,14 +40,71 @@ from arc_agi import Arcade, OperationMode
 from arcengine import GameState
 from my_agent_v7_inos import MyAgent
 
+EXPECTED_FULL_SUITE_GAMES = 25
+EXPECTED_FULL_SUITE_LEVELS = 183
+EXPECTED_FULL_SUITE_ACTIONS = 6444
+
+
+def make_blind_env_proxy(real_env: Any) -> Any:
+    """
+    Wrap an ARC-AGI-3 environment in a closure-isolated proxy that:
+      1. Stores `real_env` strictly inside a lexical closure (never as an attribute on `self`),
+         preventing the agent from inspecting `env.__dict__`, `env._game`, or `env.game_id`.
+      2. Rewrites `obs.game_id = 'blind_unknown_env'` on every FrameData returned by `reset()`
+         and `step()`.
+    """
+    def _scrub_frame(frame: Any) -> Any:
+        if frame is not None and hasattr(frame, "game_id"):
+            try:
+                frame.game_id = "blind_unknown_env"
+            except Exception:
+                pass
+        return frame
+
+    class _BlindEnvProxy:
+        __slots__ = ()
+
+        def reset(self) -> Any:
+            return _scrub_frame(real_env.reset())
+
+        def step(self, action: Any, data: Any = None, reasoning: Any = None) -> Any:
+            if reasoning is not None:
+                return _scrub_frame(real_env.step(action, data=data, reasoning=reasoning))
+            return _scrub_frame(real_env.step(action, data=data))
+
+        @property
+        def action_space(self) -> Any:
+            return getattr(real_env, "action_space", None)
+
+        @property
+        def observation_space(self) -> Any:
+            return getattr(real_env, "observation_space", None)
+
+        @property
+        def info(self) -> Any:
+            return getattr(real_env, "info", None)
+
+        def __getattr__(self, name: str) -> Any:
+            raise AttributeError(
+                f"BlindEnvironmentProxy blocks access to underlying environment attribute '{name}'"
+            )
+
+    return _BlindEnvProxy()
+
 
 def ensure_local_environments(env_dir: Path) -> list[str]:
     """Ensure all 25 official ARC-AGI-3 environments are cached locally in env_dir."""
     env_dir.mkdir(parents=True, exist_ok=True)
+    existing_py = [p for p in env_dir.rglob("*.py") if "__pycache__" not in str(p)]
+    if len(existing_py) >= EXPECTED_FULL_SUITE_GAMES:
+        offline_arc = Arcade(operation_mode=OperationMode.OFFLINE, environments_dir=str(env_dir))
+        envs = offline_arc.get_environments()
+        if len(envs) >= EXPECTED_FULL_SUITE_GAMES:
+            return sorted({e.game_id for e in envs})
+
     fetcher = Arcade(environments_dir=str(env_dir))
     envs = fetcher.get_environments()
     game_ids = sorted({e.game_id for e in envs})
-    # Ensure each environment's files are downloaded into env_dir
     for gid in game_ids:
         prefix = gid.split("-")[0]
         if not list((env_dir / prefix).rglob("*.py")):
@@ -64,7 +122,8 @@ def play_single_game(
     blind_id: bool = False,
 ) -> dict:
     t0 = time.perf_counter()
-    env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
+    raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
+    env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
     agent = MyAgent(
         card_id=card_id,
@@ -77,11 +136,17 @@ def play_single_game(
     )
     agent.max_game_seconds = 300.0
     agent.main()
+    if blind_id:
+        assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
+        for frame in getattr(agent, "frames", []):
+            assert getattr(frame, "game_id", "blind_unknown_env") == "blind_unknown_env", (
+                f"Unscrubbed frame.game_id={getattr(frame, 'game_id', None)!r}"
+            )
     dt = round(time.perf_counter() - t0, 2)
     state_name = agent.state.name if agent.state is not None else "NONE"
     lvls = int(agent.levels_completed)
     steps = int(agent.action_counter)
-    blind_tag = f" (agent_game_id={agent_gid})" if blind_id else ""
+    blind_tag = f" (blind_proxy={agent_gid})" if blind_id else ""
     print(
         f"  [{idx:02d}/{total:02d}] {gid:16s}{blind_tag} | state={state_name:9s} | "
         f"levels={lvls:2d} | actions={steps:4d} | {dt:6.2f}s",
@@ -95,6 +160,33 @@ def play_single_game(
         "actions": steps,
         "elapsed_s": dt,
     }
+
+
+def verify_claimed_totals(
+    results: list[dict],
+    is_full_suite: bool,
+    require_inflight_lock: bool = False,
+    inflight_lock_verified: bool = False,
+) -> None:
+    wins = sum(1 for r in results if r["state"] == "WIN")
+    lvls = sum(r["levels_completed"] for r in results)
+    acts = sum(r["actions"] for r in results)
+
+    if require_inflight_lock:
+        assert inflight_lock_verified, (
+            "VERIFICATION FAILED: In-flight HTTP 403 scorecard lock before close_scorecard() was not verified."
+        )
+    assert wins == len(results), f"VERIFICATION FAILED: Won {wins}/{len(results)} games."
+    if is_full_suite:
+        assert len(results) == EXPECTED_FULL_SUITE_GAMES, (
+            f"VERIFICATION FAILED: Expected {EXPECTED_FULL_SUITE_GAMES} games, ran {len(results)}."
+        )
+        assert lvls == EXPECTED_FULL_SUITE_LEVELS, (
+            f"VERIFICATION FAILED: Expected {EXPECTED_FULL_SUITE_LEVELS} levels completed, got {lvls}."
+        )
+        assert acts == EXPECTED_FULL_SUITE_ACTIONS, (
+            f"VERIFICATION FAILED: Expected {EXPECTED_FULL_SUITE_ACTIONS} total actions, got {acts}."
+        )
 
 
 def main() -> int:
@@ -112,7 +204,7 @@ def main() -> int:
     parser.add_argument(
         "--blind-id",
         action="store_true",
-        help="Pass game_id='blind_unknown_env' to MyAgent on every game to verify zero game-ID dependence",
+        help="Wrap environment in closure-isolated BlindEnvironmentProxy and scrub game_id on all frames",
     )
     parser.add_argument(
         "--environments-dir",
@@ -138,6 +230,7 @@ def main() -> int:
 
     env_dir = Path(args.environments_dir).resolve()
     game_filter = {g.strip() for g in args.games.split(",") if g.strip()}
+    is_full_suite = len(game_filter) == 0
 
     if args.offline:
         print(f"[Monad(1) V7] Ensuring official ARC-AGI-3 environments in {env_dir}...")
@@ -162,14 +255,15 @@ def main() -> int:
         wins = sum(1 for r in results if r["state"] == "WIN")
         lvls = sum(r["levels_completed"] for r in results)
         acts = sum(r["actions"] for r in results)
+        verify_claimed_totals(results, is_full_suite=is_full_suite)
         print("=" * 80)
-        print(f"[Monad(1) V7] Offline Verification Complete ({'BLIND-ID' if args.blind_id else 'STANDARD'}):")
+        print(f"[Monad(1) V7] Offline Verification PASSED ({'BLIND-ID PROXY' if args.blind_id else 'STANDARD'}):")
         print(f"  Environments Won: {wins} / {len(game_ids)} ({100.0 * wins / max(1, len(game_ids)):.1f}%)")
         print(f"  Levels Completed: {lvls}")
         print(f"  Total Actions:    {acts}")
         print(f"  Elapsed Time:     {total_s}s")
         print("=" * 80)
-        return 0 if wins == len(game_ids) else 1
+        return 0
 
     api_key = os.environ.get("ARC_API_KEY", "").strip()
     inflight_lock_verified = False
@@ -270,6 +364,13 @@ def main() -> int:
     total_s = round(time.perf_counter() - t0, 2)
     sc_dict = scorecard.model_dump(mode="json") if hasattr(scorecard, "model_dump") else dict(scorecard)
 
+    verify_claimed_totals(
+        results,
+        is_full_suite=is_full_suite,
+        require_inflight_lock=args.local_gateway,
+        inflight_lock_verified=inflight_lock_verified,
+    )
+
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -287,14 +388,14 @@ def main() -> int:
 
     wins = sum(1 for r in results if r["state"] == "WIN")
     print("=" * 80)
-    print(f"[Monad(1) V7] Competition Mode Scorecard Closed: {card_id}")
+    print(f"[Monad(1) V7] Competition Mode Scorecard Verified & Closed: {card_id}")
     print(f"  Score:            {sc_dict.get('score')}")
     print(f"  Environments Won: {wins} / {len(game_ids)}")
     print(f"  Levels Completed: {sc_dict.get('total_levels_completed')}")
     print(f"  Total Actions:    {sc_dict.get('total_actions')}")
     print(f"  Saved to:         {out_path}")
     print("=" * 80)
-    return 0 if wins == len(game_ids) else 1
+    return 0
 
 
 if __name__ == "__main__":

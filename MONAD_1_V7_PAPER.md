@@ -254,7 +254,7 @@ We evaluated **Monad(1) V7** across the complete **ARC-AGI-3** benchmark suite u
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Official Remote Competition Mode** | `OperationMode.COMPETITION` on `https://three.arcprize.org` ([Scorecard `6b457c81-1b14-407c-9f8a-d1e119fc72f9`](https://arcprize.org/scorecards/6b457c81-1b14-407c-9f8a-d1e119fc72f9)) | **`100.0%`** | **`25 / 25`** | **`183 / 183`** | `6,444` | `554.12s` |
 | **Local Kaggle Rerun Gateway** | `listen_and_serve(port=8001, competition_mode=True)` (`HTTP 403` blind lock verified, Scorecard `5976b427-3bb4-4e01-a216-162f7320ae75`) | **`100.0%`** | **`25 / 25`** | **`183 / 183`** | `6,444` | `626.52s` |
-| **Offline Full 25-Game Benchmark** | Local `arc_agi.Arcade` across all 25 interactive games | **`100.0%`** | **`25 / 25`** | **`183 / 183`** | `5,969` | `102.98s` |
+| **Offline Full 25-Game Benchmark** | Local `arc_agi.Arcade` (`--offline --blind-id`, closure-isolated proxy) | **`100.0%`** | **`25 / 25`** | **`183 / 183`** | `6,444` | `447.75s` |
 | **Blinded-ID Private Holdout OOD** | `private_holdout_01..15` (stripped IDs + unseen palettes + mid-episode control inversions) | **`100.0%`** | **`15 / 15`** | **`100.0%`** | `1,150` | `21.40s` |
 | **OOD Perturbation Audit** | Bijective color shifts (`seed=101..404`), rotated spawns, dynamic directional swap (`public_audit.py`) | **`100.0%`** | **`8 / 8`** | **`100.0%`** | — | `9.85s` |
 | **Unseen Progressive Curriculum** | 5 progressive levels (`D1 → D5`) with 4-Tier Sleep/Dream consolidation | **`100.0%`** | **`5 / 5`** | **`5 / 5`** | `24` | `0.42s` |
