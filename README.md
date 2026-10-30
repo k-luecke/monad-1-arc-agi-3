@@ -61,13 +61,16 @@ Rather than invoking cloud LLMs as unconstrained token generators over raw 64 ×
 ```bash
 pip install -r requirements.txt
 
-# 1. Offline 25-game verification with closure-isolated BlindEnvironmentProxy (asserts 25/25 wins, 183/183 levels, 6,444 actions)
+# 1. Offline 25-game verification with interface-isolating BlindEnvironmentProxy + AST introspection check
 python run_competition_eval.py --offline --blind-id
 
-# 2. Local Kaggle Competition Mode gateway replica (listen_and_serve(port=8001, competition_mode=True) + HTTP 403 pre-close check)
+# 2. Standalone self-test episode (runs MyAgent.main() end-to-end even when arc_agi / arcengine are not installed)
+python run_competition_eval.py --self-test --blind-id
+
+# 3. Local Kaggle Competition Mode gateway replica (listen_and_serve(port=8001, competition_mode=True) + HTTP 403 pre-close check)
 python run_competition_eval.py --local-gateway --blind-id
 
-# 3. Official remote OperationMode.COMPETITION scorecard on https://three.arcprize.org
+# 4. Official remote OperationMode.COMPETITION scorecard on https://three.arcprize.org
 export ARC_API_KEY="your-arc-prize-api-key"
 python run_competition_eval.py
 ```

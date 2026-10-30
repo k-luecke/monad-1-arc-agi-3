@@ -51,16 +51,48 @@ except Exception:
         GAME_OVER = "GAME_OVER"
 
     class GameAction:
-        RESET = "RESET"
-        def __init__(self, action_id: int = 0) -> None:
+        RESET: "GameAction"
+        ACTION1: "GameAction"
+        ACTION2: "GameAction"
+        ACTION3: "GameAction"
+        ACTION4: "GameAction"
+        ACTION5: "GameAction"
+        ACTION6: "GameAction"
+        ACTION7: "GameAction"
+
+        def __init__(self, action_id: int = 0, name: str | None = None) -> None:
             self.value = int(action_id)
+            self.name = name or ("RESET" if self.value == 0 else f"ACTION{self.value}")
             self.data: dict[str, Any] = {}
             self.reasoning: Any = ""
+
         @classmethod
         def from_id(cls, action_id: int) -> "GameAction":
             return cls(int(action_id))
+
         def set_data(self, data: dict[str, Any]) -> None:
             self.data = dict(data)
+
+        def __eq__(self, other: object) -> bool:
+            if isinstance(other, GameAction):
+                return self.value == other.value
+            if isinstance(other, int):
+                return self.value == other
+            if isinstance(other, str):
+                return self.name == other
+            return False
+
+        def __hash__(self) -> int:
+            return hash(self.value)
+
+    GameAction.RESET = GameAction(0, "RESET")
+    GameAction.ACTION1 = GameAction(1, "ACTION1")
+    GameAction.ACTION2 = GameAction(2, "ACTION2")
+    GameAction.ACTION3 = GameAction(3, "ACTION3")
+    GameAction.ACTION4 = GameAction(4, "ACTION4")
+    GameAction.ACTION5 = GameAction(5, "ACTION5")
+    GameAction.ACTION6 = GameAction(6, "ACTION6")
+    GameAction.ACTION7 = GameAction(7, "ACTION7")
 
     class FrameData:
         def __init__(
@@ -4815,20 +4847,7 @@ class MyAgent(Agent):
         return 3 + sum(len(self.learned_level_opt_plans[l]) for l in range(k))
 
     def _should_trigger_optimal_replay(self, is_win: bool) -> bool:
-        if self.replay_mode or self.replay_play_completed:
-            return False
-        if os.getenv("KAGGLE_IS_COMPETITION_RERUN"):
-            return False
-        if not hasattr(getattr(self, "arc_env", None), "_load_game_class"):
-            return False
-        k = self._consecutive_learned_levels()
-        if k <= 0:
-            return False
-        if is_win and k < self.current_level:
-            return False
-        opt_steps = sum(len(self.learned_level_opt_plans[l]) for l in range(k))
-        play0_steps = sum(self.play0_level_actions.get(l, 0) for l in range(k))
-        return play0_steps > opt_steps + max(2, int(0.08 * opt_steps))
+        return False
 
     def _activate_optimal_replay(self, target_levels: int) -> None:
         k = min(target_levels, self._consecutive_learned_levels())
@@ -19868,13 +19887,6 @@ class MyAgent(Agent):
     def do_action_request(self, action: GameAction) -> FrameData:
         if action == GameAction.RESET and getattr(self, "_pending_full_reset_replay", False):
             self._pending_full_reset_replay = False
-            try:
-                if hasattr(self.arc_env, "_load_game_class"):
-                    import uuid as _uuid
-                    self.arc_env._guid = str(_uuid.uuid4())
-                    self.arc_env._load_game_class(0)
-            except Exception:
-                pass
         if action == GameAction.ACTION6 and self._pending_action_data:
             data = dict(self._pending_action_data)
         else:

@@ -24,10 +24,16 @@ pip install -r requirements.txt
 
 ## 2. Offline 25-Game Blinded-ID Verification (`--offline --blind-id`)
 
-To run all 25 official ARC-AGI-3 environments locally while isolating the environment inside a closure-backed `BlindEnvironmentProxy` (blocking any attribute inspection of `_game` / `game_id` and scrubbing `frame.game_id = "blind_unknown_env"` on every observation frame) and enforcing strict assertions (`25/25` games won, `183/183` levels completed, `6,444` total actions):
+To run all 25 official ARC-AGI-3 environments locally while isolating standard environment attribute/frame interfaces via `BlindEnvironmentProxy` (which exposes only `reset()`, `step()`, `observation_space`, and `action_space`, scrubs `frame.game_id = "blind_unknown_env"` on every observation frame, and is paired with `verify_agent_ast_no_env_introspection()` to verify that `my_agent_v7_inos.py` only ever accesses `self.arc_env.observation_space` and `self.arc_env.step(...)` without Python internals introspection) and enforcing strict assertions (`25/25` games won, `183/183` levels completed, `6,444` total actions):
 
 ```bash
 python run_competition_eval.py --offline --blind-id
+```
+
+To run a self-contained end-to-end episode of `MyAgent.main()` in an air-gapped environment where neither `arc_agi` nor `arcengine` is installed:
+
+```bash
+python run_competition_eval.py --self-test --blind-id
 ```
 
 ---

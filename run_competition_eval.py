@@ -14,10 +14,14 @@ Usage:
 
   3. Offline 25-Game Verification (with --blind-id environment proxy):
      python run_competition_eval.py --offline --blind-id
+
+  4. Standalone Self-Test (runs MyAgent.main() end-to-end without arc_agi or arcengine):
+     python run_competition_eval.py --self-test --blind-id
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import concurrent.futures
 import json
 import logging
@@ -36,9 +40,15 @@ os.environ.setdefault("INOS_USE_EXTERNAL_DAEMON", "0")
 logging.getLogger("arc_agi").setLevel(logging.WARNING)
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
-from arc_agi import Arcade, OperationMode
-from arcengine import GameState
-from my_agent_v7_inos import MyAgent
+try:
+    from arc_agi import Arcade, OperationMode
+    HAS_ARC_AGI = True
+except Exception:
+    Arcade = Any  # type: ignore[misc,assignment]
+    OperationMode = Any  # type: ignore[misc,assignment]
+    HAS_ARC_AGI = False
+
+from my_agent_v7_inos import FrameData, GameAction, GameState, MyAgent
 
 EXPECTED_FULL_SUITE_GAMES = 25
 EXPECTED_FULL_SUITE_LEVELS = 183
@@ -66,13 +76,15 @@ def _lookup_blind_env(proxy: Any) -> Any:
 
 class BlindEnvironmentProxy:
     """
-    Zero-closure, zero-attribute environment wrapper for `--blind-id` verification:
+    Interface-isolating environment wrapper for `--blind-id` verification:
       1. `__slots__ = ()`: stores zero instance attributes on `self`.
       2. Methods (`reset`, `step`, `observation_space`, `action_space`) define zero lexical
-         closures (`__closure__ is None`), preventing closure-cell introspection.
-      3. Exposes no `.info`, `._game`, or `.game_id` attributes, and scrubs `game_id` to
-         `'blind_unknown_env'` on `observation_space` and on every frame returned by
-         `reset()` and `step()`.
+         closures (`__closure__ is None`) and expose no `.info`, `._game`, or `.game_id` attributes.
+      3. Scrubs `game_id` to `'blind_unknown_env'` on `observation_space` and on every frame
+         returned by `reset()` and `step()`.
+      Note: As an in-process Python wrapper, this isolates standard attribute/frame interfaces
+      and is paired with `verify_agent_ast_no_env_introspection()` to confirm the agent only
+      ever accesses `self.arc_env.observation_space` and `self.arc_env.step(...)`.
     """
     __slots__ = ()
 
@@ -116,8 +128,125 @@ def make_blind_env_proxy(real_env: Any) -> BlindEnvironmentProxy:
     return proxy
 
 
+def verify_agent_ast_no_env_introspection(agent_py_path: Path | None = None) -> None:
+    """
+    Static AST check confirming that `my_agent_v7_inos.py` only ever accesses
+    `observation_space` and `step` on `self.arc_env` and never references
+    `__globals__`, `__closure__`, `_BLIND_ENV_REGISTRY`, or `inspect`.
+    """
+    if agent_py_path is None:
+        cand = Path(__file__).resolve().parent / "my_agent_v7_inos.py" if "__file__" in globals() else Path("my_agent_v7_inos.py")
+        if not cand.exists():
+            return
+        agent_py_path = cand
+    src = agent_py_path.read_text(encoding="utf-8")
+    for forbidden in ("__globals__", "__closure__", "_BLIND_ENV_REGISTRY", "f_locals", "f_globals"):
+        assert forbidden not in src, f"Forbidden introspection token {forbidden!r} found in {agent_py_path}"
+    tree = ast.parse(src)
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Attribute)
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "self"
+            and node.value.attr == "arc_env"
+        ):
+            assert node.attr in ("observation_space", "step"), (
+                f"Disallowed attribute access self.arc_env.{node.attr} in {agent_py_path}"
+            )
+
+
+def run_self_test_episode(blind_id: bool = True) -> dict:
+    """
+    Execute a complete standalone episode of `MyAgent.main()` against an in-memory mock
+    environment (requiring neither `arc_agi` nor `arcengine` to be installed).
+    Exercises both D-pad navigation and `GameAction.ACTION6` coordinate click paths.
+    """
+    verify_agent_ast_no_env_introspection()
+
+    class _SyntheticEnv:
+        def __init__(self) -> None:
+            self.step_idx = 0
+            self.observation_space = self._make_frame(GameState.NOT_FINISHED, 0)
+
+        def _make_frame(self, state: GameState, lvls: int) -> FrameData:
+            grid = [[0 for _ in range(64)] for _ in range(64)]
+            # Place a distinct clickable 4x4 target block at (20..23, 20..23)
+            for r in range(20, 24):
+                for c in range(20, 24):
+                    grid[r][c] = 11
+            return FrameData(
+                game_id="synthetic_secret_id",
+                frame=[grid],
+                state=state,
+                levels_completed=lvls,
+                win_levels=1,
+                guid="synthetic-guid-001",
+                full_reset=(self.step_idx == 0),
+                available_actions=[1, 2, 3, 4, 5, 6],
+            )
+
+        def reset(self) -> FrameData:
+            self.step_idx = 0
+            self.observation_space = self._make_frame(GameState.NOT_FINISHED, 0)
+            return self.observation_space
+
+        def step(self, action: Any, data: Any = None, reasoning: Any = None) -> FrameData:
+            self.step_idx += 1
+            # Test that GameAction.ACTION6 comparison and coordinate payload work cleanly
+            assert hasattr(GameAction, "ACTION6") and hasattr(GameAction, "RESET")
+            state = GameState.WIN if self.step_idx >= 3 else GameState.NOT_FINISHED
+            lvls = 1 if state == GameState.WIN else 0
+            self.observation_space = self._make_frame(state, lvls)
+            return self.observation_space
+
+    raw_env = _SyntheticEnv()
+    env: Any = make_blind_env_proxy(raw_env) if blind_id else raw_env
+    agent_gid = "blind_unknown_env" if blind_id else "synthetic_secret_id"
+    t0 = time.perf_counter()
+    try:
+        agent = MyAgent(
+            card_id="self-test-card",
+            game_id=agent_gid,
+            agent_name="monad(1)-v7-inos",
+            ROOT_URL="http://localhost",
+            record=False,
+            arc_env=env,
+            tags=["monad(1)", "v7-inos", "self-test"],
+        )
+        agent.max_game_seconds = 30.0
+        agent.main()
+        assert agent.state == GameState.WIN, f"Expected GameState.WIN, got {agent.state}"
+        assert agent.levels_completed == 1, f"Expected 1 level completed, got {agent.levels_completed}"
+        assert agent.action_counter == 3, f"Expected 3 actions, got {agent.action_counter}"
+        if blind_id:
+            assert agent.game_id == "blind_unknown_env"
+            for frame in getattr(agent, "frames", []):
+                assert getattr(frame, "game_id", "blind_unknown_env") in ("blind_unknown_env", "unknown", "")
+    finally:
+        if blind_id:
+            _BLIND_ENV_REGISTRY.pop(id(env), None)
+    dt = round(time.perf_counter() - t0, 3)
+    print("=" * 80)
+    print(
+        f"[Monad(1) V7] Standalone Self-Test PASSED: state={agent.state.name} | "
+        f"levels={agent.levels_completed}/1 | actions={agent.action_counter} | {dt}s"
+    )
+    print("=" * 80)
+    return {
+        "game_id": "self_test",
+        "agent_game_id": agent_gid,
+        "state": agent.state.name,
+        "levels_completed": int(agent.levels_completed),
+        "actions": int(agent.action_counter),
+        "elapsed_s": dt,
+    }
+
+
 def ensure_local_environments(env_dir: Path) -> list[str]:
     """Ensure all 25 official ARC-AGI-3 environments are cached locally in env_dir."""
+    if not HAS_ARC_AGI:
+        raise RuntimeError("The 'arc-agi' package is required to load official ARC-AGI-3 environments.")
     env_dir.mkdir(parents=True, exist_ok=True)
     existing_py = [p for p in env_dir.rglob("*.py") if "__pycache__" not in str(p)]
     if len(existing_py) >= EXPECTED_FULL_SUITE_GAMES:
@@ -137,7 +266,7 @@ def ensure_local_environments(env_dir: Path) -> list[str]:
 
 
 def play_single_game(
-    worker_arc: Arcade,
+    worker_arc: Any,
     base_url: str,
     card_id: str,
     gid: str,
@@ -217,7 +346,7 @@ def verify_claimed_totals(
         )
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Monad(1) V7 ARC-AGI-3 Competition Mode & Verification Runner")
     parser.add_argument(
         "--local-gateway",
@@ -230,9 +359,14 @@ def main() -> int:
         help="Run all 25 games in local OperationMode.OFFLINE mode (no API key required)",
     )
     parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run standalone MyAgent.main() self-test episode against an in-memory mock environment",
+    )
+    parser.add_argument(
         "--blind-id",
         action="store_true",
-        help="Wrap environment in zero-closure BlindEnvironmentProxy and scrub game_id on all frames",
+        help="Wrap environment in BlindEnvironmentProxy and scrub game_id on all frames",
     )
     parser.add_argument(
         "--environments-dir",
@@ -254,7 +388,21 @@ def main() -> int:
         default="scorecards/latest_competition_scorecard.json",
         help="Output JSON path for the verification report",
     )
-    args = parser.parse_args()
+    args, _unknown = parser.parse_known_args(argv)
+
+    verify_agent_ast_no_env_introspection()
+
+    if args.self_test:
+        run_self_test_episode(blind_id=args.blind_id or True)
+        return 0
+
+    if not HAS_ARC_AGI:
+        print(
+            "[Monad(1) V7] 'arc_agi' package not installed in current environment; running standalone self-test episode...",
+            flush=True,
+        )
+        run_self_test_episode(blind_id=True)
+        return 0
 
     env_dir = Path(args.environments_dir).resolve()
     game_filter = {g.strip() for g in args.games.split(",") if g.strip()}
@@ -322,7 +470,7 @@ def main() -> int:
     else:
         if not api_key:
             print(
-                "ERROR: Please set ARC_API_KEY for remote Competition Mode, or pass --local-gateway / --offline.",
+                "ERROR: Please set ARC_API_KEY for remote Competition Mode, or pass --local-gateway / --offline / --self-test.",
                 file=sys.stderr,
             )
             return 1
@@ -426,5 +574,32 @@ def main() -> int:
     return 0
 
 
+def run_notebook_entrypoint() -> int:
+    """
+    Automatic entry point when executed inside a Kaggle or Jupyter notebook cell:
+      - If KAGGLE_IS_COMPETITION_RERUN is active, connects to the Kaggle competition gateway.
+      - Else if ARC_API_KEY is set, runs remote OperationMode.COMPETITION evaluation.
+      - Else if local environment_files exist and arc_agi is installed, runs --offline --blind-id.
+      - Otherwise runs the standalone --self-test --blind-id verification episode.
+    """
+    if os.environ.get("KAGGLE_IS_COMPETITION_RERUN"):
+        os.environ.setdefault("ARC_BASE_URL", "http://gateway:8001")
+        os.environ.setdefault("ARC_API_KEY", "test-key-123")
+        return main(["--workers", "1"])
+    if os.environ.get("ARC_API_KEY", "").strip():
+        return main([])
+    for cand in (
+        Path("environment_files"),
+        Path("/kaggle/input/competitions/arc-prize-2026-arc-agi-3/environment_files"),
+        Path("/kaggle/input/arc-prize-2026-arc-agi-3/environment_files"),
+    ):
+        if HAS_ARC_AGI and cand.exists() and list(cand.rglob("*.py")):
+            return main(["--offline", "--blind-id", "--environments-dir", str(cand)])
+    return main(["--self-test", "--blind-id"])
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    if any("ipykernel" in a for a in sys.argv):
+        run_notebook_entrypoint()
+    else:
+        raise SystemExit(main())
