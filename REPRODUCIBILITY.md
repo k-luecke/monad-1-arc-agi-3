@@ -77,7 +77,7 @@ solvers-on trace are unchanged unless they are set:
 - `MONAD1_WINS_TEACH=1` logs a general win record on every level clear and calls `inos_merkle_log_solved_pattern`. Records do not contain a game id.
 - `MONAD1_RELATION_MEMORY=/path/to/memory.json` loads relation-keyed records (no game ids). The key is a 64-bit biometric SimHash of translation-, color-, and rotation-invariant minutiae (object census, pairwise relations, control type, action-effect signature), retrieved with 8-band multi-probe LSH. It adds a capped goal-type prior and does not replay another game's action list. The Merkle node still stores the 16-bit census band in the existing 64-bit pack.
 
-`build_relation_memory.py` turns a solvers-on wins-teach scorecard into that JSON, dropping held-out fold 0 (`cd82`, `ft09`, `m0r0`, `tn36`, `tr87`) by the harness game id. `eval_relation_retrieval.py` reports whether those held-out games retrieve same-goal-type training memories more often than chance.
+`build_relation_memory.py` turns a solvers-on wins-teach scorecard into that JSON, dropping held-out fold 0 (`cd82`, `ft09`, `m0r0`, `tn36`, `tr87`) by the harness game id. `eval_relation_retrieval.py` reports whether those held-out games retrieve same-goal-type training memories more often than chance. `scorecards/relation_memory_train.json` is that export: `goal_type` is the agent's own inference, not a study label, and the file has no game id.
 
 ---
 

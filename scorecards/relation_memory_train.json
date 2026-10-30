@@ -1,0 +1,1044 @@
+{
+  "records": [
+    {
+      "sig64": 17335951766261483982,
+      "bands": [
+        18894,
+        5970,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*14",
+      "relations": {
+        "n_colors": 6,
+        "has_panel": true,
+        "n_actions": 14
+      }
+    },
+    {
+      "sig64": 17335951767339682013,
+      "bands": [
+        18653,
+        22422,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*2,A5,D*7",
+      "relations": {
+        "n_colors": 6,
+        "has_panel": true,
+        "n_actions": 10
+      }
+    },
+    {
+      "sig64": 17335795484895246958,
+      "bands": [
+        31342,
+        0,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*4,C,D*2,C*2,D*4,C,D",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 15
+      }
+    },
+    {
+      "sig64": 17335795484895246958,
+      "bands": [
+        31342,
+        0,
+        7717,
+        61589
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*3,C*4,D*2,C,D*5,C*2,D*8,C*3,D*3",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 31
+      }
+    },
+    {
+      "sig64": 17335795486355753499,
+      "bands": [
+        2587,
+        22286,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D,C*3,D,C*2,D,C,D,C,D,C*5,D*3,C*4,D,C*23,D,C,D,C,D",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 53
+      }
+    },
+    {
+      "sig64": 16799867133326418670,
+      "bands": [
+        25326,
+        62382,
+        7717,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "C,D*3,C*3,D,C*2,D,C*11,D,C,D,C,D,C*4,D,C,D,C*9,D,C,D,C,D,C,D",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": false,
+        "n_actions": 72
+      }
+    },
+    {
+      "sig64": 16799867130665370574,
+      "bands": [
+        974,
+        21778,
+        7717,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "C,D*6,C,D*6,C,A5*3,D*11",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": false,
+        "n_actions": 29
+      }
+    },
+    {
+      "sig64": 16799867130979961742,
+      "bands": [
+        19342,
+        26578,
+        7717,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "C*2,A5*2,D*6,C,D*7,C,D*2",
+      "relations": {
+        "n_colors": 5,
+        "has_panel": false,
+        "n_actions": 21
+      }
+    },
+    {
+      "sig64": 4612000639060427662,
+      "bands": [
+        17294,
+        21266,
+        7717,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "A5*4,C*3,A5*3,D*11,C,A5*3,D*9,C,D*10",
+      "relations": {
+        "n_colors": 5,
+        "has_panel": true,
+        "n_actions": 45
+      }
+    },
+    {
+      "sig64": 17335795485294739533,
+      "bands": [
+        16461,
+        6096,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C,D*8,C,D*2,C,D*6",
+      "relations": {
+        "n_colors": 10,
+        "has_panel": false,
+        "n_actions": 19
+      }
+    },
+    {
+      "sig64": 17335795486339588943,
+      "bands": [
+        25423,
+        22039,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C*2,D*9,C,D*8,C*4,D*11,C,D*11,C,D*11,C,D*9,C,D*8",
+      "relations": {
+        "n_colors": 12,
+        "has_panel": false,
+        "n_actions": 78
+      }
+    },
+    {
+      "sig64": 17335795486876459854,
+      "bands": [
+        25422,
+        30231,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C*3,D*7,C,D*2,C,D*6,C,D*4,C,D*8,C,D*4,C*2,D*4,C,D*4,C,D*4,C,D*4,C,D*7,C,D*11",
+      "relations": {
+        "n_colors": 13,
+        "has_panel": true,
+        "n_actions": 82
+      }
+    },
+    {
+      "sig64": 17335795487442618973,
+      "bands": [
+        19037,
+        38870,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C*2,D*11,C*4,D*11,C*3,D*5,C,D*5,C,D*9,C,D,C,D,C,D,C,D*11",
+      "relations": {
+        "n_colors": 10,
+        "has_panel": false,
+        "n_actions": 70
+      }
+    },
+    {
+      "sig64": 16799867130840499148,
+      "bands": [
+        17356,
+        24450,
+        7717,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "C*17,D*11,C*9,D*9,C*7,D*16,C,D*5,C*5",
+      "relations": {
+        "n_colors": 15,
+        "has_panel": false,
+        "n_actions": 107
+      }
+    },
+    {
+      "sig64": 4612000639114168857,
+      "bands": [
+        18969,
+        22086,
+        7717,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*7,C,D*6,C,D*2,C*4,D*3,C*2,D*7,C,D*41,C*4,D",
+      "relations": {
+        "n_colors": 15,
+        "has_panel": true,
+        "n_actions": 146
+      }
+    },
+    {
+      "sig64": 17335951769432640265,
+      "bands": [
+        19209,
+        54358,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*5,A5,D*3,A5,D*38",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": false,
+        "n_actions": 48
+      }
+    },
+    {
+      "sig64": 17335951767250274634,
+      "bands": [
+        2378,
+        21058,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*38",
+      "relations": {
+        "n_colors": 6,
+        "has_panel": false,
+        "n_actions": 38
+      }
+    },
+    {
+      "sig64": 17335795486360754668,
+      "bands": [
+        23020,
+        22362,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*10,C,D*7,C,D*14,C,D*29",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": false,
+        "n_actions": 63
+      }
+    },
+    {
+      "sig64": 17335951767271525197,
+      "bands": [
+        19277,
+        21382,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*24",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": false,
+        "n_actions": 24
+      }
+    },
+    {
+      "sig64": 16800023410528897354,
+      "bands": [
+        18762,
+        4818,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*51",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 51
+      }
+    },
+    {
+      "sig64": 17335795487439526129,
+      "bands": [
+        6385,
+        38823,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*2,C,D*27,C,D*29,C,D*19",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 85
+      }
+    },
+    {
+      "sig64": 16799867129632524746,
+      "bands": [
+        2506,
+        6018,
+        7717,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "C*6,D,C*2,D*3,C*12,D*7,C*2,D*9,C*4",
+      "relations": {
+        "n_colors": 10,
+        "has_panel": false,
+        "n_actions": 46
+      }
+    },
+    {
+      "sig64": 17335795487428723147,
+      "bands": [
+        16843,
+        38658,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C*22,D*11,C*2,D*4,C*18,D*8,C*6,D*2,C*2,D*5",
+      "relations": {
+        "n_colors": 13,
+        "has_panel": false,
+        "n_actions": 93
+      }
+    },
+    {
+      "sig64": 17335795486364928394,
+      "bands": [
+        2442,
+        22426,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*7,C*2,D*9,C*2,D*9,C*2,D*8,C*12,D*7,C*4,D*11,C*2,D*5",
+      "relations": {
+        "n_colors": 12,
+        "has_panel": false,
+        "n_actions": 155
+      }
+    },
+    {
+      "sig64": 17335951770020105285,
+      "bands": [
+        19525,
+        63322,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*12",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 12
+      }
+    },
+    {
+      "sig64": 17335951767948119117,
+      "bands": [
+        19533,
+        31706,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*44",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 44
+      }
+    },
+    {
+      "sig64": 17335951769214143815,
+      "bands": [
+        19783,
+        51024,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*80",
+      "relations": {
+        "n_colors": 10,
+        "has_panel": false,
+        "n_actions": 166
+      }
+    },
+    {
+      "sig64": 16800094878821980689,
+      "bands": [
+        6673,
+        5387,
+        60744,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "C*4",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": true,
+        "n_actions": 4
+      }
+    },
+    {
+      "sig64": 4612228390481447752,
+      "bands": [
+        19272,
+        54686,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*10",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 10
+      }
+    },
+    {
+      "sig64": 4612228388467837258,
+      "bands": [
+        2378,
+        23961,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*12",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 12
+      }
+    },
+    {
+      "sig64": 4612228387388135880,
+      "bands": [
+        6600,
+        7486,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*19",
+      "relations": {
+        "n_colors": 13,
+        "has_panel": true,
+        "n_actions": 19
+      }
+    },
+    {
+      "sig64": 4612228387385772298,
+      "bands": [
+        2314,
+        7450,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*22",
+      "relations": {
+        "n_colors": 16,
+        "has_panel": true,
+        "n_actions": 22
+      }
+    },
+    {
+      "sig64": 17335951766201845833,
+      "bands": [
+        18505,
+        5060,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*11,A5,D*7",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": false,
+        "n_actions": 19
+      }
+    },
+    {
+      "sig64": 17335951769483265031,
+      "bands": [
+        50183,
+        55130,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*13,A5,D*12,A5,D*8",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": false,
+        "n_actions": 35
+      }
+    },
+    {
+      "sig64": 17335951770011527247,
+      "bands": [
+        26703,
+        63191,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*14,A5,D*16,A5,D*14",
+      "relations": {
+        "n_colors": 6,
+        "has_panel": false,
+        "n_actions": 46
+      }
+    },
+    {
+      "sig64": 17335951766727580111,
+      "bands": [
+        22991,
+        13082,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*21,A5,D*20",
+      "relations": {
+        "n_colors": 12,
+        "has_panel": true,
+        "n_actions": 42
+      }
+    },
+    {
+      "sig64": 17335951767532389447,
+      "bands": [
+        50247,
+        25362,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*17,A5,D*21,A5,D*22",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 62
+      }
+    },
+    {
+      "sig64": 17335951768321394763,
+      "bands": [
+        2123,
+        37402,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*19,A5,D*25",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": false,
+        "n_actions": 45
+      }
+    },
+    {
+      "sig64": 17335951766190188874,
+      "bands": [
+        26954,
+        4882,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*32,A5,D*29,A5,D*17",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 100
+      }
+    },
+    {
+      "sig64": 17335951768506100059,
+      "bands": [
+        26971,
+        40220,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D*80",
+      "relations": {
+        "n_colors": 13,
+        "has_panel": true,
+        "n_actions": 167
+      }
+    },
+    {
+      "sig64": 17336023237743377356,
+      "bands": [
+        31692,
+        55196,
+        60744,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C*27",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 27
+      }
+    },
+    {
+      "sig64": 4612228387292481999,
+      "bands": [
+        35279,
+        6026,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*8,A5",
+      "relations": {
+        "n_colors": 10,
+        "has_panel": true,
+        "n_actions": 9
+      }
+    },
+    {
+      "sig64": 4612228387293006279,
+      "bands": [
+        35271,
+        6034,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*14,A5",
+      "relations": {
+        "n_colors": 12,
+        "has_panel": true,
+        "n_actions": 15
+      }
+    },
+    {
+      "sig64": 4612228388499916997,
+      "bands": [
+        35013,
+        24450,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*16,A5",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 17
+      }
+    },
+    {
+      "sig64": 4612228389439969345,
+      "bands": [
+        38977,
+        38794,
+        60744,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C*16,A5",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 17
+      }
+    },
+    {
+      "sig64": 4612156920579623242,
+      "bands": [
+        2378,
+        29570,
+        44104,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*29",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 29
+      }
+    },
+    {
+      "sig64": 17335951767061529354,
+      "bands": [
+        778,
+        18178,
+        44104,
+        61589
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*33",
+      "relations": {
+        "n_colors": 13,
+        "has_panel": true,
+        "n_actions": 33
+      }
+    },
+    {
+      "sig64": 4612000638862232394,
+      "bands": [
+        2890,
+        18242,
+        7717,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*3,C,D*14,C,D*3,C,D*5,C,D*4,C,D,C,D*7,C,D*3",
+      "relations": {
+        "n_colors": 11,
+        "has_panel": true,
+        "n_actions": 47
+      }
+    },
+    {
+      "sig64": 4612000638858038019,
+      "bands": [
+        2819,
+        18178,
+        7717,
+        16385
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*3,C,D*20,C,D*13,C,D*6",
+      "relations": {
+        "n_colors": 12,
+        "has_panel": true,
+        "n_actions": 45
+      }
+    },
+    {
+      "sig64": 17335795488772735727,
+      "bands": [
+        17135,
+        59166,
+        7717,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C,D*3,A5",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": false,
+        "n_actions": 5
+      }
+    },
+    {
+      "sig64": 16799867130615040834,
+      "bands": [
+        2882,
+        21010,
+        7717,
+        59685
+      ],
+      "goal_type": "MATCH",
+      "abstract": "C,D*2,C,D*14,C,D*7,C,D*7,A5",
+      "relations": {
+        "n_colors": 10,
+        "has_panel": true,
+        "n_actions": 35
+      }
+    },
+    {
+      "sig64": 17336023234221555790,
+      "bands": [
+        49230,
+        1457,
+        60744,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "C*12",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 12
+      }
+    },
+    {
+      "sig64": 16800023410600731406,
+      "bands": [
+        25358,
+        5914,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*18",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": false,
+        "n_actions": 18
+      }
+    },
+    {
+      "sig64": 16800023410600723406,
+      "bands": [
+        17358,
+        5914,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*10",
+      "relations": {
+        "n_colors": 7,
+        "has_panel": false,
+        "n_actions": 10
+      }
+    },
+    {
+      "sig64": 16800023410735211278,
+      "bands": [
+        25358,
+        7966,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*29",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 29
+      }
+    },
+    {
+      "sig64": 16800023410701386702,
+      "bands": [
+        17358,
+        7450,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*20",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": false,
+        "n_actions": 20
+      }
+    },
+    {
+      "sig64": 17335951769411412316,
+      "bands": [
+        24924,
+        54034,
+        44104,
+        61589
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*2,A5,D*2,A5,D*4,A5,D*3,A5,D*6,A5,D*3,A5",
+      "relations": {
+        "n_colors": 6,
+        "has_panel": true,
+        "n_actions": 26
+      }
+    },
+    {
+      "sig64": 16800023413766766924,
+      "bands": [
+        16716,
+        54224,
+        44104,
+        59685
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*9,A5,D*9,A5,D*9,A5,D*12,A5,D,A5*11",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 55
+      }
+    },
+    {
+      "sig64": 16800023413830322636,
+      "bands": [
+        2508,
+        55194,
+        44104,
+        59685
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*2,A5,D*4,A5,D*3,A5,D,A5,D*10,A5,D*3,A5,D*8,A5,D*6,A5,D,A5*33",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 79
+      }
+    },
+    {
+      "sig64": 16800023411779201358,
+      "bands": [
+        26958,
+        23896,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*2,A5,D*2,A5,D,A5,D,A5,D*2,A5,D,A5,D*6,A5,D,A5,D,A5,D*3,A5,D*3,A5,D*4,A5",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 54
+      }
+    },
+    {
+      "sig64": 16800023411652821080,
+      "bands": [
+        88,
+        21968,
+        44104,
+        59685
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*4,A5,D*14,A5*2,D*13,A5,D,A5,D*18,A5,D*17,A5,D*6",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 122
+      }
+    },
+    {
+      "sig64": 17335951768945705166,
+      "bands": [
+        16590,
+        46928,
+        44104,
+        61589
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*13,A5,D,A5,D*7,A5,D*10,A5,D*10,A5",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": true,
+        "n_actions": 46
+      }
+    },
+    {
+      "sig64": 17335951769491161294,
+      "bands": [
+        16590,
+        55251,
+        44104,
+        61589
+      ],
+      "goal_type": "REACH",
+      "abstract": "D,A5,D*8,A5,D*2,A5,D*9,A5,D*6,A5,D*7,A5",
+      "relations": {
+        "n_colors": 8,
+        "has_panel": false,
+        "n_actions": 39
+      }
+    },
+    {
+      "sig64": 16800023411684493774,
+      "bands": [
+        18894,
+        22451,
+        44104,
+        59685
+      ],
+      "goal_type": "PLACE",
+      "abstract": "D*6,A5,D*12,A5,D*2,A5,D*10,A5*2,D*7,A5,D*2,A5,D*10,A5,D*23",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 117
+      }
+    },
+    {
+      "sig64": 17335951767307967181,
+      "bands": [
+        23245,
+        21938,
+        44104,
+        61589
+      ],
+      "goal_type": "MATCH",
+      "abstract": "D*4,A5,D*2,A5,D*2,A5,D*2,A5,D*6,A5,D*2,A5,D*15,A5,D*9,A5*2,D*5,A5,D*2,A5,D*3,A5,",
+      "relations": {
+        "n_colors": 9,
+        "has_panel": true,
+        "n_actions": 66
+      }
+    }
+  ]
+}
