@@ -2699,7 +2699,7 @@ class BicameralSmallQwenAB:                                                     
         )                                                                                   # Close structured composite expression or container literal
         stride = int(sensory_packet.get("step_stride", 1))                                  # Execute collaborative step: stride = int(sensory_packet.get("step_stride", 1))
         arch = sensory_packet.get("archetype", "")                                          # Execute collaborative step: arch = sensory_packet.get("archetype", "")
-        if arch == "dc22":                                                                  # Control / block header: if arch == "dc22":
+        if arch == "split_switch_gate":                                                                  # Control / block header: if arch == "split_switch_gate":
             dir_to_delta = {1: (-stride, 0), 2: (stride, 0), 3: (0, -stride), 4: (0, stride)}  # Execute collaborative step: dir_to_delta = {1: (-stride, 0), 2: (stride, 0), 3: 
         else:                                                                               # Control / block header: else:
             dir_to_delta = {1: (0, -stride), 2: (0, stride), 3: (-stride, 0), 4: (stride, 0)}  # Execute collaborative step: dir_to_delta = {1: (0, -stride), 2: (0, stride), 3: 
@@ -2782,7 +2782,7 @@ class BicameralSmallQwenAB:                                                     
         # Joint 1: INOS Runtime_a -> Runtime_b Signed Role_context Handoff & Stepping-Stone G_mid
         inos_regime = (                                                                     # Joint 1 (Inos_models__Runtime_a): classify Right-Hemisphere inductive puzzle regime
             "INDUCTIVE_PUZZLE_SUBMATRIX_ROOM_EXTRACTION"                                    # Joint 1 (Inos_models__Runtime_a): classify Right-Hemisphere inductive puzzle regime
-            if arch in ("tu93", "dc22")                                                     # Execute INOS meta-reasoning operation: if arch in ("tu93", "dc22")
+            if arch in ("node_edge_graph", "split_switch_gate")                                                     # Execute INOS meta-reasoning operation: if arch in ("node_edge_graph", "split_switch_gate")
             else (                                                                          # Execute INOS meta-reasoning operation: else (
                 "INDUCTIVE_PUZZLE_KRONECKER_TILE_UPSCALE"                                   # Joint 1 (Inos_models__Runtime_a): classify Right-Hemisphere inductive puzzle regime
                 if stride >= 3                                                              # Execute INOS meta-reasoning operation: if stride >= 3
@@ -2794,7 +2794,7 @@ class BicameralSmallQwenAB:                                                     
             if sensory_packet.get("s16_shifted")                                            # Execute INOS meta-reasoning operation: if sensory_packet.get("s16_shifted")
             else (                                                                          # Execute INOS meta-reasoning operation: else (
                 "BIND_OUTPUT_COLOR_TO_BORDER_FRAME_COLOR"                                   # Joint 1 (Inos_models__Runtime_b): bind Left-Hemisphere parametric invariance law
-                if arch == "dc22"                                                           # Execute INOS meta-reasoning operation: if arch == "dc22"
+                if arch == "split_switch_gate"                                                           # Execute INOS meta-reasoning operation: if arch == "split_switch_gate"
                 else "BIND_OUTPUT_PARAM_TO_UNIQUE_COLOR_OR_OBJECT_COUNT"                    # Joint 1 (Inos_models__Runtime_b): bind Left-Hemisphere parametric invariance law
             )                                                                               # Close structured composite expression or container literal
         )                                                                                   # Close structured composite expression or container literal
@@ -4149,9 +4149,7 @@ class MyAgent(Agent):
             self.game_id = str(kwargs.get("game_id", args[0] if args else "unknown"))
             self.frames = []
         self.bridge = Brg1BridgeClient.get()
-        short_gid = str(self.game_id).split("-")[0]
-        det_seed = sum((i + 1) * ord(ch) for i, ch in enumerate(short_gid)) % 10000
-        self.rng = random.Random(42 + det_seed)
+        self.rng = random.Random(42)
         self.game_start_time: float | None = None
         self.max_game_seconds = float(os.getenv("INOS_MAX_GAME_SECONDS", "900.0" if os.getenv("ARC_API_KEY") else "300.0"))
         self.current_level = 0
@@ -4266,8 +4264,8 @@ class MyAgent(Agent):
         self.last_ab_packet: dict[str, Any] = {}
         self.observer_unresolved_tension_streak: int = 0
         self._s16_palette_gauge_shifted: bool = False
-        self._scp_tu93_color_map: dict[int, int] = {}
-        self._scp_dc22_locked_map: dict[int, int] = {}
+        self._scp_node_graph_color_map: dict[int, int] = {}
+        self._scp_split_gate_locked_map: dict[int, int] = {}
         self._monad_verified_panel_rules: dict[int, int] = {}
         self._monad_refuted_panel_options: dict[int, set[int]] = collections.defaultdict(set)
         self._monad_prev_panel_choice: tuple[int, int, int] | None = None
@@ -4412,13 +4410,13 @@ class MyAgent(Agent):
         self.last_dir: int | None = None
         self.steps_in_level = 0
         self.last_pontificate_step = 0
-        self.wa30_sim: Any = None
-        self.wa30_prev_sim: Any = None
-        self.wa30_adversarial_friends: bool = False
-        self.wa30_unkillable_adversary: bool = False
-        self.m0r0_swap_tried: bool = False
-        self.m0r0_operator_mode: str = "mirrored"
-        self.m0r0_swap_lr: bool = False
+        self.warehouse_sim: Any = None
+        self.warehouse_prev_sim: Any = None
+        self.warehouse_adversarial_friends: bool = False
+        self.warehouse_unkillable_adversary: bool = False
+        self.dual_mirror_swap_tried: bool = False
+        self.dual_mirror_operator_mode: str = "mirrored"
+        self.dual_mirror_swap_lr: bool = False
         if getattr(self, "control_inversions_detected", 0) > 0 and getattr(self, "canonical_to_raw_dpad", None):
             self.canonical_to_raw_dpad = dict(self.canonical_to_raw_dpad)
             self.raw_to_canonical_dpad = dict(self.raw_to_canonical_dpad)
@@ -4437,13 +4435,13 @@ class MyAgent(Agent):
         self.learned_occupancy_switches: dict[tuple[int, int], set[tuple[int, int]]] = collections.defaultdict(set)
         self.learned_leave_switches: dict[tuple[int, int], set[tuple[int, int]]] = collections.defaultdict(set)
         self.continuous_portal_or_switch_squares: set[tuple[int, int]] = set()
-        self.re86_pending: dict[tuple[int, int], tuple[tuple[int, ...], bool]] = {}
-        self.cn04_state: dict[str, Any] | None = None
-        self.ar25_plan: dict[str, Any] | None = None
-        self.ls20_mem: Any = None
-        self.sc25_init_player: tuple[int, int, int] | None = None
-        self.bp35_state: dict[str, Any] | None = None
-        self.lf52_state: dict[str, Any] | None = None
+        self.shape_align_pending: dict[tuple[int, int], tuple[tuple[int, ...], bool]] = {}
+        self.connector_assembly_state: dict[str, Any] | None = None
+        self.mirror_target_plan: dict[str, Any] | None = None
+        self.labyrinth_mem: Any = None
+        self.rune_labyrinth_init_player: tuple[int, int, int] | None = None
+        self.gravity_shaft_state: dict[str, Any] | None = None
+        self.peg_track_state: dict[str, Any] | None = None
         self.playfield_bbox: tuple[int, int, int, int] | None = None
         self.state_playfield_bbox: dict[int, tuple[int, int, int, int]] = {}
         self.replan_attempts_in_level: int = 0
@@ -4476,7 +4474,7 @@ class MyAgent(Agent):
         self.last_stepped_logical_pos: tuple[int, int] | None = None
         self._verified_local_dead_dpad: collections.Counter[tuple[Any, int]] = collections.Counter()
         self._refuted_local_dead_dpad: set[tuple[Any, int]] = set()
-        self._scp_dc22_color_map: dict[int, int] | None = getattr(self, '_scp_dc22_color_map', None)
+        self._scp_split_gate_color_map: dict[int, int] | None = getattr(self, '_scp_split_gate_color_map', None)
         self._cw_layout_sig: Any = None
         self._cw_prev_layout_sig: Any = None
         self._cw_spawn_cell: tuple[int, int] | None = None
@@ -5448,7 +5446,7 @@ class MyAgent(Agent):
         if arr0.shape != arr1.shape:
             return None
 
-        # 1. `wa30` (4x4 cell-grid with color-14 directional player)
+        # 1. `warehouse_box_grid` (4x4 cell-grid with color-14 directional player)
         if (
             self.active_macro_family in (None, "cooperative_box_warehouse")
             and arr0.shape == (64, 64)
@@ -5470,7 +5468,7 @@ class MyAgent(Agent):
             if p0 is not None or p1 is not None:
                 return None
 
-        # 2. `tu93` (3x3 blue player sprite `body==9`)
+        # 2. `node_edge_graph` (3x3 blue player sprite `body==9`)
         if (
             self.active_macro_family in (None, "node_graph_sentries")
             and arr0.shape == (64, 64)
@@ -5499,7 +5497,7 @@ class MyAgent(Agent):
             if b0 or b1:
                 return None
 
-        # 3. `dc22` (2x2 color-14 avatar on left playfield)
+        # 3. `split_switch_gate` (2x2 color-14 avatar on left playfield)
         if (
             self.active_macro_family in (None, "hybrid_switch_navigation")
             and arr0.shape == (64, 64)
@@ -5528,7 +5526,7 @@ class MyAgent(Agent):
             if av0 is not None or av1 is not None:
                 return None
 
-        # 3b. `ls20` (5x5 cell labyrinth player with color 12 top and color 9 bottom at col+2)
+        # 3b. `key_forge_labyrinth` (5x5 cell labyrinth player with color 12 top and color 9 bottom at col+2)
         if (
             self.active_macro_family in (None, "shape_color_rot_labyrinth")
             and arr0.shape == (64, 64)
@@ -5568,12 +5566,12 @@ class MyAgent(Agent):
             if lp0 is not None or lp1 is not None:
                 return None
 
-        # 3c. `re86` (`shape_target_alignment`: 1x1 white selection dot `0` inside selected shape)
+        # 3c. `shape_target_align` (`shape_target_alignment`: 1x1 white selection dot `0` inside selected shape)
         if (
             self.active_macro_family == "shape_target_alignment"
             and arr0.shape == (64, 64)
         ):
-            def _find_re86_sel_dot(a: Any) -> tuple[int, int] | None:
+            def _find_shape_align_sel_dot(a: Any) -> tuple[int, int] | None:
                 pts_0 = []
                 all_0 = []
                 for y in range(1, 60):
@@ -5606,8 +5604,8 @@ class MyAgent(Agent):
                 for x in range(1, 63)
                 if int(arr1[y, x]) == 0 and int(arr0[y, x]) != 0
             ]
-            sc0 = z0[0] if len(z0) == 1 else _find_re86_sel_dot(arr0)
-            sc1 = z1[0] if len(z1) == 1 else _find_re86_sel_dot(arr1)
+            sc0 = z0[0] if len(z0) == 1 else _find_shape_align_sel_dot(arr0)
+            sc1 = z1[0] if len(z1) == 1 else _find_shape_align_sel_dot(arr1)
             if sc0 is not None and sc1 is not None and sc0 != sc1:
                 dx_r, dy_r = sc1[0] - sc0[0], sc1[1] - sc0[1]
                 if abs(dx_r) + abs(dy_r) == 3 and ((dx_r != 0) ^ (dy_r != 0)):
@@ -5628,7 +5626,7 @@ class MyAgent(Agent):
                         )
             return None
 
-        # 3d. `cn04` (`connector_piece_assembly`: 20x20 coarse grid at `2:62:3` with selected piece body `0`)
+        # 3d. `connector_piece_assembly` (`connector_piece_assembly`: 20x20 coarse grid at `2:62:3` with selected piece body `0`)
         if (
             self.active_macro_family == "connector_piece_assembly"
             and arr0.shape == (64, 64)
@@ -5652,7 +5650,7 @@ class MyAgent(Agent):
                     )
             return None
 
-        # 4. General single-shape translation in `CanvasDocument` (`re86`, `ar25`, `cn04`, Tier-2/3)
+        # 4. General single-shape translation in `CanvasDocument` (`shape_target_align`, `dihedral_mirror_target`, `connector_piece_assembly`, Tier-2/3)
         if prev_doc is not None and curr_doc is not None:
             av0_s = self._resolve_or_infer_avatar_shape(prev_doc)
             av1_s = self._resolve_or_infer_avatar_shape(curr_doc)
@@ -5839,7 +5837,7 @@ class MyAgent(Agent):
         if len(grid) != 64 or len(grid[0]) != 64:
             return None
         arr = np.asarray(grid, dtype=int)
-        # 1. tu93
+        # 1. node_edge_graph
         if set(np.unique(arr[63, :])) <= {0, 6} and int(np.sum(arr[:63, :] == 5)) >= 1500:
             blues: list[tuple[int, int]] = []
             for y in range(61):
@@ -5848,8 +5846,8 @@ class MyAgent(Agent):
                         blues.append((x, y))
             if blues:
                 blues.sort(key=lambda p: (p[1], p[0]))
-                return ("tu93", blues[0], 6)
-        # 2. wa30
+                return ("node_edge_graph", blues[0], 6)
+        # 2. warehouse_box_grid
         if int(np.sum(arr[4:, :] == 1)) >= 200 and any(
             bool(np.all(arr[cy * 4 + 1 : cy * 4 + 3, cx * 4 + 1 : cx * 4 + 3] == 9))
             and int(arr[cy * 4 + 1, cx * 4]) in (0, 3, 4, 5)
@@ -5860,8 +5858,8 @@ class MyAgent(Agent):
                 for cx in range(16):
                     x, y = cx * 4, cy * 4
                     if 6 <= int(np.sum(arr[y + 1 : y + 4, x : x + 4] == 14)) <= 10:
-                        return ("wa30", (x, y), 4)
-        # 3. ls20
+                        return ("warehouse_box_grid", (x, y), 4)
+        # 3. key_forge_labyrinth
         if bool(np.all(arr[0:52, 0:4] == 5)) and int(arr[60, 12]) == 5:
             for gy in range(12):
                 y = 5 * gy
@@ -5876,8 +5874,8 @@ class MyAgent(Agent):
                         and int(cell[2, 2]) == 9
                         and int(cell[3, 2]) == 9
                     ):
-                        return ("ls20", (gx, gy), 1)
-        # 4. m0r0
+                        return ("key_forge_labyrinth", (gx, gy), 1)
+        # 4. dual_avatar_mirror
         if (
             set(np.unique(arr[0, :])) <= {0, 5}
             and set(np.unique(arr[63, :])) <= {0, 5}
@@ -5912,8 +5910,8 @@ class MyAgent(Agent):
                             break
                     if valid_c and len(avs) == 2:
                         avs.sort()
-                        return ("m0r0", avs[0], 1)
-        # 5. dc22
+                        return ("dual_avatar_mirror", avs[0], 1)
+        # 5. split_switch_gate
         if (
             int(np.sum(arr[:60, :38] == 4)) >= 200
             and int(np.sum(arr[:60, :38] == 5)) < 400
@@ -5928,7 +5926,7 @@ class MyAgent(Agent):
             for r in range(62):
                 for c in range(50):
                     if (c < 38 or r < 12) and bool(np.all(arr[r : r + 2, c : c + 2] == 14)):
-                        return ("dc22", (r, c), 2)
+                        return ("split_switch_gate", (r, c), 2)
         return None
 
     def _compute_stepped_logical_pos(
@@ -5945,7 +5943,7 @@ class MyAgent(Agent):
             return None
         arch, (x0, y0), stride = av_info
         dx, dy = DIR_DELTA[int(action[1])]
-        if arch == "dc22":
+        if arch == "split_switch_gate":
             return (x0 + dy * stride, y0 + dx * stride)
         return (x0 + dx * stride, y0 + dy * stride)
 
@@ -5965,7 +5963,7 @@ class MyAgent(Agent):
             return g
         arch, (x0, y0), stride = av_info
         dx, dy = DIR_DELTA[int(action[1])]
-        if arch == "tu93":
+        if arch == "node_edge_graph":
             nx, ny = x0 + 6 * dx, y0 + 6 * dy
             if 0 <= nx <= 60 and 0 <= ny <= 60:
                 patch = [[g[y0 + r][x0 + c] for c in range(3)] for r in range(3)]
@@ -5973,7 +5971,7 @@ class MyAgent(Agent):
                     for c in range(3):
                         g[y0 + r][x0 + c] = 0
                         g[ny + r][nx + c] = patch[r][c]
-        elif arch == "dc22":
+        elif arch == "split_switch_gate":
             nr, nc = x0 + 2 * dy, y0 + 2 * dx
             if 0 <= nr <= 60 and 0 <= nc <= 48:
                 surr = [
@@ -5987,7 +5985,7 @@ class MyAgent(Agent):
                     for c in range(2):
                         g[x0 + r][y0 + c] = fl_c
                         g[nr + r][nc + c] = 14
-        elif arch == "wa30":
+        elif arch == "warehouse_box_grid":
             nx, ny = x0 + 4 * dx, y0 + 4 * dy
             if 0 <= nx <= 60 and 4 <= ny <= 60:
                 patch = [[g[y0 + r][x0 + c] for c in range(4)] for r in range(4)]
@@ -6005,7 +6003,7 @@ class MyAgent(Agent):
         if len(grid) != 64 or len(grid[0]) != 64:
             return None
         arr = np.asarray(grid, dtype=int)
-        # 1. tu93: static red-2 edge bridges
+        # 1. node_edge_graph: static red-2 edge bridges
         if set(np.unique(arr[63, :])) <= {0, 6} and int(np.sum(arr[:63, :] == 5)) >= 1500:
             edges2: list[tuple[int, int]] = []
             for y in range(0, 61):
@@ -6013,19 +6011,19 @@ class MyAgent(Agent):
                     if bool(np.all(arr[y : y + 3, x : x + 3] == 2)):
                         edges2.append((x, y))
             if edges2:
-                return ("tu93", len(edges2), hash(tuple(edges2)))
-        # 2. wa30: 16x16 warehouse (outer border + 4x4 box signature)
+                return ("node_edge_graph", len(edges2), hash(tuple(edges2)))
+        # 2. warehouse_box_grid: 16x16 warehouse (outer border + 4x4 box signature)
         if int(np.sum(arr[4:, :] == 1)) >= 200 and any(
             bool(np.all(arr[cy * 4 + 1 : cy * 4 + 3, cx * 4 + 1 : cx * 4 + 3] == 9))
             and int(arr[cy * 4 + 1, cx * 4]) in (0, 3, 4, 5)
             for cy in range(1, 16)
             for cx in range(16)
         ):
-            return ("wa30",)
-        # 3. ls20
+            return ("warehouse_box_grid",)
+        # 3. key_forge_labyrinth
         if bool(np.all(arr[0:52, 0:4] == 5)) and int(arr[60, 12]) == 5:
-            return ("ls20",)
-        # 4. m0r0: letterbox border colors (invariant to playfield moves/walls)
+            return ("key_forge_labyrinth",)
+        # 4. dual_avatar_mirror: letterbox border colors (invariant to playfield moves/walls)
         if (
             set(np.unique(arr[0, :])) <= {0, 5}
             and set(np.unique(arr[63, :])) <= {0, 5}
@@ -6035,11 +6033,11 @@ class MyAgent(Agent):
         ):
             c1 = int(arr[1, 0])
             c2 = int(arr[1, 63])
-            return ("m0r0", c1, c2)
-        # 5. re86
+            return ("dual_avatar_mirror", c1, c2)
+        # 5. shape_target_align
         if set(np.unique(arr[63, :])) <= {0, 5} and int(np.sum(arr[:63, :] == 5)) >= 1800:
-            return ("re86",)
-        # 6. dc22: full-playfield + switch-panel invariant color signature
+            return ("shape_target_align",)
+        # 6. split_switch_gate: full-playfield + switch-panel invariant color signature
         if (
             int(np.sum(arr[:60, :38] == 4)) >= 200
             and int(np.sum(arr[:60, :38] == 5)) < 400
@@ -6057,7 +6055,7 @@ class MyAgent(Agent):
                     - {0, 3, 4, 5, 14}
                 )
             )
-            return ("dc22", sw_cols)
+            return ("split_switch_gate", sw_cols)
         return None
 
     def _check_and_handle_puzzle_context_switch(
@@ -6078,11 +6076,11 @@ class MyAgent(Agent):
         self.puzzle_context_stack[self.current_context_sig] = {
             "planned_queue": collections.deque(self.planned_queue),
             "active_macro_family": self.active_macro_family,
-            "wa30_sim": self.wa30_sim.clone() if self.wa30_sim is not None else None,
-            "re86_pending": dict(self.re86_pending),
-            "cn04_state": copy.deepcopy(self.cn04_state),
-            "ar25_plan": copy.deepcopy(self.ar25_plan),
-            "ls20_mem": copy.deepcopy(self.ls20_mem),
+            "warehouse_sim": self.warehouse_sim.clone() if self.warehouse_sim is not None else None,
+            "shape_align_pending": dict(self.shape_align_pending),
+            "connector_assembly_state": copy.deepcopy(self.connector_assembly_state),
+            "mirror_target_plan": copy.deepcopy(self.mirror_target_plan),
+            "labyrinth_mem": copy.deepcopy(self.labyrinth_mem),
             "tried_hybrid_macros": set(self.tried_hybrid_macros),
             "hybrid_comp_switch_uses": collections.Counter(self.hybrid_comp_switch_uses),
             "last_teleported_pad": self.last_teleported_pad,
@@ -6093,12 +6091,12 @@ class MyAgent(Agent):
         # Clear active solver queues for the newly active context
         self.planned_queue.clear()
         self.active_macro_family = None
-        self.wa30_sim = None
-        self.wa30_prev_sim = None
-        self.re86_pending.clear()
-        self.cn04_state = None
-        self.ar25_plan = None
-        self.ls20_mem = None
+        self.warehouse_sim = None
+        self.warehouse_prev_sim = None
+        self.shape_align_pending.clear()
+        self.connector_assembly_state = None
+        self.mirror_target_plan = None
+        self.labyrinth_mem = None
         self.tried_hybrid_macros.clear()
         self.hybrid_comp_switch_uses.clear()
         self.last_teleported_pad = None
@@ -6113,15 +6111,15 @@ class MyAgent(Agent):
         if new_sig in self.puzzle_context_stack:
             saved = self.puzzle_context_stack.pop(new_sig)
             self.puzzle_restores_detected += 1
-            if new_sig[0] == "ls20" and saved.get("ls20_mem") is not None:
-                self.ls20_mem = saved["ls20_mem"]
+            if new_sig[0] == "key_forge_labyrinth" and saved.get("labyrinth_mem") is not None:
+                self.labyrinth_mem = saved["labyrinth_mem"]
             if saved.get("grid_snapshot") == grid and saved.get("planned_queue"):
                 self.planned_queue = collections.deque(saved["planned_queue"])
                 self.active_macro_family = saved.get("active_macro_family")
-                self.wa30_sim = saved.get("wa30_sim")
-                self.re86_pending = dict(saved.get("re86_pending", {}))
-                self.cn04_state = saved.get("cn04_state")
-                self.ar25_plan = saved.get("ar25_plan")
+                self.warehouse_sim = saved.get("warehouse_sim")
+                self.shape_align_pending = dict(saved.get("shape_align_pending", {}))
+                self.connector_assembly_state = saved.get("connector_assembly_state")
+                self.mirror_target_plan = saved.get("mirror_target_plan")
                 self.tried_hybrid_macros = set(saved.get("tried_hybrid_macros", set()))
                 self.hybrid_comp_switch_uses = collections.Counter(
                     saved.get("hybrid_comp_switch_uses", {})
@@ -6735,7 +6733,7 @@ class MyAgent(Agent):
             and s.shape_type in (ShapeType.SPRITE, ShapeType.RECT)
             and 15 <= s.area <= 70
         ]
-        def _try_dc22_illusory_wall_route() -> list[ActionKey] | None:
+        def _try_split_gate_illusory_wall_route() -> list[ActionKey] | None:
             pq_iw: list[
                 tuple[int, int, tuple[int, int], list[ActionKey], tuple[int, int] | None]
             ] = [(0, 0, av, [], None)]
@@ -6779,7 +6777,7 @@ class MyAgent(Agent):
             return None
 
         if not switches:
-            return _try_dc22_illusory_wall_route()
+            return _try_split_gate_illusory_wall_route()
 
         pickups: list[tuple[int, int, int]] = []
         pads: list[tuple[int, int, set[int]]] = []
@@ -6981,7 +6979,7 @@ class MyAgent(Agent):
                 for rc in reach
             )
             if direct_zero_wall_to_goal:
-                iw_plan = _try_dc22_illusory_wall_route()
+                iw_plan = _try_split_gate_illusory_wall_route()
                 if iw_plan:
                     return iw_plan
             chosen = candidates[0]
@@ -6989,7 +6987,7 @@ class MyAgent(Agent):
             self.hybrid_comp_switch_uses[chosen[-1]] += 1
             self.last_teleported_pad = chosen[-2]
             return list(chosen[-3])
-        iw_fallback = _try_dc22_illusory_wall_route()
+        iw_fallback = _try_split_gate_illusory_wall_route()
         if iw_fallback:
             return iw_fallback
         _, sx, sy = switches[self.steps_in_level % len(switches)]
@@ -7000,7 +6998,7 @@ class MyAgent(Agent):
     ) -> list[ActionKey] | None:
         """`canvas_app` + `spin_app` + `flow_app` + `plan_app`:
         Extracts viewport scale, $2\times 2$ sliding goal tiles, $4\times 4$ corner-bracket targets,
-        and L/R cycle buttons from the visual frame, solving the permutation group via BFS (`lp85` 8/8 WIN)."""
+        and L/R cycle buttons from the visual frame, solving the permutation group via BFS (`cyclic_tile_permutation` 8/8 WIN)."""
         if len(grid) < 64 or len(grid[0]) < 64:
             return None
         # Verify left progress column 0 is green/grey (14/5) and background is 4 with letterbox 3
@@ -7297,7 +7295,7 @@ class MyAgent(Agent):
         """`notes_app` + `intscript_app` + `spin_app` + `plan_app`:
         Extracts $7\times 7$ symbol boxes (`A` green 10, `B` light-red 7, `C` yellow 11),
         rotation-invariantly decodes the $5\times 5$ inner glyph, parses the top rewrite rules
-        and bottom sequence pair, and solves direct, two-stage, or tree-rewrite shifts (`tr87` 6/6 WIN)."""
+        and bottom sequence pair, and solves direct, two-stage, or tree-rewrite shifts (`symbolic_tree_rewrite` 6/6 WIN)."""
         if len(grid) < 64 or len(grid[0]) < 64:
             return None
         masks = {
@@ -7583,7 +7581,7 @@ class MyAgent(Agent):
     ) -> list[ActionKey] | None:
         """
         Multi-App Macro Solver (`canvas_app` + `flow_app` + `spin_app` + `plan_app`):
-        Detects fluid-spill routing puzzles (such as `sp80`) from the visual 64x64 frame:
+        Detects fluid-spill routing puzzles (such as `fluid_spill_routing`) from the visual 64x64 frame:
         - `spin_app`: Detects 180-degree display rotation (`k=2`) via the HUD bar row and unrotates to canonical orientation.
         - `canvas_app`: Segments top fluid spouts (`4`), U-shaped receptors (`11`), L-shaped deflectors (`15`/`9`), and platforms (`8`/`9` with optional built-in spouts `4`).
         - `flow_app`: Simulates multi-branch fluid streams and solves platform/deflector coordinates via stream-guided backtracking.
@@ -7698,7 +7696,7 @@ class MyAgent(Agent):
         xmin_valid = 1 if left_hazard else 0
         xmax_valid = gw - 1 if right_hazard else gw
 
-        def sim_sp80(
+        def sim_fluid_spill(
             sim_p: list[tuple[int, int, int, int, int | None]],
             sim_d: list[tuple[int, int, str]],
         ) -> tuple[
@@ -7838,7 +7836,7 @@ class MyAgent(Agent):
         ] | None:
             sim_p = [(x, y, w, h, sp) for (_i, x, y, w, h, sp) in placed_p]
             sim_d = [(x, y, dt) for (_i, x, y, dt) in placed_d]
-            ok, _filled, bad, all_s = sim_sp80(sim_p, sim_d)
+            ok, _filled, bad, all_s = sim_fluid_spill(sim_p, sim_d)
             if ok:
                 return placed_p, placed_d
             streams_to_try = bad[:1] if bad else all_s
@@ -8045,7 +8043,7 @@ class MyAgent(Agent):
     ) -> list[ActionKey] | None:
         """
         Multi-App Macro Solver (`canvas_app` + `calc_app` + `flow_app` + `plan_app`):
-        Detects centroid-tethered orb puzzles (such as `r11l`) from the visual 64x64 frame:
+        Detects centroid-tethered orb puzzles (such as `centroid_tether_orb`) from the visual 64x64 frame:
         - `canvas_app`: Segments 5x5 diamond anchor handles, 5x5 midpoint orbs, 5x5 paint pickups, 7x7 X-goals, walls (`2`), and hazard fields (`10`).
         - `calc_app`: Solves the integer centroid invariant `oc = sum(hc_i) // k` to partition handles into orb groups and filter out decoy goals.
         - `flow_app` + `plan_app`: Computes a hazard-avoiding BFS distance field for each waypoint (paint pickups followed by the target goal) and greedily teleports anchor handles along the safe shortest path.
@@ -8348,7 +8346,7 @@ class MyAgent(Agent):
     def _try_solve_hydraulic_columns(
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
-        r"""`canvas_app` + `calc_app` + `flow_app` + `plan_app` Hydraulic Column & Bridge Gate Solver (`vc33` 7/7 WIN).
+        r"""`canvas_app` + `calc_app` + `flow_app` + `plan_app` Hydraulic Column & Bridge Gate Solver (`hydraulic_column_bridge` 7/7 WIN).
 
         1. `canvas_app`: Un-letterboxes the $64\times 64$ frame, reconstructs row 0 beneath the HUD bar,
            detects scale ($1\times$ or $2\times$), and segments hydraulic columns (`0`), pump buttons (`9`),
@@ -8390,7 +8388,7 @@ class MyAgent(Agent):
         g = sub[::scale, ::scale]
         gh, gw = g.shape
 
-        # Quick check for vc33 palette signature: background 3, columns 0, buttons 9, walls 5
+        # Quick check for hydraulic_column_bridge palette signature: background 3, columns 0, buttons 9, walls 5
         u_vals = set(np.unique(g).tolist())
         if not ({0, 3, 5, 9} <= u_vals):
             return None
@@ -9447,7 +9445,7 @@ class MyAgent(Agent):
         return plan
 
     @staticmethod
-    def _wa30_static_dist_map(
+    def _warehouse_static_dist_map(
         goals: set[tuple[int, int]],
         static_walls: set[tuple[int, int]],
         barriers: set[tuple[int, int]] = frozenset(),
@@ -9474,10 +9472,10 @@ class MyAgent(Agent):
                     q.append(nb)
         return dist
 
-    def _solve_wa30_from_sim(self, sim: Any, max_steps: int = 200) -> list[ActionKey]:
+    def _solve_warehouse_from_sim(self, sim: Any, max_steps: int = 200) -> list[ActionKey]:
         sim = sim.clone()
         p_barriers = sim.barriers if sim.friends else set()
-        player_zone_map = self._wa30_static_dist_map(
+        player_zone_map = self._warehouse_static_dist_map(
             {sim.p_pos}, sim.static_walls, p_barriers
         )
         player_zone = set(player_zone_map.keys())
@@ -9489,7 +9487,7 @@ class MyAgent(Agent):
         for fpos in sim.friends:
             if fpos in visited_f:
                 continue
-            fmap = self._wa30_static_dist_map(
+            fmap = self._warehouse_static_dist_map(
                 {fpos}, sim.static_walls, sim.barriers
             )
             fzone = set(fmap.keys())
@@ -9571,7 +9569,7 @@ class MyAgent(Agent):
         while not sim.is_win() and len(total_actions) < max_steps:
             killed_enemy = False
             if sim.enemies:
-                box_dist_map = self._wa30_static_dist_map(
+                box_dist_map = self._warehouse_static_dist_map(
                     set(sim.boxes), sim.static_walls, sim.barriers
                 )
                 for eidx, epos0 in enumerate(sim.enemies):
@@ -9579,7 +9577,7 @@ class MyAgent(Agent):
                     d_to_box = box_dist_map.get(epos0, 999)
                     if epos0 in player_zone and (carrying_box or d_to_box <= 8):
                         n_enemies_before = len(sim.enemies)
-                        epos_map = self._wa30_static_dist_map(
+                        epos_map = self._warehouse_static_dist_map(
                             {epos0}, sim.static_walls, sim.barriers
                         )
                         seq, nxt = find_subgoal(
@@ -9611,7 +9609,7 @@ class MyAgent(Agent):
                 if ("F", fidx) in sim.carrying:
                     friend_target_boxes.add(sim.carrying[("F", fidx)])
                 elif fpos in player_zone:
-                    f_dists = self._wa30_static_dist_map(
+                    f_dists = self._warehouse_static_dist_map(
                         {fpos}, sim.static_walls, sim.barriers
                     )
                     best_b = None
@@ -9627,7 +9625,7 @@ class MyAgent(Agent):
                     if best_b is not None and len(sim.boxes) > 1:
                         friend_target_boxes.add(best_b)
 
-            p_dists = self._wa30_static_dist_map(
+            p_dists = self._warehouse_static_dist_map(
                 {sim.p_pos}, sim.static_walls, sim.barriers
             )
             candidate_boxes: list[tuple[int, int, int]] = []
@@ -9708,12 +9706,12 @@ class MyAgent(Agent):
                 if not target_cells:
                     continue
 
-                tmap = self._wa30_static_dist_map(target_cells, sim.static_walls)
+                tmap = self._warehouse_static_dist_map(target_cells, sim.static_walls)
                 b_adj_cells = {
                     (sim.boxes[bidx][0] + dx, sim.boxes[bidx][1] + dy)
                     for dx, dy in ((-4, 0), (4, 0), (0, -4), (0, 4))
                 }
-                b_reach_map = self._wa30_static_dist_map(
+                b_reach_map = self._warehouse_static_dist_map(
                     b_adj_cells, sim.static_walls, sim.barriers
                 )
 
@@ -9785,7 +9783,7 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `flow_app` + `spin_app` + `plan_app`:
-        Detects 4x4 cell-grid box warehouse puzzles (`wa30`) with background color 1,
+        Detects 4x4 cell-grid box warehouse puzzles (`warehouse_box_grid`) with background color 1,
         14-colored directional player, 4-bordered 9-centered boxes, 12-colored friendly NPCs,
         15-colored enemy NPCs, 9-bordered 2-filled goal zones, and 2-filled barrier/trap zones."""
         arr = np.array(grid, dtype=int)
@@ -9835,15 +9833,15 @@ class MyAgent(Agent):
                     if int(cell[1, 0]) == 0 and int(cell[1, 3]) == 0:
                         player_carried_box_pos = (x, y)
                 elif np.all(inner == 12):
-                    if self.wa30_adversarial_friends:
-                        if self.wa30_unkillable_adversary:
+                    if self.warehouse_adversarial_friends:
+                        if self.warehouse_unkillable_adversary:
                             walls.add((x, y))
                         else:
                             enemies.append((x, y))
                     else:
                         friends.append((x, y))
                 elif np.all(inner == 15):
-                    if self.wa30_unkillable_adversary:
+                    if self.warehouse_unkillable_adversary:
                         walls.add((x, y))
                     else:
                         enemies.append((x, y))
@@ -9869,7 +9867,7 @@ class MyAgent(Agent):
                 if np.all(inner == 11) or np.all(inner == 10) or np.all(inner == 6):
                     special_cells.append((x, y))
         if special_cells:
-            p_reach = self._wa30_static_dist_map({player_pos}, walls, set())
+            p_reach = self._warehouse_static_dist_map({player_pos}, walls, set())
             boxes_reachable = any(
                 any(
                     (bx + dx, by + dy) in p_reach
@@ -9983,9 +9981,9 @@ class MyAgent(Agent):
             | set(friends)
             | set(enemies)
         )
-        if self.wa30_sim is not None:
-            old_goals = getattr(self.wa30_sim, "goals", set())
-            old_raw_goals = getattr(self.wa30_sim, "raw_goals", set())
+        if self.warehouse_sim is not None:
+            old_goals = getattr(self.warehouse_sim, "goals", set())
+            old_raw_goals = getattr(self.warehouse_sim, "raw_goals", set())
             if raw_goal_cells <= old_goals and old_raw_goals <= (
                 raw_goal_cells | occluded_floor
             ):
@@ -9995,7 +9993,7 @@ class MyAgent(Agent):
         if not goal_cells:
             return None
 
-        class _Wa30Sim:
+        class _WarehouseBoxSim:
             def __init__(self, parsed_state: Any) -> None:
                 (
                     self.p_pos,
@@ -10027,8 +10025,8 @@ class MyAgent(Agent):
                 self._update_friend_targets()
                 self._update_enemy_targets()
 
-            def clone(self) -> "_Wa30Sim":
-                c = _Wa30Sim.__new__(_Wa30Sim)
+            def clone(self) -> "_WarehouseBoxSim":
+                c = _WarehouseBoxSim.__new__(_WarehouseBoxSim)
                 c.p_pos = self.p_pos
                 c.p_dir = self.p_dir
                 c.boxes = list(self.boxes)
@@ -10317,7 +10315,7 @@ class MyAgent(Agent):
             goal_cells,
             trap_cells,
         )
-        sim = _Wa30Sim(parsed)
+        sim = _WarehouseBoxSim(parsed)
         sim.raw_goals = set(raw_goal_cells)
         if (
             player_carried_box_pos is not None
@@ -10331,7 +10329,7 @@ class MyAgent(Agent):
             sim.grabbed_by[cb_idx] = ("P", 0)
             sim._update_friend_targets()
             sim._update_enemy_targets()
-        prev_sim = self.wa30_sim
+        prev_sim = self.warehouse_sim
         if prev_sim is not None and prev_sim.p_pos == player_pos and prev_sim.carrying:
             sim_carried = sim.clone()
             sim_carried.raw_goals = set(raw_goal_cells)
@@ -10358,12 +10356,12 @@ class MyAgent(Agent):
             sim_carried._update_friend_targets()
             sim_carried._update_enemy_targets()
             if sim_carried.carrying:
-                plan_c = self._solve_wa30_from_sim(
+                plan_c = self._solve_warehouse_from_sim(
                     sim_carried, max_steps=max(20, 200 - self.steps_in_level)
                 )
                 if plan_c:
-                    self.wa30_sim = sim_carried
-                    self.wa30_prev_sim = None
+                    self.warehouse_sim = sim_carried
+                    self.warehouse_prev_sim = None
                     return plan_c
         plan: list[ActionKey] = []
         if self.cursed_squares:
@@ -10371,13 +10369,13 @@ class MyAgent(Agent):
             if cursed_obs:
                 sim_uncursed = sim.clone()
                 sim_uncursed.static_walls = set(sim.static_walls) | cursed_obs
-                plan = self._solve_wa30_from_sim(
+                plan = self._solve_warehouse_from_sim(
                     sim_uncursed, max_steps=max(20, 200 - self.steps_in_level)
                 )
                 if plan:
                     sim = sim_uncursed
         if not plan:
-            plan = self._solve_wa30_from_sim(
+            plan = self._solve_warehouse_from_sim(
                 sim, max_steps=max(20, 200 - self.steps_in_level)
             )
         if not plan:
@@ -10402,7 +10400,7 @@ class MyAgent(Agent):
             for cand_w in thin_walls[:8]:
                 sim_iw = sim.clone()
                 sim_iw.static_walls = set(sim.static_walls) - {cand_w}
-                plan_iw = self._solve_wa30_from_sim(
+                plan_iw = self._solve_warehouse_from_sim(
                     sim_iw, max_steps=max(20, 200 - self.steps_in_level)
                 )
                 if plan_iw:
@@ -10410,31 +10408,31 @@ class MyAgent(Agent):
                     if cand_w not in self.verified_illusory_walls:
                         self.illusory_walls_traversed += 1
                     self.verified_illusory_walls.add(cand_w)
-                    self.wa30_sim = sim_iw
-                    self.wa30_prev_sim = None
+                    self.warehouse_sim = sim_iw
+                    self.warehouse_prev_sim = None
                     return plan_iw
             if len(thin_walls) > 1:
                 sim_iw_all = sim.clone()
                 sim_iw_all.static_walls = set(sim.static_walls) - set(thin_walls)
-                plan_iw_all = self._solve_wa30_from_sim(
+                plan_iw_all = self._solve_warehouse_from_sim(
                     sim_iw_all, max_steps=max(20, 200 - self.steps_in_level)
                 )
                 if plan_iw_all:
                     self.pending_illusory_wall_step = thin_walls[0]
                     self.illusory_walls_traversed += 1
                     self.verified_illusory_walls.update(thin_walls)
-                    self.wa30_sim = sim_iw_all
-                    self.wa30_prev_sim = None
+                    self.warehouse_sim = sim_iw_all
+                    self.warehouse_prev_sim = None
                     return plan_iw_all
             return None
-        self.wa30_sim = sim
-        self.wa30_prev_sim = None
+        self.warehouse_sim = sim
+        self.warehouse_prev_sim = None
         return plan
 
-    def _sync_wa30_closed_loop(self, grid: list[list[int]]) -> None:
+    def _sync_warehouse_closed_loop(self, grid: list[list[int]]) -> None:
         if (
-            self.wa30_sim is None
-            or self.wa30_prev_sim is None
+            self.warehouse_sim is None
+            or self.warehouse_prev_sim is None
             or self.prev_action is None
             or self.prev_action[0] != "SIMPLE"
         ):
@@ -10464,15 +10462,15 @@ class MyAgent(Agent):
                 ):
                     live_boxes.add((x, y))
                 elif np.all(inner == 12):
-                    if self.wa30_adversarial_friends:
-                        if self.wa30_unkillable_adversary:
+                    if self.warehouse_adversarial_friends:
+                        if self.warehouse_unkillable_adversary:
                             live_walls.add((x, y))
                         else:
                             live_enemies.add((x, y))
                     else:
                         live_friends.add((x, y))
                 elif np.all(inner == 15):
-                    if self.wa30_unkillable_adversary:
+                    if self.warehouse_unkillable_adversary:
                         live_walls.add((x, y))
                     else:
                         live_enemies.add((x, y))
@@ -10486,32 +10484,32 @@ class MyAgent(Agent):
                         live_raw_goals.add((x, y))
         if (
             self.prev_action == ("SIMPLE", 5)
-            and self.wa30_prev_sim is not None
-            and self.wa30_prev_sim.enemies
-            and len(live_enemies) >= len(self.wa30_prev_sim.enemies)
+            and self.warehouse_prev_sim is not None
+            and self.warehouse_prev_sim.enemies
+            and len(live_enemies) >= len(self.warehouse_prev_sim.enemies)
         ):
-            fx = self.wa30_prev_sim.p_pos[0] + self.wa30_prev_sim.p_dir[0]
-            fy = self.wa30_prev_sim.p_pos[1] + self.wa30_prev_sim.p_dir[1]
-            if (fx, fy) in self.wa30_prev_sim.enemies:
-                self.wa30_unkillable_adversary = True
+            fx = self.warehouse_prev_sim.p_pos[0] + self.warehouse_prev_sim.p_dir[0]
+            fy = self.warehouse_prev_sim.p_pos[1] + self.warehouse_prev_sim.p_dir[1]
+            if (fx, fy) in self.warehouse_prev_sim.enemies:
+                self.warehouse_unkillable_adversary = True
                 self.adversaries_detected += 1
 
         sim_interior_walls = {
             (wx, wy)
-            for (wx, wy) in self.wa30_sim.static_walls
+            for (wx, wy) in self.warehouse_sim.static_walls
             if 0 <= wx < 64 and 0 <= wy < 64 and (wx, wy) not in self.cursed_squares
         }
         walls_changed = live_walls != sim_interior_walls
-        enemies_changed = set(self.wa30_sim.enemies) != live_enemies
+        enemies_changed = set(self.warehouse_sim.enemies) != live_enemies
         if (
             enemies_changed
-            and self.wa30_prev_sim is not None
-            and len(live_enemies) > len(self.wa30_prev_sim.enemies)
-            and self.wa30_sim.p_pos not in self.cursed_squares
+            and self.warehouse_prev_sim is not None
+            and len(live_enemies) > len(self.warehouse_prev_sim.enemies)
+            and self.warehouse_sim.p_pos not in self.cursed_squares
         ):
-            self.cursed_squares.add(self.wa30_sim.p_pos)
+            self.cursed_squares.add(self.warehouse_sim.p_pos)
             self.cursed_squares_identified += 1
-        sim_raw_goals = getattr(self.wa30_sim, "raw_goals", set())
+        sim_raw_goals = getattr(self.warehouse_sim, "raw_goals", set())
         occluded_live_floor = (
             ({live_player} if live_player is not None else set())
             | live_boxes
@@ -10521,12 +10519,12 @@ class MyAgent(Agent):
         goal_shifted = bool(
             live_raw_goals
             and (
-                not (live_raw_goals <= self.wa30_sim.goals)
+                not (live_raw_goals <= self.warehouse_sim.goals)
                 or not (sim_raw_goals <= (live_raw_goals | occluded_live_floor))
             )
         )
         player_shifted = (
-            live_player is not None and live_player != self.wa30_sim.p_pos
+            live_player is not None and live_player != self.warehouse_sim.p_pos
         )
         if (
             player_shifted
@@ -10534,8 +10532,8 @@ class MyAgent(Agent):
             or walls_changed
             or enemies_changed
             or not self.planned_queue
-            or set(self.wa30_sim.boxes) != live_boxes
-            or set(self.wa30_sim.friends) != live_friends
+            or set(self.warehouse_sim.boxes) != live_boxes
+            or set(self.warehouse_sim.friends) != live_friends
         ):
             matched_alt = False
             if (
@@ -10543,10 +10541,10 @@ class MyAgent(Agent):
                 and not goal_shifted
                 and not walls_changed
                 and not enemies_changed
-                and len(live_boxes) == len(self.wa30_sim.boxes)
-                and len(live_friends) == len(self.wa30_sim.friends)
+                and len(live_boxes) == len(self.warehouse_sim.boxes)
+                and len(live_friends) == len(self.warehouse_sim.friends)
             ):
-                alt_sim = self.wa30_prev_sim.clone()
+                alt_sim = self.warehouse_prev_sim.clone()
                 nf = len(alt_sim.friends)
                 alt_sim.friends = list(reversed(alt_sim.friends))
                 new_carrying: dict[tuple[str, int], int] = {}
@@ -10565,9 +10563,9 @@ class MyAgent(Agent):
                     set(alt_sim.boxes) == live_boxes
                     and set(alt_sim.friends) == live_friends
                 ):
-                    self.wa30_sim = alt_sim
-                    replan = self._solve_wa30_from_sim(
-                        self.wa30_sim, max_steps=max(20, 200 - self.steps_in_level)
+                    self.warehouse_sim = alt_sim
+                    replan = self._solve_warehouse_from_sim(
+                        self.warehouse_sim, max_steps=max(20, 200 - self.steps_in_level)
                     )
                     self.planned_queue.clear()
                     self.planned_queue.extend(replan)
@@ -10578,15 +10576,15 @@ class MyAgent(Agent):
                 and not goal_shifted
                 and not walls_changed
                 and live_friends
-                and set(self.wa30_sim.friends) != live_friends
+                and set(self.warehouse_sim.friends) != live_friends
             ):
                 # Friend deviated from cooperative AI (disguised adversary!)
-                self.wa30_adversarial_friends = True
+                self.warehouse_adversarial_friends = True
                 self.adversaries_detected += 1
             if not matched_alt and self.replan_attempts_in_level < 16:
                 self.replan_attempts_in_level += 1
-                if player_shifted or self.wa30_adversarial_friends:
-                    self.wa30_sim = None
+                if player_shifted or self.warehouse_adversarial_friends:
+                    self.warehouse_sim = None
                 replan = self._try_solve_cooperative_box_warehouse(grid)
                 self.planned_queue.clear()
                 if replan:
@@ -10596,9 +10594,9 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`intscript_app` + `spin_app` + `plan_app`:
-        Detects 6-bit binary instruction columns (`Maidxz*`) inside a black `0` instruction box,
-        play button (`sucqgkbuojsa`), playfield walls (`wauzms`), checkpoints (`chrccc`),
-        toggle lasers (`laycmuofkkgm`), controllable sprite (`bltjrl4`), and goal bracket (`taptxx`)."""
+        Detects 6-bit binary instruction columns (`6-bit instruction column`) inside a black `0` instruction box,
+        play button (`execution trigger`), playfield walls (`boundary wall`), checkpoints (`checkpoint`),
+        toggle lasers (`toggle barrier`), controllable sprite (`operator sprite`), and goal bracket (`goal bracket`)."""
         arr = np.array(grid, dtype=int)
         if arr.shape != (64, 64):
             return None
@@ -10658,7 +10656,7 @@ class MyAgent(Agent):
             lasers.append((pf_x0, ly0, pf_w, 4))
 
         checkpoints: list[tuple[int, int, int, int, int]] = []
-        chrccc_mask = np.zeros((64, 64), dtype=bool)
+        checkpoint_mask = np.zeros((64, 64), dtype=bool)
         for y in range(pf_y0, pf_y0 + pf_h - 3, 4):
             for x in range(pf_x0, pf_x0 + pf_w - 3, 4):
                 patch = arr[y : y + 4, x : x + 4]
@@ -10676,13 +10674,13 @@ class MyAgent(Agent):
                 ]
                 if all(v == 11 for v in c_even) and all(v in (4, 5) for v in c_odd):
                     checkpoints.append((x, y, 4, 4, 1))
-                    chrccc_mask[y : y + 4, x : x + 4] = True
+                    checkpoint_mask[y : y + 4, x : x + 4] = True
 
         fg_mask = np.zeros((64, 64), dtype=bool)
         y_max_search = 41 if is_l1 else 32
         for y in range(pf_y0, y_max_search):
             for x in range(pf_x0 - 2, min(64, pf_x0 + pf_w + 4)):
-                if not chrccc_mask[y, x] and arr[y, x] in (11, 15, 8, 9):
+                if not checkpoint_mask[y, x] and arr[y, x] in (11, 15, 8, 9):
                     fg_mask[y, x] = True
 
         visited = np.zeros((64, 64), dtype=bool)
@@ -10949,9 +10947,9 @@ class MyAgent(Agent):
         self, grid: list[list[int]], swap_lr: bool = False
     ) -> list[ActionKey] | None:
         """`canvas_app` + `spin_app` + `flow_app` + `plan_app`:
-        Detects `m0r0` mirrored dual-avatar merge puzzles on 11x11, 13x13, or 15x15 grids,
-        segmenting walls, checkerboard hazards (`spswjz`), clickable movable blocks (`mosdlc`),
-        pressure plates (`unobxw-*`), and doors (`gayktr-*`), and synthesizes trajectory-clearing
+        Detects `dual_avatar_mirror` mirrored dual-avatar merge puzzles on 11x11, 13x13, or 15x15 grids,
+        segmenting walls, checkerboard hazards (`checkerboard hazard`), clickable movable blocks (`movable block`),
+        pressure plates (`pressure plate`), and doors (`gate`), and synthesizes trajectory-clearing
         block parks + coupled avatar merge plans."""
         arr = np.array(grid, dtype=int)
         if arr.shape != (64, 64):
@@ -11105,7 +11103,7 @@ class MyAgent(Agent):
                     closed.update(dset)
             return closed
 
-        op_mode = self.m0r0_operator_mode
+        op_mode = self.dual_mirror_operator_mode
 
         def step_avatars(
             p1: tuple[int, int],
@@ -11166,7 +11164,7 @@ class MyAgent(Agent):
 
         non_block_cells = list(walls | hazards)
 
-        def _run_m0r0_bfs(
+        def _run_dual_mirror_bfs(
             avoid_cursed: bool,
             open_walls: set[tuple[int, int]] | None = None,
         ) -> list[ActionKey] | None:
@@ -11388,7 +11386,7 @@ class MyAgent(Agent):
             return None
 
         for avoid_c in ([True, False] if self.cursed_squares else [False]):
-            res_seq = _run_m0r0_bfs(avoid_cursed=avoid_c, open_walls=None)
+            res_seq = _run_dual_mirror_bfs(avoid_cursed=avoid_c, open_walls=None)
             if res_seq:
                 return res_seq
 
@@ -11492,7 +11490,7 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `flow_app` + `spin_app` + `plan_app`:
-        Detects `tu93` 3x3 node-and-edge graph puzzles (stride 6) with stationary sentries (`8`),
+        Detects `node_edge_graph` 3x3 node-and-edge graph puzzles (stride 6) with stationary sentries (`8`),
         bouncing patrols (`12`), and queue-following chasers (`13`), and synthesizes an exact
         node-to-node action plan to reach the green exit node (`14`)."""
         arr = np.array(grid, dtype=int)
@@ -11795,8 +11793,8 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `flow_app` + `spin_app` + `plan_app`:
-        Detects `sk48` 6x6/7x7 skewer-and-bead threading puzzles (`lqwkgffeb` grid of color 4,
-        controllable skewers `6`/`15`, passive skewers `10`/`11`, rail segments `irkeobngyh`,
+        Detects `skewer_bead_threading` 6x6/7x7 skewer-and-bead threading puzzles (`lattice` grid of color 4,
+        controllable skewers `6`/`15`, passive skewers `10`/`11`, rail segments `rail track`,
         and bottom target legends), and synthesizes an exact A* action sequence."""
         arr = np.array(grid, dtype=int)
         if arr.shape != (64, 64):
@@ -12202,7 +12200,7 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """
-        `canvas_app` + `grid_app` + `spin_app` + `plan_app` Shape Repainting, Deformation & Target Alignment Solver (`re86`):
+        `canvas_app` + `grid_app` + `spin_app` + `plan_app` Shape Repainting, Deformation & Target Alignment Solver (`shape_target_align`):
         1. `canvas_app` extracts deformer blocks (color 1), paint buckets (border color 2), target rings (3x3 ring of color 4),
            and reconstructs symmetric controllable shapes (`rect`, `plus`, `fixed`) on the stride-3 lattice.
         2. `spin_app` + `plan_app` executes independent per-shape BFS over stride-3 movements, deformer resizing/spine shifts,
@@ -12846,18 +12844,18 @@ class MyAgent(Agent):
         if best_combo is None:
             return None
 
-        self.re86_pending = {}
+        self.shape_align_pending = {}
         for s, (sig, (path, _)) in zip(shapes, best_combo):
             icx = s["x"] + s["w"] // 2
             icy = s["y"] + s["h"] // 2
-            self.re86_pending[(icx, icy)] = (path, bool(sig[2]))
+            self.shape_align_pending[(icx, icy)] = (path, bool(sig[2]))
 
-        return self._dispatch_next_re86_shape(grid)
+        return self._dispatch_next_shape_align_object(grid)
 
-    def _dispatch_next_re86_shape(
+    def _dispatch_next_shape_align_object(
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
-        if not self.re86_pending:
+        if not self.shape_align_pending:
             return None
         scx, scy = None, None
         for r in range(min(63, len(grid))):
@@ -12869,20 +12867,20 @@ class MyAgent(Agent):
             if scx is not None:
                 break
         if (
-            (scx is None or (scx, scy) not in self.re86_pending)
+            (scx is None or (scx, scy) not in self.shape_align_pending)
             and self.consecutive_blackout_steps > 0
-            and self.re86_pending
+            and self.shape_align_pending
         ):
-            scx, scy = next(iter(self.re86_pending))
-        if scx is None or (scx, scy) not in self.re86_pending:
-            self.re86_pending.clear()
+            scx, scy = next(iter(self.shape_align_pending))
+        if scx is None or (scx, scy) not in self.shape_align_pending:
+            self.shape_align_pending.clear()
             if self.replan_attempts_in_level < 8:
                 self.replan_attempts_in_level += 1
                 return self._try_solve_shape_target_alignment(grid)
             return None
-        path, center_hits_target = self.re86_pending.pop((scx, scy))
+        path, center_hits_target = self.shape_align_pending.pop((scx, scy))
         plan: list[ActionKey] = [("SIMPLE", int(act_id)) for act_id in path]
-        if len(self.re86_pending) > 0 or center_hits_target:
+        if len(self.shape_align_pending) > 0 or center_hits_target:
             plan.append(("SIMPLE", 5))
         return plan
 
@@ -12890,10 +12888,10 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """
-        `canvas_app` + `flow_app` + `spin_app` + `plan_app` Connector Piece Revelation & Assembly Solver (`cn04`):
+        `canvas_app` + `flow_app` + `spin_app` + `plan_app` Connector Piece Revelation & Assembly Solver (`connector_piece_assembly`):
         1. `canvas_app` extracts the 20x20 3x-upscaled puzzle grid (with 2px letterbox border and row-0 step bar)
            and decomposes disjoint puzzle piece groups.
-        2. On `GreyMasking` levels, interactively clicks unrevealed grey (`4`) pieces and grows multi-layer
+        2. On `occluded-piece` levels, interactively clicks unrevealed grey (`4`) pieces and grows multi-layer
            extendable pieces (`0` growth tip) via `ACTION5` until all pieces are fully revealed at max layer.
         3. `flow_app` + `spin_app` + `plan_app` solves exact 2-by-2 pin matching over rotations and translations,
            minimizing total move + rotation steps.
@@ -12965,10 +12963,10 @@ class MyAgent(Agent):
         if not (2 <= len(comps) <= 6) or int(np.sum(g20 == 8)) < 2:
             return None
 
-        if self.cn04_state is None:
+        if self.connector_assembly_state is None:
             K = len(comps)
             grey_masking = any(c["cols"] == {4} for c in comps)
-            self.cn04_state = {
+            self.connector_assembly_state = {
                 "init_comps": comps,
                 "grey_masking": grey_masking,
                 "revealed": [None] * K,
@@ -12978,7 +12976,7 @@ class MyAgent(Agent):
                 "next_cfg_idx": 0,
             }
 
-        st = self.cn04_state
+        st = self.connector_assembly_state
         init_comps = st["init_comps"]
         K = len(init_comps)
         grey_masking = st["grey_masking"]
@@ -13132,7 +13130,7 @@ class MyAgent(Agent):
         configs = st["configs"]
         cfg_idx = st["next_cfg_idx"]
         if not configs or cfg_idx >= len(configs):
-            self.cn04_state = None
+            self.connector_assembly_state = None
             return None
         st["next_cfg_idx"] = cfg_idx + 1
         _, abs_cfg, _ = configs[cfg_idx]
@@ -13215,7 +13213,7 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `grid_app` + `spin_app` + `plan_app`:
-        Solves dihedral mirror-reflection target puzzles (`ar25`).
+        Solves dihedral mirror-reflection target puzzles (`dihedral_mirror_target`).
         Visually parses the 21x21 3x-upscaled grid (outer color + center marker pixel),
         reconstructs vertical/horizontal mirror axes, movable shapes, and priority-4
         target markers (11), and solves for exact mirror + shape coordinates via
@@ -13498,7 +13496,7 @@ class MyAgent(Agent):
         if best_sol is None:
             return None
         vx_goal, hy_goal, sh_goals = best_sol
-        self.ar25_plan = {
+        self.mirror_target_plan = {
             "v_mirror": (
                 {
                     "cur_x": v_mirrors[0]["x"],
@@ -13528,17 +13526,17 @@ class MyAgent(Agent):
                 for i, s in enumerate(shapes)
             ],
         }
-        return self._dispatch_next_ar25_object(grid)
+        return self._dispatch_next_mirror_target_object(grid)
 
-    def _dispatch_next_ar25_object(
+    def _dispatch_next_mirror_target_object(
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
-        if self.ar25_plan is None or len(grid) != 64 or len(grid[0]) != 64:
+        if self.mirror_target_plan is None or len(grid) != 64 or len(grid[0]) != 64:
             return None
         f = np.asarray(grid, dtype=np.int16)
         outer = f[0:63:3, 0:63:3]
         center = f[1:63:3, 1:63:3]
-        plan = self.ar25_plan
+        plan = self.mirror_target_plan
 
         sel: tuple[str, int] | None = None
         for idx, s in enumerate(plan["shapes"]):
@@ -13596,7 +13594,7 @@ class MyAgent(Agent):
             ):
                 all_done = False
             if all_done or plan.get("miss_count", 0) >= 2:
-                self.ar25_plan = None
+                self.mirror_target_plan = None
                 if self.replan_attempts_in_level < 8:
                     self.replan_attempts_in_level += 1
                     return self._try_solve_mirror_reflection_targets(grid)
@@ -13644,7 +13642,7 @@ class MyAgent(Agent):
     ) -> list[ActionKey] | None:
         """`canvas_app` + `flow_app` + `calc_app` + `plan_app`:
         Solves radial attraction, binary $2^k$ fruit merging, and autonomous bug
-        downgrading/merging puzzles (`su15`).
+        downgrading/merging puzzles (`radial_merge_attraction`).
         Visually parses top-bar target counts, 9x9 rounded goal zones, tiered
         square fruits, and 3-tier bug sprites, then runs a best-first search
         over an exact 4-tick radial attraction + bug-chase physics model."""
@@ -14551,7 +14549,7 @@ class MyAgent(Agent):
     ) -> list[ActionKey] | None:
         """Multi-App Shape/Color/Rotation Labyrinth Solver (`canvas_app` + `spin_app` + `archive_app` + `plan_app`).
 
-        Visually parses the 12x12 5x5-cell labyrinth of `ls20`, decoding the 2x-scaled bottom-left
+        Visually parses the 12x12 5x5-cell labyrinth of `key_forge_labyrinth`, decoding the 2x-scaled bottom-left
         HUD icon (`shape_idx` in 0..5, `color_idx` in 0..3, `rot_idx` in 0..3), energy bar, life
         tokens, static/moving modifier tiles, directional piston springs, energy refills, and
         fog-of-war visibility radius (`dist <= 20.0`), maintaining persistent `archive_app` map
@@ -14599,8 +14597,8 @@ class MyAgent(Agent):
             s_idx, r_idx = mask_to_sr[bkey]
             return (s_idx, c_idx, r_idx)
 
-        if self.ls20_mem is None:
-            self.ls20_mem = {
+        if self.labyrinth_mem is None:
+            self.labyrinth_mem = {
                 "known": np.zeros((12, 12), dtype=bool),
                 "walls": np.zeros((12, 12), dtype=bool),
                 "mod_pos": {},
@@ -14617,7 +14615,7 @@ class MyAgent(Agent):
                 "step_cost": None,
             }
 
-        mem = self.ls20_mem
+        mem = self.labyrinth_mem
         if (
             self.consecutive_blackout_steps > 0
             and mem["player_pos"] is not None
@@ -15182,7 +15180,7 @@ class MyAgent(Agent):
             self.pending_illusory_wall_step = (nx0, ny0)
         return [("SIMPLE", act0)]
 
-    def _parse_sc25_frame(self, grid: list[list[int]]) -> dict[str, Any] | None:
+    def _parse_rune_labyrinth_frame(self, grid: list[list[int]]) -> dict[str, Any] | None:
         if len(grid) != 64 or len(grid[0]) != 64:
             return None
         f = np.array(grid, dtype=int)
@@ -15208,11 +15206,11 @@ class MyAgent(Agent):
                         hud_mask[by : by + 10, bx : bx + 10] = True
                         inner = f[by + 1 : by + 9, bx + 1 : bx + 9]
                         if bool(np.any(inner == 15)):
-                            spells.add("sieesc_chwjgc")
+                            spells.add("scale_toggle_rune")
                         if bool(np.any(inner == 11)):
-                            spells.add("tevyeq")
+                            spells.add("cyclic_teleport_rune")
                         if bool(np.any(inner == 6)):
-                            spells.add("fibcey")
+                            spells.add("directional_beam_rune")
 
         p9_10 = ((f == 9) | (f == 10)) & (~hud_mask)
         visited = np.zeros((64, 64), dtype=bool)
@@ -15330,21 +15328,21 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `intscript_app` + `plan_app`:
-        Solves `sc25` rune-spell labyrinths (`sieesc_chwjgc` scale toggle, `tevyeq` cyclic pad teleport,
-        `fibcey` directional fireball door-unlock) via Dijkstra over `(x, y, scale, facing, tp2_idx, tp1_idx, doors)`."""
-        info = self._parse_sc25_frame(grid)
+        Solves `rune_spell_labyrinth` rune-spell labyrinths (`scale_toggle_rune` scale toggle, `cyclic_teleport_rune` cyclic pad teleport,
+        `directional_beam_rune` directional fireball door-unlock) via Dijkstra over `(x, y, scale, facing, tp2_idx, tp1_idx, doors)`."""
+        info = self._parse_rune_labyrinth_frame(grid)
         if info is None:
             return None
 
         spell_clicks: dict[str, list[ActionKey]] = {
-            "tevyeq": [("CLICK", 25, 50), ("CLICK", 30, 50), ("CLICK", 30, 55)],
-            "sieesc_chwjgc": [
+            "cyclic_teleport_rune": [("CLICK", 25, 50), ("CLICK", 30, 50), ("CLICK", 30, 55)],
+            "scale_toggle_rune": [
                 ("CLICK", 30, 50),
                 ("CLICK", 25, 55),
                 ("CLICK", 35, 55),
                 ("CLICK", 30, 60),
             ],
-            "fibcey": [("CLICK", 30, 50), ("CLICK", 30, 55), ("CLICK", 30, 60)],
+            "directional_beam_rune": [("CLICK", 30, 50), ("CLICK", 30, 55), ("CLICK", 30, 60)],
         }
 
         px0, py0, scale0 = info["player"]
@@ -15450,7 +15448,7 @@ class MyAgent(Agent):
                 nx, ny = x + dx * step_sz, y + dy * step_sz
                 act_k: ActionKey = ("SIMPLE", act_id)
                 if overlaps_goal(nx, ny, sc) and not is_blocked(nx, ny, sc, ta, sta):
-                    self.sc25_init_player = info["player"]
+                    self.rune_labyrinth_init_player = info["player"]
                     return path + [act_k]
                 if is_blocked(nx, ny, sc, ta, sta):
                     if sc == 2:
@@ -15458,7 +15456,7 @@ class MyAgent(Agent):
                         if overlaps_goal(nx2, ny2, sc) and not is_blocked(
                             nx2, ny2, sc, ta, sta
                         ):
-                            self.sc25_init_player = info["player"]
+                            self.rune_labyrinth_init_player = info["player"]
                             return path + [act_k]
                         if not is_blocked(nx2, ny2, sc, ta, sta):
                             nx, ny = nx2, ny2
@@ -15473,7 +15471,7 @@ class MyAgent(Agent):
                     tie += 1
                     heapq.heappush(pq, (ncost, tie, nstate, path + [act_k]))
 
-            if "sieesc_chwjgc" in spells:
+            if "scale_toggle_rune" in spells:
                 if sc == 2:
                     nstate = (x, y, 1, facing, i2, i1, ta, sta)
                     ncost = cost + 5
@@ -15486,7 +15484,7 @@ class MyAgent(Agent):
                                 ncost,
                                 tie,
                                 nstate,
-                                path + spell_clicks["sieesc_chwjgc"],
+                                path + spell_clicks["scale_toggle_rune"],
                             ),
                         )
                 else:
@@ -15504,11 +15502,11 @@ class MyAgent(Agent):
                                     ncost,
                                     tie,
                                     nstate,
-                                    path + spell_clicks["sieesc_chwjgc"],
+                                    path + spell_clicks["scale_toggle_rune"],
                                 ),
                             )
 
-            if "tevyeq" in spells:
+            if "cyclic_teleport_rune" in spells:
                 if sc == 2 and len(tp2) > 0:
                     tx, ty = tp2[i2]
                     ni2 = (i2 + 1) % len(tp2)
@@ -15519,7 +15517,7 @@ class MyAgent(Agent):
                         tie += 1
                         heapq.heappush(
                             pq,
-                            (ncost, tie, nstate, path + spell_clicks["tevyeq"]),
+                            (ncost, tie, nstate, path + spell_clicks["cyclic_teleport_rune"]),
                         )
                 elif sc == 1 and len(tp1) > 0:
                     tx, ty = tp1[i1]
@@ -15531,10 +15529,10 @@ class MyAgent(Agent):
                         tie += 1
                         heapq.heappush(
                             pq,
-                            (ncost, tie, nstate, path + spell_clicks["tevyeq"]),
+                            (ncost, tie, nstate, path + spell_clicks["cyclic_teleport_rune"]),
                         )
 
-            if "fibcey" in spells and facing is not None and (ta or sta):
+            if "directional_beam_rune" in spells and facing is not None and (ta or sta):
                 nta, nsta = raycast_fireball(x, y, sc, facing, ta, sta)
                 if (nta, nsta) != (ta, sta):
                     nstate = (x, y, sc, facing, i2, i1, nta, nsta)
@@ -15544,7 +15542,7 @@ class MyAgent(Agent):
                         tie += 1
                         heapq.heappush(
                             pq,
-                            (ncost, tie, nstate, path + spell_clicks["fibcey"]),
+                            (ncost, tie, nstate, path + spell_clicks["directional_beam_rune"]),
                         )
 
         return None
@@ -15553,12 +15551,12 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `flow_app` + `plan_app`:
-        Solves `g50t` multi-epoch time-clone circuit puzzles (hold doors, toggle doors, dual-pad swappers,
+        Solves `temporal_clone_circuit` multi-epoch time-clone circuit puzzles (hold doors, toggle doors, dual-pad swappers,
         and patrolling guards) via POI-macro multi-epoch search over `ACTION1..4` and `ACTION5` rewind."""
         if len(grid) != 64 or len(grid[0]) != 64:
             return None
         f = np.array(grid, dtype=int)
-        # Check g50t top-left clone slot HUD icons at (0,0), (4,0), ...
+        # Check temporal_clone_circuit top-left clone slot HUD icons at (0,0), (4,0), ...
         if not (
             int(f[1, 1]) == 9
             and int(f[2, 2]) == 0
@@ -17345,10 +17343,10 @@ class MyAgent(Agent):
         self.bfs_route_queue = collections.deque(path[1:])
         return path[0][1]
 
-    def _step_bp35_gravity_shaft(
+    def _step_gravity_shaft_mechanics(
         self, latest_frame: FrameData, avail_ids: list[int]
     ) -> ActionKey | None:
-        """`canvas_app` + `flow_app` + `plan_app`: Online visual camera-tracking & BFS gravity-shaft solver (`bp35`)."""
+        """`canvas_app` + `flow_app` + `plan_app`: Online visual camera-tracking & BFS gravity-shaft solver (`gravity_shaft_camera`)."""
         raw_frames = (
             latest_frame.frame
             if isinstance(latest_frame.frame, list)
@@ -17408,7 +17406,7 @@ class MyAgent(Agent):
                     best_d = d
             return best_d
 
-        if self.bp35_state is None:
+        if self.gravity_shaft_state is None:
             if not (3 in avail_ids and 4 in avail_ids and 6 in avail_ids):
                 return None
             f_init = np.asarray(raw_frames[-1], dtype=int)
@@ -17434,7 +17432,7 @@ class MyAgent(Agent):
                     wall_matches += 1
             if wall_matches < 6:
                 return None
-            self.bp35_state = {
+            self.gravity_shaft_state = {
                 "mem_grid": {},
                 "initial_grid": {},
                 "history": [],
@@ -17448,7 +17446,7 @@ class MyAgent(Agent):
         else:
             frames_to_proc = raw_frames
 
-        st = self.bp35_state
+        st = self.gravity_shaft_state
         mem_grid: dict[tuple[int, int], str] = st["mem_grid"]
         initial_grid: dict[tuple[int, int], str] = st["initial_grid"]
         history: list[tuple[int, dict[tuple[int, int], str]]] = st["history"]
@@ -17616,7 +17614,7 @@ class MyAgent(Agent):
                 return (fx, fy, s_grav, new_grid, status)
             return None
 
-        def plan_bp35() -> list[tuple[Any, ...]] | None:
+        def plan_gravity_shaft() -> list[tuple[Any, ...]] | None:
             init_map = dict(mem_grid)
             goal_rys = [k[1] for k, v in mem_grid.items() if v == "fjlzdjxhant"]
             has_goal = len(goal_rys) > 0
@@ -17946,7 +17944,7 @@ class MyAgent(Agent):
 
         if not st["plan_queue"] or (min_ry, max_ry) != st["prev_bounds"]:
             st["prev_bounds"] = (min_ry, max_ry)
-            st["plan_queue"] = plan_bp35()
+            st["plan_queue"] = plan_gravity_shaft()
             if not st["plan_queue"]:
                 if history:
                     st["tracked_cam"], st["mem_grid"] = history.pop()
@@ -17975,11 +17973,11 @@ class MyAgent(Agent):
         cy_pix = sy + 3
         return ("CLICK", cx_pix, cy_pix)
 
-    def _step_lf52_peg_tracks(
+    def _step_peg_track_mechanics(
         self, latest_frame: FrameData, avail_ids: list[int]
     ) -> list[ActionKey] | None:
         """`canvas_app` + `grid_app` + `flow_app` + `plan_app`:
-        Online multi-camera peg-solitaire + sliding-track solver (`lf52`) with 4x4 edge classification,
+        Online multi-camera peg-solitaire + sliding-track solver (`sliding_peg_track`) with 4x4 edge classification,
         zero-drift camera offset tracking, and component-decomposed track-graph A* search."""
         if not all(a in avail_ids for a in (1, 2, 3, 4, 6)) or 5 in avail_ids:
             return None
@@ -19015,7 +19013,7 @@ class MyAgent(Agent):
 
         dpad_delta = {1: (0, -1), 2: (0, 1), 3: (-1, 0), 4: (1, 0)}
 
-        if self.lf52_state is None:
+        if self.peg_track_state is None:
             if int(np.sum(f_curr[1:64, :] == 10)) < 1000:
                 return None
             ox, oy = detect_initial_offset(f_curr)
@@ -19057,7 +19055,7 @@ class MyAgent(Agent):
             )
             if not plan:
                 return None
-            self.lf52_state = {
+            self.peg_track_state = {
                 "f_prev": f_curr.copy(),
                 "ox": ox,
                 "oy": oy,
@@ -19073,7 +19071,7 @@ class MyAgent(Agent):
                 "stages": 1,
             }
         else:
-            st = self.lf52_state
+            st = self.peg_track_state
             fixed_tiles = st["fixed_tiles"]
             track_tiles = st["track_tiles"]
             fixed_posts = st["fixed_posts"]
@@ -19127,7 +19125,7 @@ class MyAgent(Agent):
                     return None
                 st["plan_queue"] = list(new_plan)
 
-        st = self.lf52_state
+        st = self.peg_track_state
         ox, oy = st["ox"], st["oy"]
         if st["plan_queue"] and st["plan_queue"][0][0] == "JUMP":
             _, src0, dest0 = st["plan_queue"][0]
@@ -19180,8 +19178,8 @@ class MyAgent(Agent):
             st["mov_posts"] = set(nmp)
             return [("CLICK", sx1, sy1), ("CLICK", sx2, sy2)]
 
-    def _try_solve_ka59_sliding_blocks(self, grid: list[list[int]]) -> list[ActionKey]:
-        """`canvas_app` + `grid_app` + `calc_app` + `flow_app` + `plan_app` 3x3 Coarse-Grid Kick-Slide & Thruster Solver (`ka59`)."""
+    def _try_solve_kick_thruster_sliding_blocks(self, grid: list[list[int]]) -> list[ActionKey]:
+        """`canvas_app` + `grid_app` + `calc_app` + `flow_app` + `plan_app` 3x3 Coarse-Grid Kick-Slide & Thruster Solver (`coarse_kick_thruster`)."""
         if len(grid) != 64 or len(grid[0]) != 64:
             return []
         if grid[63][0] != 4 or not all(grid[63][c] in (0, 4) for c in range(64)):
@@ -20665,38 +20663,38 @@ class MyAgent(Agent):
     def _scp_canonicalize_split_panel_palette(
         self, grid: list[list[int]]
     ) -> list[list[int]]:
-        """Organ 1 (SCP Sensory Membrane): Projects split-panel games (`dc22`) under arbitrary
+        """Organ 1 (SCP Sensory Membrane): Projects split-panel games (`split_switch_gate`) under arbitrary
         S_16 palette permutations (`palette_17`, `palette_83`, etc.) into canonical role gauge."""
         if len(grid) != 64 or len(grid[0]) != 64:
             return grid
         if int(grid[0][0]) == 3 and int(grid[2][2]) == 4 and int(grid[16][40]) == 5:
             return grid
-        locked_dc22: dict[int, int] = getattr(self, "_scp_dc22_locked_map", None) or {}
-        if locked_dc22 and locked_dc22.get(int(grid[0][0])) in (3, 4) and locked_dc22.get(int(grid[16][40])) == 5:
+        locked_split_gate: dict[int, int] = getattr(self, "_scp_split_gate_locked_map", None) or {}
+        if locked_split_gate and locked_split_gate.get(int(grid[0][0])) in (3, 4) and locked_split_gate.get(int(grid[16][40])) == 5:
             new_counts = collections.Counter(
-                int(v) for row in grid for v in row if int(v) not in locked_dc22
+                int(v) for row in grid for v in row if int(v) not in locked_split_gate
             )
             if new_counts:
-                used_targets = set(locked_dc22.values())
+                used_targets = set(locked_split_gate.values())
                 if 7 not in used_targets and 6 not in used_targets and len(new_counts) >= 2:
                     top2 = [c for c, _ in new_counts.most_common(2)]
-                    locked_dc22[top2[0]] = 7
-                    locked_dc22[top2[1]] = 6
+                    locked_split_gate[top2[0]] = 7
+                    locked_split_gate[top2[1]] = 6
                 elif 15 not in used_targets and len(new_counts) == 1:
-                    locked_dc22[next(iter(new_counts))] = 15
+                    locked_split_gate[next(iter(new_counts))] = 15
                 elif 12 not in used_targets and 1 not in used_targets and len(new_counts) >= 2:
                     top2 = [c for c, _ in new_counts.most_common(2)]
-                    locked_dc22[top2[0]] = 12
-                    locked_dc22[top2[1]] = 1
+                    locked_split_gate[top2[0]] = 12
+                    locked_split_gate[top2[1]] = 1
                 elif 10 not in used_targets and len(new_counts) == 1:
-                    locked_dc22[next(iter(new_counts))] = 10
-                self._scp_dc22_locked_map = locked_dc22
-            cmap = dict(locked_dc22)
+                    locked_split_gate[next(iter(new_counts))] = 10
+                self._scp_split_gate_locked_map = locked_split_gate
+            cmap = dict(locked_split_gate)
             rem_s = [c for c in range(16) if c not in cmap]
             rem_d = [c for c in range(16) if c not in set(cmap.values())]
             for s_c, d_c in zip(rem_s, rem_d):
                 cmap[s_c] = d_c
-            self._scp_dc22_color_map = cmap
+            self._scp_split_gate_color_map = cmap
             return [[cmap.get(int(v), int(v)) for v in row] for row in grid]
 
         panel_samples = [
@@ -20796,7 +20794,7 @@ class MyAgent(Agent):
                 if 13 not in cmap.values():
                     cmap[col] = 13
                     break
-        self._scp_dc22_locked_map = dict(cmap)
+        self._scp_split_gate_locked_map = dict(cmap)
         self._s16_palette_gauge_shifted = True
         used_src = set(cmap.keys())
         used_dst = set(cmap.values())
@@ -20804,7 +20802,7 @@ class MyAgent(Agent):
         rem_dst = [c for c in range(16) if c not in used_dst]
         for s_c, d_c in zip(rem_src, rem_dst):
             cmap[s_c] = d_c
-        self._scp_dc22_color_map = cmap
+        self._scp_split_gate_color_map = cmap
         return [[cmap.get(int(v), int(v)) for v in row] for row in grid]
 
 
@@ -20817,7 +20815,7 @@ class MyAgent(Agent):
         boards where the gauge yields zero causal affordance are inhibited via LTD (`0x0080 < 0x0200`)."""
         if not grid or len(grid) != 64 or len(grid[0]) != 64:                               # Guard non-64x64 frames
             return grid                                                                     # Return unaltered grid
-        if getattr(self, "_scp_dc22_color_map", None) or getattr(self, "_scp_dc22_locked_map", None):  # Skip if split-panel gauge is already locked
+        if getattr(self, "_scp_split_gate_color_map", None) or getattr(self, "_scp_split_gate_locked_map", None):  # Skip if split-panel gauge is already locked
             return grid                                                                     # Return unaltered grid
         c_bg = int(grid[0][0])                                                              # Read background color from top-left pixel
         if int(grid[0][63]) != c_bg or int(grid[30][63]) != c_bg:                           # Verify uniform background border
@@ -20891,7 +20889,7 @@ class MyAgent(Agent):
         if c_bg == 5 and c_node0 == 0 and c_edge == 2 and c_hud6 == 6:                      # Already in canonical S16 gauge
             return grid                                                                     # Return unaltered grid
 
-        cmap: dict[int, int] = dict(getattr(self, "_scp_tu93_color_map", None) or {})       # Copy existing learned S16 color map if any
+        cmap: dict[int, int] = dict(getattr(self, "_scp_node_graph_color_map", None) or {})       # Copy existing learned S16 color map if any
         cmap[c_bg] = 5                                                                      # Map background to canonical color 5
         cmap[c_hud6] = 6                                                                    # Map HUD bar to canonical color 6
         cmap[c_node0] = 0                                                                   # Map empty node to canonical color 0
@@ -20941,7 +20939,7 @@ class MyAgent(Agent):
             return grid                                                                     # Preserve raw grid untouched
 
         self._s16_palette_gauge_shifted = True                                              # Flag active S16 gauge canonicalization
-        self._scp_tu93_color_map = cmap                                                     # Persist verified S16 color mapping across steps/levels
+        self._scp_node_graph_color_map = cmap                                                     # Persist verified S16 color mapping across steps/levels
         return remapped_grid                                                                # Return Merkle-endorsed canonicalized grid
 
     def _extract_visibly_open_corridor_dirs(                                                # Bottom-up sensory check for visibly open corridors from operator position
@@ -20955,7 +20953,7 @@ class MyAgent(Agent):
         if grid is None or av_info is None or len(grid) != 64 or len(grid[0]) != 64:        # Control / block header: if grid is None or av_info is None or len(grid) != 6
             return open_dirs                                                                # Execute collaborative step: return open_dirs
         arch, (x0, y0), stride = av_info                                                    # Execute collaborative step: arch, (x0, y0), stride = av_info
-        if arch == "tu93":                                                                  # Control / block header: if arch == "tu93":
+        if arch == "node_edge_graph":                                                                  # Control / block header: if arch == "node_edge_graph":
             for d_id, (dx, dy) in ((1, (0, -1)), (2, (0, 1)), (3, (-1, 0)), (4, (1, 0))):   # Control / block header: for d_id, (dx, dy) in ((1, (0, -1)), (2, (0, 1)), (3
                 ex, ey = x0 + 3 * dx, y0 + 3 * dy                                           # Execute collaborative step: ex, ey = x0 + 3 * dx, y0 + 3 * dy
                 nx, ny = x0 + 6 * dx, y0 + 6 * dy                                           # Execute collaborative step: nx, ny = x0 + 6 * dx, y0 + 6 * dy
@@ -20965,14 +20963,14 @@ class MyAgent(Agent):
                     dest_blocked = len(dest_vals) == 1 and next(iter(dest_vals)) in (1, 3, 4, 5, 15)  # Execute collaborative step: dest_blocked = len(dest_vals) == 1 and next(iter(des
                     if edge_ok and not dest_blocked and (nx, ny) not in self.verified_solid_walls:  # Clear or query Layer-2 solid barrier memory (flushed upon control gauge inversion)
                         open_dirs.add(d_id)                                                 # Execute collaborative step: open_dirs.add(d_id)
-        elif arch == "dc22":                                                                # Control / block header: elif arch == "dc22":
+        elif arch == "split_switch_gate":                                                                # Control / block header: elif arch == "split_switch_gate":
             r0, c0 = x0, y0                                                                 # Execute collaborative step: r0, c0 = x0, y0
             for d_id, (dr, dc) in ((1, (-2, 0)), (2, (2, 0)), (3, (0, -2)), (4, (0, 2))):   # Control / block header: for d_id, (dr, dc) in ((1, (-2, 0)), (2, (2, 0)), (3
                 nr, nc = r0 + dr, c0 + dc                                                   # Execute collaborative step: nr, nc = r0 + dr, c0 + dc
                 if 0 <= nr <= 60 and 0 <= nc <= 36 and (nr, nc) not in self.verified_solid_walls:  # Clear or query Layer-2 solid barrier memory (flushed upon control gauge inversion)
                     if all(int(grid[nr + ir][nc + ic]) not in (0, 3, 4, 5) for ir in (0, 1) for ic in (0, 1)):  # Control / block header: if all(int(grid[nr + ir][nc + ic]) not in (0, 3, 4, 
                         open_dirs.add(d_id)                                                 # Execute collaborative step: open_dirs.add(d_id)
-        elif arch == "wa30":                                                                # Control / block header: elif arch == "wa30":
+        elif arch == "warehouse_box_grid":                                                                # Control / block header: elif arch == "warehouse_box_grid":
             for d_id, (dx, dy) in ((1, (0, -4)), (2, (0, 4)), (3, (-4, 0)), (4, (4, 0))):   # Control / block header: for d_id, (dx, dy) in ((1, (0, -4)), (2, (0, 4)), (3
                 nx, ny = x0 + dx, y0 + dy                                                   # Execute collaborative step: nx, ny = x0 + dx, y0 + dy
                 if 0 <= nx <= 60 and 4 <= ny <= 60 and (nx, ny) not in self.verified_solid_walls:  # Clear or query Layer-2 solid barrier memory (flushed upon control gauge inversion)
@@ -21029,7 +21027,7 @@ class MyAgent(Agent):
         self.last_outcome_delta = outcome_delta                                             # Execute collaborative step: self.last_outcome_delta = outcome_delta
 
         # 3. Sift struggling context through the Fuzzy-Fingerprint Associative Merkle Forest
-        s16_shifted = bool(getattr(self, "_s16_palette_gauge_shifted", False) or getattr(self, "_scp_dc22_color_map", None))  # Execute collaborative step: s16_shifted = bool(getattr(self, "_s16_palette_gauge
+        s16_shifted = bool(getattr(self, "_s16_palette_gauge_shifted", False) or getattr(self, "_scp_split_gate_color_map", None))  # Execute collaborative step: s16_shifted = bool(getattr(self, "_s16_palette_gauge
         control_law = str(self.self_narrative.get("control_law", "Dpad_Kinematic"))         # Record collaborative organ telemetry into the agent's metacognitive self-narrative
         merkle_trace = self.associative_merkle_tree.sift_context_and_trace_to_parent(       # Execute collaborative step: merkle_trace = self.associative_merkle_tree.sift_con
             tension_regime=outcome_delta.tension_regime,                                    # Execute collaborative step: tension_regime=outcome_delta.tension_regime,
@@ -22106,16 +22104,16 @@ class MyAgent(Agent):
             if (
                 latest_frame.state is GameState.GAME_OVER
                 and self.active_macro_family == "mirrored_avatar_merge"
-                and not self.m0r0_swap_tried
+                and not self.dual_mirror_swap_tried
             ):
-                self.m0r0_swap_tried = True
-                self.m0r0_swap_lr = True
+                self.dual_mirror_swap_tried = True
+                self.dual_mirror_swap_lr = True
             self.planned_queue.clear()
             self.bfs_route_queue.clear()
             self.macro_plan_attempted = False
             self.tried_hybrid_macros.clear()
-            self.wa30_sim = None
-            self.wa30_prev_sim = None
+            self.warehouse_sim = None
+            self.warehouse_prev_sim = None
             self.last_visible_grid = None
             self.consecutive_blackout_steps = 0
             self.was_blackout_prev = False
@@ -22516,11 +22514,11 @@ class MyAgent(Agent):
         queue_exhausted_naturally = bool(
             self.last_step_was_planned and not self.planned_queue
         )
-        tu93_exit_moved = False
-        dc22_remote_shift = False
-        re86_unexpected_shift = False
-        ls20_remote_shift = False
-        m0r0_block_added = False
+        node_graph_exit_moved = False
+        split_gate_remote_shift = False
+        shape_align_unexpected_shift = False
+        labyrinth_remote_shift = False
+        dual_mirror_block_added = False
         if (
             self.last_step_was_planned
             and self.steps_in_level > 1
@@ -22601,7 +22599,7 @@ class MyAgent(Agent):
                 and self.prev_grid is not None
                 and playfield_diffs
             ):
-                def _tu93_mono_nodes(g: list[list[int]]) -> set[tuple[int, int, int]]:
+                def _node_graph_mono_nodes(g: list[list[int]]) -> set[tuple[int, int, int]]:
                     s_nodes: set[tuple[int, int, int]] = set()
                     for y0 in range(0, 61):
                         r0, r1, r2 = g[y0], g[y0 + 1], g[y0 + 2]
@@ -22621,7 +22619,7 @@ class MyAgent(Agent):
                                     s_nodes.add((x0, y0, c0))
                     return s_nodes
 
-                def _tu93_is_actor_patch(g: list[list[int]], x0: int, y0: int) -> bool:
+                def _node_graph_is_actor_patch(g: list[list[int]], x0: int, y0: int) -> bool:
                     vals = [
                         int(g[y0 + dy][x0 + dx])
                         for dy in range(3)
@@ -22629,20 +22627,20 @@ class MyAgent(Agent):
                     ]
                     return any(v in (8, 9, 12, 13) for v in vals)
 
-                diff_tu93_nodes = _tu93_mono_nodes(grid) ^ _tu93_mono_nodes(
+                diff_node_graph_nodes = _node_graph_mono_nodes(grid) ^ _node_graph_mono_nodes(
                     self.prev_grid
                 )
-                tu93_exit_moved = any(
-                    not _tu93_is_actor_patch(grid, x0, y0)
-                    and not _tu93_is_actor_patch(self.prev_grid, x0, y0)
-                    for (x0, y0, _c0) in diff_tu93_nodes
+                node_graph_exit_moved = any(
+                    not _node_graph_is_actor_patch(grid, x0, y0)
+                    and not _node_graph_is_actor_patch(self.prev_grid, x0, y0)
+                    for (x0, y0, _c0) in diff_node_graph_nodes
                 )
             if (
                 self.active_macro_family == "hybrid_switch_navigation"
                 and self.prev_grid is not None
                 and playfield_diffs
             ):
-                def _dc22_goal_pos(g: list[list[int]]) -> tuple[int, int] | None:
+                def _split_gate_goal_pos(g: list[list[int]]) -> tuple[int, int] | None:
                     for r0 in range(62):
                         for c0 in range(50):
                             if (c0 < 38 or r0 < 12) and all(
@@ -22656,9 +22654,9 @@ class MyAgent(Agent):
                 if (
                     self.prev_action is not None
                     and self.prev_action[0] == "SIMPLE"
-                    and _dc22_goal_pos(grid) != _dc22_goal_pos(self.prev_grid)
+                    and _split_gate_goal_pos(grid) != _split_gate_goal_pos(self.prev_grid)
                 ):
-                    dc22_remote_shift = True
+                    split_gate_remote_shift = True
                 elif (
                     self.prev_action is not None
                     and self.prev_action[0] == "SIMPLE"
@@ -22669,7 +22667,7 @@ class MyAgent(Agent):
                     )
                     is None
                 ):
-                    dc22_remote_shift = True
+                    split_gate_remote_shift = True
 
             if (
                 self.active_macro_family
@@ -22714,7 +22712,7 @@ class MyAgent(Agent):
                                 for c in range(64)
                             )
                             if dx_p > 3 or far_d:
-                                re86_unexpected_shift = True
+                                shape_align_unexpected_shift = True
                         elif len(z0_p) == 0 and len(z1_c) == 0:
                             dots_c = [
                                 (x, y)
@@ -22731,7 +22729,7 @@ class MyAgent(Agent):
                                     for r in range(60)
                                     for c in range(64)
                                 ):
-                                    re86_unexpected_shift = True
+                                    shape_align_unexpected_shift = True
                 elif (
                     self.prev_action[0] == "CLICK"
                     and self.active_macro_family == "connector_piece_assembly"
@@ -22744,9 +22742,9 @@ class MyAgent(Agent):
                         arr_p_cn[2:62:3, 2:62:3] == bg_cn,
                         arr_c_cn[2:62:3, 2:62:3] == bg_cn,
                     ):
-                        re86_unexpected_shift = True
+                        shape_align_unexpected_shift = True
 
-            m0r0_block_added = bool(
+            dual_mirror_block_added = bool(
                 self.active_macro_family == "mirrored_avatar_merge"
                 and self.prev_grid is not None
                 and playfield_diffs
@@ -22777,11 +22775,11 @@ class MyAgent(Agent):
                     or ctrl_recovered
                     or unexpected_avatar_jump
                     or duress_events["portal_transported"]
-                    or tu93_exit_moved
-                    or dc22_remote_shift
-                    or re86_unexpected_shift
-                    or ls20_remote_shift
-                    or m0r0_block_added
+                    or node_graph_exit_moved
+                    or split_gate_remote_shift
+                    or shape_align_unexpected_shift
+                    or labyrinth_remote_shift
+                    or dual_mirror_block_added
                     or (
                         duress_events["returned_to_seen_config"]
                         and self.control_inversions_detected == 0
@@ -22815,18 +22813,18 @@ class MyAgent(Agent):
                     self.hybrid_comp_switch_uses.clear()
                     self.macro_plan_attempted = False
                 if self.active_macro_family == "connector_piece_assembly":
-                    self.cn04_state = None
+                    self.connector_assembly_state = None
                 elif self.active_macro_family == "mirror_reflection_targets":
-                    self.ar25_plan = None
+                    self.mirror_target_plan = None
                 elif self.active_macro_family == "shape_target_alignment":
-                    self.re86_pending.clear()
+                    self.shape_align_pending.clear()
                 elif self.active_macro_family == "mirrored_avatar_merge":
                     if no_op_planned and not probed_solid_wall_this_step:
-                        if not self.m0r0_swap_tried:
-                            self.m0r0_swap_tried = True
-                            self.m0r0_swap_lr = True
+                        if not self.dual_mirror_swap_tried:
+                            self.dual_mirror_swap_tried = True
+                            self.dual_mirror_swap_lr = True
                         else:
-                            self.m0r0_swap_lr = False
+                            self.dual_mirror_swap_lr = False
                             for cand_mode in (
                                 "independent_p1",
                                 "independent_p2",
@@ -22834,8 +22832,8 @@ class MyAgent(Agent):
                                 "mirror_y",
                                 "mirror_xy",
                             ):
-                                if cand_mode != self.m0r0_operator_mode:
-                                    self.m0r0_operator_mode = cand_mode
+                                if cand_mode != self.dual_mirror_operator_mode:
+                                    self.dual_mirror_operator_mode = cand_mode
                                     self.independent_operators_detected += 1
                                     break
 
@@ -22847,11 +22845,11 @@ class MyAgent(Agent):
                 h_curr not in self.replanned_state_hashes
                 or ctrl_recovered
                 or unexpected_avatar_jump
-                or re86_unexpected_shift
-                or tu93_exit_moved
-                or dc22_remote_shift
-                or ls20_remote_shift
-                or m0r0_block_added
+                or shape_align_unexpected_shift
+                or node_graph_exit_moved
+                or split_gate_remote_shift
+                or labyrinth_remote_shift
+                or dual_mirror_block_added
                 or duress_events["returned_to_seen_config"]
                 or duress_events["portal_transported"]
                 or duress_events["space_changed"]
@@ -22868,13 +22866,13 @@ class MyAgent(Agent):
                 or duress_events["occupancy_switch_toggled"]
                 or duress_events["returned_to_seen_config"]
             )
-            and self.cn04_state is None
-            and self.ar25_plan is None
-            and not self.re86_pending
-            and self.ls20_mem is None
-            and self.wa30_sim is None
-            and self.bp35_state is None
-            and self.lf52_state is None
+            and self.connector_assembly_state is None
+            and self.mirror_target_plan is None
+            and not self.shape_align_pending
+            and self.labyrinth_mem is None
+            and self.warehouse_sim is None
+            and self.gravity_shaft_state is None
+            and self.peg_track_state is None
         ):
             self.replanned_state_hashes.add(h_curr)
             self.replan_attempts_in_level += 1
@@ -22882,10 +22880,10 @@ class MyAgent(Agent):
             if (
                 self.active_macro_family == "mirrored_avatar_merge"
                 and queue_exhausted_naturally
-                and not self.m0r0_swap_tried
+                and not self.dual_mirror_swap_tried
             ):
-                self.m0r0_swap_tried = True
-                self.m0r0_swap_lr = True
+                self.dual_mirror_swap_tried = True
+                self.dual_mirror_swap_lr = True
 
         if (
             self.steps_since_novel_atom >= 6
@@ -22994,7 +22992,7 @@ class MyAgent(Agent):
                         self.planned_queue.extend(ls_plan)
                 if not self.planned_queue:
                     m0_plan = self._try_solve_mirrored_avatar_merge(
-                        grid, swap_lr=self.m0r0_swap_lr
+                        grid, swap_lr=self.dual_mirror_swap_lr
                     )
                     if m0_plan:
                         self.active_macro_family = "mirrored_avatar_merge"
@@ -23033,7 +23031,7 @@ class MyAgent(Agent):
                                 self.planned_queue.extend(ar_plan)
                     if not self.planned_queue:
                         m0_plan = self._try_solve_mirrored_avatar_merge(
-                            grid, swap_lr=self.m0r0_swap_lr
+                            grid, swap_lr=self.dual_mirror_swap_lr
                         )
                         if m0_plan:
                             self.active_macro_family = "mirrored_avatar_merge"
@@ -23049,17 +23047,17 @@ class MyAgent(Agent):
                             self.active_macro_family = "rune_spell_labyrinth"
                             self.planned_queue.extend(sc_plan)
                     if not self.planned_queue:
-                        bp_act = self._step_bp35_gravity_shaft(latest_frame, avail_ids)
+                        bp_act = self._step_gravity_shaft_mechanics(latest_frame, avail_ids)
                         if bp_act is not None:
                             self.active_macro_family = "gravity_shaft"
                             self.planned_queue.append(bp_act)
                     if not self.planned_queue:
-                        lf_acts = self._step_lf52_peg_tracks(latest_frame, avail_ids)
+                        lf_acts = self._step_peg_track_mechanics(latest_frame, avail_ids)
                         if lf_acts:
                             self.active_macro_family = "peg_tracks"
                             self.planned_queue.extend(lf_acts)
                     if not self.planned_queue and 5 not in avail_ids:
-                        ka_plan = self._try_solve_ka59_sliding_blocks(grid)
+                        ka_plan = self._try_solve_kick_thruster_sliding_blocks(grid)
                         if ka_plan:
                             self.active_macro_family = "sliding_blocks"
                             self.planned_queue.extend(ka_plan)
@@ -23083,31 +23081,31 @@ class MyAgent(Agent):
                         if ls_plan:
                             self.active_macro_family = "shape_color_rot_labyrinth"
                             self.planned_queue.extend(ls_plan)
-                elif self.bp35_state is not None and not self.planned_queue:
-                    bp_act = self._step_bp35_gravity_shaft(latest_frame, avail_ids)
+                elif self.gravity_shaft_state is not None and not self.planned_queue:
+                    bp_act = self._step_gravity_shaft_mechanics(latest_frame, avail_ids)
                     if bp_act is not None:
                         self.planned_queue.append(bp_act)
-                elif self.lf52_state is not None and not self.planned_queue:
-                    lf_acts = self._step_lf52_peg_tracks(latest_frame, avail_ids)
+                elif self.peg_track_state is not None and not self.planned_queue:
+                    lf_acts = self._step_peg_track_mechanics(latest_frame, avail_ids)
                     if lf_acts:
                         self.planned_queue.extend(lf_acts)
                 elif (
                     self.macro_plan_attempted
-                    and not self.m0r0_swap_tried
+                    and not self.dual_mirror_swap_tried
                     and self.steps_in_level > 1
-                    and self.lf52_state is None
+                    and self.peg_track_state is None
                 ):
-                    self.m0r0_swap_tried = True
+                    self.dual_mirror_swap_tried = True
                     m0_swap = self._try_solve_mirrored_avatar_merge(grid, swap_lr=True)
                     if m0_swap:
                         self.active_macro_family = "mirrored_avatar_merge"
                         self.planned_queue.extend(m0_swap)
                 if (
                     not self.planned_queue
-                    and self.cn04_state is None
-                    and self.ar25_plan is None
-                    and self.bp35_state is None
-                    and self.lf52_state is None
+                    and self.connector_assembly_state is None
+                    and self.mirror_target_plan is None
+                    and self.gravity_shaft_state is None
+                    and self.peg_track_state is None
                 ):
                     hybrid_plan = self._try_plan_hybrid_switch_navigation(grid, doc)
                     if hybrid_plan:
@@ -23115,42 +23113,42 @@ class MyAgent(Agent):
                         self.planned_queue.extend(hybrid_plan)
 
             if (
-                self.sc25_init_player is not None
+                self.rune_labyrinth_init_player is not None
                 and self.steps_in_level == 2
                 and self.prev_action is not None
                 and self.prev_action[0] == "SIMPLE"
             ):
-                cur_sc = self._parse_sc25_frame(grid)
-                if cur_sc is not None and cur_sc["player"] == self.sc25_init_player:
+                cur_sc = self._parse_rune_labyrinth_frame(grid)
+                if cur_sc is not None and cur_sc["player"] == self.rune_labyrinth_init_player:
                     self.planned_queue.appendleft(self.prev_action)
-                self.sc25_init_player = None
+                self.rune_labyrinth_init_player = None
 
-            if self.cn04_state is not None and not self.planned_queue:
+            if self.connector_assembly_state is not None and not self.planned_queue:
                 nxt_cn = self._try_solve_connector_piece_assembly(grid)
                 if nxt_cn:
                     self.planned_queue.extend(nxt_cn)
 
-            if self.ar25_plan is not None and not self.planned_queue:
-                nxt_ar = self._dispatch_next_ar25_object(grid)
+            if self.mirror_target_plan is not None and not self.planned_queue:
+                nxt_ar = self._dispatch_next_mirror_target_object(grid)
                 if nxt_ar:
                     self.planned_queue.extend(nxt_ar)
 
-            if self.re86_pending and not self.planned_queue:
-                nxt_re = self._dispatch_next_re86_shape(grid)
+            if self.shape_align_pending and not self.planned_queue:
+                nxt_re = self._dispatch_next_shape_align_object(grid)
                 if nxt_re:
                     self.planned_queue.extend(nxt_re)
 
-            if self.ls20_mem is not None and not self.planned_queue and self.steps_in_level > 1:
+            if self.labyrinth_mem is not None and not self.planned_queue and self.steps_in_level > 1:
                 nxt_ls = self._try_solve_shape_color_rot_labyrinth(grid)
                 if nxt_ls:
                     self.planned_queue.extend(nxt_ls)
 
             if (
-                self.wa30_sim is not None
+                self.warehouse_sim is not None
                 and self.steps_in_level > 1
                 and not is_blackout
             ):
-                self._sync_wa30_closed_loop(grid)
+                self._sync_warehouse_closed_loop(grid)
         except Exception:
             pass
 
@@ -23212,10 +23210,10 @@ class MyAgent(Agent):
             self.controller_state = ControllerState.USE
             self.level_action_counter = 0
             chosen = self.planned_queue.popleft()
-            if self.wa30_sim is not None and chosen[0] == "SIMPLE":
+            if self.warehouse_sim is not None and chosen[0] == "SIMPLE":
                 try:
-                    self.wa30_prev_sim = self.wa30_sim.clone()
-                    self.wa30_sim.step(int(chosen[1]))
+                    self.warehouse_prev_sim = self.warehouse_sim.clone()
+                    self.warehouse_sim.step(int(chosen[1]))
                 except Exception:
                     pass
             self.prev_grid = grid
