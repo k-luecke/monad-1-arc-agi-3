@@ -4463,8 +4463,8 @@ class MyAgent(Agent):
         #   MONAD1_CANVAS_REHEARSAL=1  roll candidate plans through that model before acting
         #   MONAD1_WINS_TEACH=1        log general win records and call inos_merkle_log_solved_pattern
         #   MONAD1_RELATION_MEMORY=path  load relation-keyed records (no game ids) and bias goal type
-        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1"
-        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1"
+        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1" or os.getenv("MONAD2_REHEARSAL", "0") == "1"
+        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1" or os.getenv("MONAD2_REHEARSAL", "0") == "1"
         self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "0") == "1"
         self.relation_memory_path = os.getenv("MONAD1_RELATION_MEMORY", "").strip()
         self._fx_init_game_state()
@@ -4504,7 +4504,27 @@ class MyAgent(Agent):
             self.cnn_optimizer = None
             return False
 
+    def _m2_assign_level(self) -> None:
+        import monad2.factorial as _m2fz
+
+        _m2fz.assign_level(self)
+
+    def _m2_tonic_limits(self) -> tuple[int | None, int]:
+        """Depth cap and rehearsal breadth. Unset flag keeps the fixed search."""
+        if os.getenv("MONAD2_TONIC", "0") != "1":
+            return None, 3
+        raw = 4
+        narr = self.self_narrative if isinstance(getattr(self, "self_narrative", None), dict) else {}
+        if narr.get("inos_depth_budget") is not None:
+            try:
+                raw = int(narr["inos_depth_budget"])
+            except (TypeError, ValueError):
+                raw = 4
+        depth = max(1, min(8, raw))
+        return depth, max(1, min(3, (depth + 1) // 2))
+
     def _reset_level_world_model(self) -> None:
+        self._m2_assign_level()
         self.state_grids: dict[int, list[list[int]]] = {}
         self.state_actions: dict[int, list[ActionKey]] = {}
         self.state_actions_version: dict[int, tuple[int, int]] = {}
@@ -17184,7 +17204,16 @@ class MyAgent(Agent):
             tree = self.associative_merkle_tree
             if credited is not None:
                 self.ggl_type_stats[credited]["level_credits"] += 1
-                if self.ggl_confirmed_type is None:
+                promote = self.ggl_confirmed_type is None
+                if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
+                    from monad2.memory import EpisodeLTP
+
+                    ltp = getattr(self, "m2_ltp", None)
+                    if ltp is None:
+                        ltp = EpisodeLTP()
+                        self.m2_ltp = ltp
+                    promote = promote and bool(ltp.confirm(credited))
+                if promote:
                     self.ggl_confirmed_type = credited
                     self.ggl_confirm_level = int(self.current_level)
                 sig16 = int(goal.get("sig16", 1)) if goal else 1
@@ -18389,6 +18418,8 @@ class MyAgent(Agent):
         start = (int(start_xy[0]), int(start_xy[1]))
         prev: dict[tuple[int, int], tuple[tuple[int, int], int] | None] = {start: None}
         q: collections.deque = collections.deque([start])
+        depth_cap, _breadth = self._m2_tonic_limits()
+        dist: dict[tuple[int, int], int] | None = {start: 0} if depth_cap is not None else None
         while q and len(prev) < max_nodes:
             p = q.popleft()
             if p != start and goal_test(p):
@@ -18398,6 +18429,8 @@ class MyAgent(Agent):
                     node, aid = prev[node]
                     path.append(aid)
                 return path[::-1]
+            if dist is not None and dist[p] >= int(depth_cap or 0):
+                continue
             for aid, (dx, dy) in moves.items():
                 nx, ny = p[0] + dx, p[1] + dy
                 npos = (nx, ny)
@@ -18413,6 +18446,8 @@ class MyAgent(Agent):
                     continue
                 prev[npos] = (p, aid)
                 q.append(npos)
+                if dist is not None:
+                    dist[npos] = dist[p] + 1
         return None
 
     def _ggl_reach_candidates(
@@ -18763,6 +18798,45 @@ class MyAgent(Agent):
         }
         if self.ggl_confirmed_type is not None and prior[self.ggl_confirmed_type] > 0:
             prior[self.ggl_confirmed_type] += 4.0
+        if os.getenv("MONAD2_SCP", "0") == "1":
+            try:
+                from monad2.scp import project
+
+                proj = project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                self.m2_projection_tokens = len(proj.tokens())
+                if proj.panel_mismatch >= 4 and prior.get("MATCH", 0) > 0:
+                    prior["MATCH"] += 1.0
+                if proj.controllable_role is not None and prior.get("REACH", 0) > 0:
+                    prior["REACH"] += 1.0
+                if proj.feedback == "shift" and prior.get("PLACE", 0) > 0:
+                    prior["PLACE"] += 0.5
+            except Exception:
+                pass
+        if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
+            path = os.getenv("MONAD2_RECORDS", "").strip()
+            hyps: list[str] = []
+            if path and os.path.isfile(path):
+                try:
+                    from monad2.memory import eligible, load_records, retrieve
+
+                    held = os.getenv("MONAD2_HOLDOUT_GAME", "")
+                    recs = load_records(path)
+                    if held:
+                        recs = eligible(recs, held)
+                    feats = []
+                    if has_dpad:
+                        feats.append("aff:avatar")
+                    if has_ptr:
+                        feats.append("aff:click")
+                    if prior["PLACE"] > 0:
+                        feats.append("aff:push")
+                    hyps = retrieve(tuple(feats), recs, k=3)
+                except Exception:
+                    hyps = []
+            self.m2_goal_hypotheses = hyps
+            for hyp in hyps:
+                if prior.get(hyp, 0) > 0:
+                    prior[hyp] += 1.5
         sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
         if getattr(self, "wt_memory", None):
             try:
@@ -18866,7 +18940,8 @@ class MyAgent(Agent):
                 # A type tried only because rehearsal wants alternatives must
                 # not change the flag when an earlier plan is committed.
                 self.ggl_match_refuted = refuted_before_type
-                if len(options) >= 3:
+                _depth_cap, _breadth = self._m2_tonic_limits()
+                if len(options) >= _breadth:
                     break
             elif options and self.ggl_match_refuted != refuted_before_type:
                 self.ggl_match_refuted = refuted_before_type

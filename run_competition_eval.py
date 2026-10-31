@@ -298,6 +298,9 @@ def play_single_game(
     raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
     env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
+    os.environ["MONAD2_HOLDOUT_GAME"] = gid.split("-")[0]
+    if os.getenv("MONAD2_FACTORIAL", "0") == "1":
+        os.environ["MONAD2_GAME_SLOT"] = str(max(0, int(idx) - 1))
     goal_report = None
     win_records = None
     monad2_report = None
@@ -331,6 +334,22 @@ def play_single_game(
                 monad2_report = dict(stats)
                 monad2_report["rehearsal_log"] = list(getattr(agent, "m2_rehearsal_log", []) or [])
                 monad2_report["cross_game"] = getattr(agent, "m2_cross_game", "carry")
+                level_log = getattr(agent, "m2_level_log", None)
+                if isinstance(level_log, list) and level_log:
+                    prefix = gid.split("-")[0]
+                    done_levels = int(getattr(agent, "levels_completed", 0) or 0)
+                    done_actions = int(getattr(agent, "action_counter", 0) or 0)
+                    ends = [int(row["action_start"]) for row in level_log[1:]] + [done_actions]
+                    stamped = []
+                    for row, end in zip(level_log, ends):
+                        item = dict(row)
+                        item["game"] = prefix
+                        item["actions"] = int(end) - int(row["action_start"])
+                        item["cleared"] = int(row["level"]) < done_levels
+                        item["holdout"] = prefix in ("cd82", "ft09", "m0r0", "tn36", "tr87")
+                        stamped.append(item)
+                    monad2_report["level_log"] = stamped
+                    monad2_report["factorial_seed"] = stamped[0].get("seed")
         except Exception:
             monad2_report = None
         if blind_id:
