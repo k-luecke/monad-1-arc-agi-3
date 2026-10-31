@@ -122,6 +122,21 @@ def main() -> int:
     same_b_moved["xy"] = (7, 1)
     crowded = note_effect({}, [same_a, same_b], [same_a, same_b_moved], ("SIMPLE", 4), "continue")
     assert not crowded.get("avatar"), crowded
+    part_a = {"sig": (1, 9, 5, 3), "geom": (1, 3, 5), "xy": (4, 4), "wh": (5, 3), "area": 15, "click": (6, 5), "type": 1}
+    part_b = {"sig": (1, 12, 5, 2), "geom": (1, 2, 5), "xy": (4, 2), "wh": (5, 2), "area": 10, "click": (6, 3), "type": 1}
+    part_a2 = dict(part_a)
+    part_a2["xy"] = (4, 3)
+    part_a2["click"] = (6, 4)
+    part_b2 = dict(part_b)
+    part_b2["xy"] = (4, 1)
+    part_b2["click"] = (6, 2)
+    together = note_effect({}, [part_a, part_b], [part_a2, part_b2], ("SIMPLE", 1), "continue")
+    assert together.get("avatar") == [1, 3, 5], together
+    part_b3 = dict(part_b)
+    part_b3["xy"] = (6, 2)
+    part_b3["click"] = (8, 3)
+    split = note_effect({}, [part_a, part_b], [part_a2, part_b3], ("SIMPLE", 1), "continue")
+    assert not split.get("avatar"), split
 
     clicked_before = _records_from_grid(_click_scene())
     clicked_after = [dict(rec) for rec in clicked_before]

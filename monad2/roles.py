@@ -129,6 +129,24 @@ def _unique_geom(records: list[dict], geom) -> bool:
     return _geom_counts(records).get(want, 0) == 1
 
 
+def _largest_part(records: list[dict], geoms: list):
+    """The biggest unique part of one shared motion. Not a smallest-mark prior."""
+    best = None
+    best_key = None
+    for geom in geoms:
+        rec = _find_geom(records, geom)
+        wh = (rec or {}).get("wh") or (0, 0)
+        try:
+            area = int(wh[0]) * int(wh[1])
+        except (TypeError, ValueError):
+            area = 0
+        key = (area, geom)
+        if best_key is None or key > best_key:
+            best_key = key
+            best = geom
+    return best
+
+
 def _largest(records: list[dict], taken: set[int]) -> dict | None:
     pool = [rec for rec in records if id(rec) not in taken and _geom(rec) is not None]
     if not pool:
@@ -424,14 +442,15 @@ def note_effect(evidence: dict | None, before: list[dict], after: list[dict], ac
     kind = action[0] if action else ""
     counts = _geom_counts(list(before or []))
     if kind == "SIMPLE" and action and int(action[1]) in (1, 2, 3, 4):
-        geoms = []
+        deltas = {}
         for rec, dx, dy in moved:
             geom = _geom(rec)
-            if geom is None or geom in geoms or not (dx or dy):
+            if geom is None or geom in deltas or not (dx or dy):
                 continue
             if counts.get(geom, 0) != 1:
                 continue
-            geoms.append(geom)
+            deltas[geom] = (int(dx), int(dy))
+        geoms = list(deltas)
         known = tuple(kept["avatar"]) if kept.get("avatar") else None
         if known is not None and counts.get(known, 0) != 1:
             known = None
@@ -441,6 +460,9 @@ def note_effect(evidence: dict | None, before: list[dict], after: list[dict], ac
             avatar_geom = known
         elif len(geoms) == 1:
             avatar_geom = geoms[0]
+        elif geoms and len(set(deltas.values())) == 1:
+            # One motion split across colors. Each geom is still unique.
+            avatar_geom = _largest_part(list(before or []), geoms)
         if avatar_geom is not None:
             kept["avatar"] = [avatar_geom[0], avatar_geom[1], avatar_geom[2]]
             for rec, _dx, _dy in moved:
