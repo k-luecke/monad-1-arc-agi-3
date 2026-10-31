@@ -49,18 +49,21 @@ items ::= item (ws "," ws item){0,3}
 _GRAMMAR = {
     "a": _STRING
     + r'''
-root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"effect\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "}"
+prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
+root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"effect\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "}"
 ''',
     "b": _STRING
     + r'''
+prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
 verdict ::= "\"agree\"" | "\"challenge\""
-root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"effect\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"verdict\"" ws ":" ws verdict ws "}"
+root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"effect\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"verdict\"" ws ":" ws verdict ws "}"
 ''',
     "executive": _STRING
     + r'''
+prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
 step ::= action
 plan ::= "[" ws (step (ws "," ws step){0,2})? ws "]"
-root ::= "{" ws "\"decision\"" ws ":" ws decision ws "," ws "\"action\"" ws ":" ws action ws "," ws "\"plan\"" ws ":" ws plan ws "," ws "\"expect_change\"" ws ":" ws bool ws "," ws "\"expectation\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"theory\"" ws ":" ws string ws "," ws "\"goal\"" ws ":" ws goal ws "," ws "\"used\"" ws ":" ws "[" ws items ws "]" ws "}"
+root ::= "{" ws "\"decision\"" ws ":" ws decision ws "," ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"plan\"" ws ":" ws plan ws "," ws "\"expect_change\"" ws ":" ws bool ws "," ws "\"expectation\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"theory\"" ws ":" ws string ws "," ws "\"goal\"" ws ":" ws goal ws "," ws "\"used\"" ws ":" ws "[" ws items ws "]" ws "}"
 ''',
 }
 

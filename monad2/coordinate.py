@@ -41,16 +41,18 @@ CARRIED: list[dict] = []
 _A_SYSTEM = (
     "You are Qwen A', the bottom-up proposer. Read the SCP projection and the canvas_doc "
     "shape list (type, sig, click anchor). model_a is a trajectory proposal, not an order. "
-    "Propose one move whose effect names a shape change. Do not copy the solver. "
-    'Reply with JSON only: {"action":"SIMPLE 4","effect":"sig 5,4,2,2 moves +4x +0y","reason":"..."} '
+    "Propose one motor primitive and the role binding it uses. Do not copy a stored solution. "
+    'Reply with JSON only: {"action":"SIMPLE 4","primitive":"approach","binding":"avatar,goal",'
+    '"effect":"avatar translates toward the goal","reason":"..."} '
     "Actions are SIMPLE 1 up, SIMPLE 2 down, SIMPLE 3 left, SIMPLE 4 right, "
     "SIMPLE 5 interact, or CLICK x y."
 )
 _B_SYSTEM = (
     "You are Qwen B', the auditor. You see A's proposal and the model_b veto line. "
-    "Uphold a veto of a wall, hazard, or dead move. Otherwise challenge A when the "
-    "document or the effect model disagrees, and propose your own move. "
-    'Reply with JSON only: {"action":"SIMPLE 3","effect":"sig 5,4,2,2 moves -4x +0y","reason":"...","verdict":"challenge"} '
+    "Uphold a veto of a wall, hazard, or a step that undoes progress. Otherwise challenge A "
+    "and name your own primitive. "
+    'Reply with JSON only: {"action":"SIMPLE 3","primitive":"hold_gradient","binding":"avatar,goal",'
+    '"effect":"avatar does not reverse","reason":"...","verdict":"challenge"} '
     "Use verdict agree only when A's effect matches the canvas."
 )
 _E_SYSTEM = (
@@ -59,15 +61,18 @@ _E_SYSTEM = (
     "If A and B disagree, or model_b vetoes the solver, inhibit the solver and pick the "
     "proposal that fits the canvas and the retrieved concept. "
     "Explore only when you set decision to explore, and say why. "
-    "expectation must be a canvas change: 'sig 5,4,2,2 moves +4x +0y', "
-    "'sig 1,3,4,4 vanishes', or 'no shape change'. "
+    "Pick one primitive from the [primitives] line, or inhibit it. "
+    "expectation is that primitive's effect: 'avatar translates toward the goal', "
+    "'avatar does not reverse', or 'frame changes under labeled exploration'. "
+    "A move that is not a primitive must be primitive explore. "
     "If a [schema] line names a role binding, reason in that frame: which object plays "
     "the avatar, the goal, or the receptor, and what was substituted. "
     "If the stream contains MISMATCH, change your theory. "
     "plan is up to two further actions to run only if this expectation matches. Use [] when unsure. "
-    'Reply with JSON only: {"decision":"inhibit","action":"SIMPLE 3","plan":["SIMPLE 3"],'
-    '"expect_change":true,"expectation":"sig 5,4,2,2 moves -4x +0y","reason":"...",'
-    '"theory":"...","goal":"REACH","used":["qwen_b","schema"]}. '
+    'Reply with JSON only: {"decision":"inhibit","action":"SIMPLE 3","primitive":"hold_gradient",'
+    '"binding":"avatar,goal","plan":[],"expect_change":true,'
+    '"expectation":"avatar does not reverse","reason":"...","theory":"...","goal":"REACH",'
+    '"used":["qwen_b","schema"]}. '
     "goal is REACH, PLACE, or MATCH."
 )
 
@@ -431,6 +436,11 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
         "scene": scene,
         "schema": schema_line,
     }
+    from monad2.primitives import proposals_for
+
+    prim_line, prim_items = proposals_for(state.get("schema_obs") or {}, state, legal)
+    entries["primitives"] = prim_line
+    entries["primitive_list"] = prim_items
     lines = [
         f"[scp] {_clip(entries['scp'], 220)}",
         f"[canvas_doc] {_clip(scene['shapes'], 280)}",
@@ -453,6 +463,7 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
         f"[heuristic] {entries['heuristic']}",
         f"[theory] {entries['theory_goal'] or 'none'}: {_clip(entries['theory'], 160)}",
         f"[schema] {_clip(entries['schema'], 360)}",
+        f"[primitives] {_clip(entries['primitives'], 320)}",
     ]
     return "\n".join(lines), entries
 
@@ -623,6 +634,7 @@ def decide(agent, key, reason: str = "", backend=None):
             "features": entries["features"],
             "theory": state["theory"].get("text") or "",
             "shapes": list((entries.get("scene") or {}).get("records") or []),
+            "primitive": state.get("plan_primitive") or "",
         }
         _log(agent).append(
             {
@@ -728,12 +740,32 @@ def decide(agent, key, reason: str = "", backend=None):
             decision = "inhibit" if chosen != heuristic else decision
         prev_reason = str(e_obj.get("reason") or "")
         e_obj["reason"] = _clip(f"{ladder_note}. {prev_reason}", 200)
+    from monad2.primitives import contradicts_gradient, effect_of, known, suggest_action
+
+    prim = str(e_obj.get("primitive") or b_obj.get("primitive") or a_obj.get("primitive") or "").strip().lower()
+    if not known(prim):
+        prim = ""
+    if decision == "explore":
+        prim = "explore"
+    if prim and prim != "explore" and contradicts_gradient(prim, chosen, _state(agent)):
+        alt = suggest_action("hold_gradient", legal, _state(agent))
+        if alt is not None and alt != chosen:
+            chosen = alt
+            decision = "inhibit"
+            prim = "hold_gradient"
+            e_obj = dict(e_obj)
+            e_obj["reason"] = _clip(
+                "inhibit the step that undoes progress. " + str(e_obj.get("reason") or ""),
+                180,
+            )
     expect_change = e_obj.get("expect_change")
     if not isinstance(expect_change, bool):
         expect_change = not _known_noop(agent, chosen)
     expectation = _clip(str(e_obj.get("expectation") or e_obj.get("effect") or ""), 160)
     if not expectation:
-        expectation = "frame changes" if expect_change else "frame stays"
+        expectation = effect_of(prim) or ("frame changes" if expect_change else "frame stays")
+    if prim == "explore" and "explor" not in expectation.lower():
+        expectation = effect_of("explore")
     theory = _clip(str(e_obj.get("theory") or ""), 180)
     goal = str(e_obj.get("goal") or "").upper()
     if goal not in GOAL_TYPES:
@@ -752,6 +784,7 @@ def decide(agent, key, reason: str = "", backend=None):
     state["plan_expect"] = expectation
     state["plan_expect_change"] = bool(expect_change)
     state["plan_goal"] = goal
+    state["plan_primitive"] = prim
     if decision == "inhibit":
         _bump(agent, "coord_inhibit")
         if chosen != heuristic:
@@ -775,6 +808,7 @@ def decide(agent, key, reason: str = "", backend=None):
         "features": entries["features"],
         "theory": theory,
         "shapes": list((entries.get("scene") or {}).get("records") or []),
+        "primitive": prim,
     }
     row.update(
         {
@@ -786,6 +820,8 @@ def decide(agent, key, reason: str = "", backend=None):
             "expect_change": bool(expect_change),
             "goal": goal,
             "theory": theory,
+            "primitive": prim,
+            "binding": _clip(str(e_obj.get("binding") or ""), 80),
             "qwen_a": _fmt(a_key),
             "qwen_a_reason": _clip(str(a_obj.get("reason") or ""), 160),
             "qwen_a_effect": _clip(str(a_obj.get("effect") or ""), 120),
@@ -840,6 +876,14 @@ def observe(agent, changed: bool) -> None:
             _bump(agent, "schema_revisions")
             if log:
                 log[-1]["schema_revision"] = revision
+        prim_name = str(pending.get("primitive") or "")
+        if prim_name:
+            from monad2.primitives import credit
+
+            conf, note = credit(state, prim_name, doc_hit if doc_hit is not None else hit, pending.get("action"))
+            if log:
+                log[-1]["primitive_confidence"] = conf
+                log[-1]["primitive_check"] = note
         if doc_hit is not None:
             _bump(agent, "expect_doc_scored")
             if doc_hit:
@@ -904,6 +948,7 @@ def format_sample(rows: list[dict], limit: int = 6) -> str:
                     f"Scene: {row.get('scene') or 'no canvas document'}.",
                     f"Solver proposal {row.get('solver') or row.get('heuristic')} ({row.get('heuristic_reason') or 'unspecified'}).",
                     f"Schema: {row.get('schema') or 'none'}.",
+                    f"Primitive: {row.get('primitive') or 'none'} binds {row.get('binding') or 'none'}.",
                     f"Qwen A' proposed {row.get('qwen_a')}: {row.get('qwen_a_reason') or ''} "
                     f"Effect: {row.get('qwen_a_effect') or ''}.",
                     f"Qwen B' {row.get('qwen_b_verdict') or 'replied'} {row.get('qwen_b')}: "

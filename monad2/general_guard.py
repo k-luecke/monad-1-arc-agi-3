@@ -52,6 +52,7 @@ ACTIVE_MODULES = (
     "runtime.py",
     "llm.py",
     "discovery.py",
+    "primitives.py",
 )
 
 HITS: list[str] = []

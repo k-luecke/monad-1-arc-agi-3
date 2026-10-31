@@ -53,9 +53,9 @@ Pairwise connections that can interact before an action are the rows in the firs
 
 Keep a factor off by default unless confirmation beats the baseline at no more actions. Do not delete PLL, Gohst, the observer, tonic, the joints, or `ControllerState` from the source on the strength of a one-module zero. Deletion would require the factorial contrast (factor on vs off) and the holdout confirmation both to show no path to a clear.
 
-## Coordination path: general or per-puzzle
+## Coordination path
 
-`MONAD2_COORDINATE=1` is the only path that asks Qwen A', Qwen B', and Mistral for a move. It is off during score runs. The executive may accept, combine, or inhibit the heuristic. Only a GENERAL component may propose. A PER-PUZZLE component is either not called, or its return is discarded by the solver guard.
+`MONAD2_COORDINATE=1` is the only path that asks Qwen A', Qwen B', and Mistral for a move. It is off during score runs. The executive picks or inhibits one motor primitive from `monad2/primitives.py` and states its effect. Those primitives are the motion rules mined from the old solvers. The old methods stay in the agent for reference and are not called when solvers are disabled. The mapping of each method onto a primitive, and what was dropped, is `monad2/PRIMITIVES.md`.
 
 A schema in `monad2/schema.py` is an abstract role and relation structure learned from play: avatar, goal, receptor, movable, switch, wall, hazard, trail floor, counter/HUD; contact, containment, shape match, paint, toggle, and a translate effect. Slots store `shape_geom_sig` only. `assert_structure` rejects `game_id`, a color, an absolute coordinate, a 4-tuple signature (that tuple carries the fill color), and an action list. `upsert` returns without writing when `MONAD2_HOLDOUT_GAME` is one of `cd82`, `ft09`, `m0r0`, `tn36`, `tr87`. The next episode matches stored schemas from other episodes and writes the binding into the `[schema]` line, including a rebound when the same role has a different geom. A document miss either rebinds the avatar geom or rejects that schema id for the episode.
 
@@ -75,7 +75,7 @@ A schema in `monad2/schema.py` is an abstract role and relation structure learne
 | PLL mismatch line | GENERAL | yes, as `[pll]` | compares the stated expectation with the frame |
 | general goal engine, visited BFS, operant click, kinematic trail | GENERAL | yes, only through the general phrase above | goal engine comment: pixels only, no game ids; `solver_name` will not pass a puzzle plan through |
 | Qwen A' 0.5B, Qwen B' 1.5B, Mistral executive | GENERAL | yes | local GGUF, temperature 0, seed 0; no game table in `llm.py` |
-| 27 `_try_solve_*` / `_step_*` / `_try_plan_hybrid_switch_navigation` methods | PER-PUZZLE | no | `game_specific_solvers_disabled` raises `_GameSolversOff` before that tier; `_scp_canonicalize_node_graph_palette` returns the frame unchanged; `arm_solver_guard` records a call if one still happens |
+| 27 old solver methods | reference only | no; their motion rules are the primitives | disabled tier raises `_GameSolversOff` before the methods run; `arm_solver_guard` records a call if one still happens; `monad2/PRIMITIVES.md` is the mapping |
 
 `monad2/general_guard.py` scans `coordinate.py`, `schema.py`, `canvas_stream.py`, `scp.py`, `memory.py`, `runtime.py`, `llm.py`, and `discovery.py`. A known game prefix as a whole string literal, a compare operand, or a dict key is a violation. A sentence that names a past stall is not a branch. The guard's own denylist is not on that list. The coordination probe asserts the hit list is empty after blinded play.
 
