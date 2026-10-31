@@ -19,6 +19,8 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 5 | 2026-10-30 9:53 PM | 236b81c | 3-seed balanced factorial, stall breaker on, 300s | 0, 1, 2 | 0/25 | 21, 15, 19 | 42044, 39629, 41582 | 0.499, 0.379, 0.457 | no |
 | 6 | 2026-10-30 10:02 PM | 236b81c | holdout replay of row 13, stall breaker off, 300s | 0 | 0/5 | 2 | 8313 | 0.241 | no |
 | 7 | 2026-10-31 8:59 AM | 4576a1e | goal discovery in the 10-factor screen, 300s | 0, 1, 2 | 0/25 | 11, 12, 18 | 37703, 38171, 41675 | 0.292, 0.314, 0.432 | no |
+| 8 | 2026-10-31 11:24 AM | c80088b | watch-only goal discovery, 300s | 0, 1, 2 | 0/25 | 19, 19, 19 | 42729, 42729, 42729 | 0.445, 0.445, 0.445 | yes |
+| 9 | 2026-10-31 12:09 PM | af41cb0 | stall restore on the factorial, seed 0, 300s | 0 | 0/25 | 17/183 | 58524 | 0.290 | no |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -74,3 +76,38 @@ Code is `4576a1e`. Early in a level, while `MONAD2_GOAL_DISCOVERY` is on, the ag
 Mean of the three seeds is 13.7 levels and 39183 actions, below the 19-level baseline. Wins stay 0/25. The drops against the baseline are bp35 and ka59 on seed 0, ka59 on seed 1, sc25 on seeds 0 and 1 (3→0), and tu93 on every seed (4→1, 4→1, 4→3). Every one of those missed baseline clears except sc25 on seed 1 had goal discovery on, then the stall breaker fired, and the level still did not clear. sc25 on seed 1 missed with discovery off (row 15) and a stall fallback, so the drop is not discovery alone. On discovery levels the baseline already clears, plays that did not fall back cleared 33/33. Goal discovery was 13/13 on and 20/20 off. The other nine factors are tied the same way. There is no extra clear of a level the baseline never reached, so there is no candidate and no holdout replay. No flag turns on. No module is removed.
 
 Goal-hypothesis accuracy against the later outcome label is 3/3. Those three level-episodes are the only ones that closed with both a frozen probe hypothesis and a separate later-outcome label: cd82 level 0, ls20 level 0, and sp80 level 0, all on seed 2. cd82 is a holdout prefix, so that label was not written into the episode store. Seeds 0 and 1 closed zero such levels. Probes across the screen: 72, 38, 54. Corpus relabel, from described changes rather than goal-type words, added 1 REACH label. 87 records already carried an explicit REACH, PLACE, or MATCH label. 381 records stay unlabeled. Callosum overrides on this screen were 260 of 29,405 seen actions, with 13,066 proposals blocked. Stall fallbacks fired 72 times. PLL demotions were 235.
+
+### Entry 8 — watch-only goal discovery
+
+Code is `c80088b`. `MONAD2_GOAL_WATCH=1` and `MONAD2_LOG_ACTIONS=1`. No probe actions, no goal-prior bonus, and `m2_goal_hypothesis` is left unset, so the callosum cannot read the watch hypothesis. A start hypothesis freezes from the natural transitions plus effects already observed for other legal actions. The outcome label is the start frame against the last in-level frame, taken at level change, stall, or game end. Confirmed labels are stored by affordance features in `monad2/fmf_corpus/watch_labels.jsonl`. Holdout prefixes do not write that store.
+
+The flags-off control (`MONAD2_LOG_ACTIONS=1`, watch off, seed 0) matched the entry-1 baseline on every game: 19 levels, 42729 actions. Watch seeds 0, 1, and 2 each also finished at 19 levels and 42729 actions, and each game's action sequence matched that control. Elapsed times were 807.19s (control), 827.77s, 814.63s, and 829.09s.
+
+| | Episodes | Confirmed label | Both hyp and label | Hits | Accuracy |
+| --- | --- | --- | --- | --- | --- |
+| 3 seeds | 132 | 87 (0.659) | 75 | 54 | 0.720 |
+
+Hypothesis rows against outcome columns, including segments whose frames changed without a REACH/PLACE/MATCH vote (`OTHER`) and segments with no frozen hypothesis (`NONE`):
+
+| Hypothesis | REACH | PLACE | MATCH | OTHER | NONE |
+| --- | --- | --- | --- | --- | --- |
+| REACH | 9 | 18 | 3 | 15 | 0 |
+| PLACE | 0 | 45 | 0 | 27 | 0 |
+| MATCH | 0 | 0 | 0 | 0 | 0 |
+| OTHER | 0 | 0 | 0 | 0 | 0 |
+| NONE | 3 | 6 | 3 | 3 | 0 |
+
+The pre-registered chance bar is 0.217 and the corpus majority (MATCH) is 0.240. Accuracy 0.720 is above both. On the 75 scored episodes the outcome majority is PLACE, 63/75 = 0.840. Always guessing PLACE beats the hypothesis. The hypothesis never said MATCH. Of the 381 corpus records that still have no REACH/PLACE/MATCH label, 17 share affordance features with a stored watch label (14 PLACE, 3 MATCH). The stored keys collapse to three bundles, and 60 of the 66 episodes on the largest bundle are PLACE. The text relabel of the corpus is still the 1 REACH record from entry 7. Nothing turns on. The hypothesis is not accurate enough to steer.
+
+### Entry 9 — stall restore
+
+Code is `af41cb0`. Seed 0 of the 10-factor screen, with the stall path restoring the level-start residue (goal votes, gauge, HUD mask, responsive signatures), rebuilding the level world model, and sending one RESET. Result: 0/25 wins, 17 levels, 58524 actions, 0.290 levels per 1k, 1266.22s. The control is 19 levels and 42729 actions. Twenty-seven restores fired.
+
+| Game | This run | Baseline |
+| --- | --- | --- |
+| bp35 | 1 level, 2852 actions | 1 level, 1795 actions |
+| ka59 | 0 levels, 2425 actions, GAME_OVER | 1 level, 2202 actions |
+| sc25 | 3 levels, 5862 actions | 3 levels, 4865 actions |
+| tu93 | 3 levels, 3317 actions | 4 levels, 1754 actions |
+
+bp35 and sc25 keep the baseline level count. ka59 and tu93 each finish one level short, and the restored games spend the stalled prefix plus the replay, so actions are higher. No holdout replay: the suite is below 19 levels. No flag turns on. No module is removed.
