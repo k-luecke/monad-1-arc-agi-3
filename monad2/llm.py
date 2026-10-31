@@ -103,7 +103,8 @@ class LocalLlama:
         self.role = role
         self.path = path
         self.grammar = LlamaGrammar.from_string(_GRAMMAR[role])
-        n_ctx = 1024 if role == "executive" else 768
+        # A' and B' share the executive window. A 768 window overflowed once the role and predicate lines were kept.
+        n_ctx = 1024
         threads = _threads()
         self.llm = Llama(
             model_path=str(path),

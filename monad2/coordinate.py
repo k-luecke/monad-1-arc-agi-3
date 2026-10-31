@@ -835,11 +835,21 @@ def decide(agent, key, reason: str = "", backend=None):
         e_obj["reason"] = _clip(f"{ladder_note}. {prev_reason}", 200)
     from monad2.primitives import contradicts_gradient, effect_of, known, suggest_action
 
-    prim = str(e_obj.get("primitive") or b_obj.get("primitive") or a_obj.get("primitive") or "").strip().lower()
-    if not known(prim):
-        prim = ""
+    named_primitive = str(e_obj.get("primitive") or b_obj.get("primitive") or a_obj.get("primitive") or "").strip().lower()
+    prim = named_primitive if known(named_primitive) else ""
     if decision == "explore":
         prim = "explore"
+    obs_now = _state(agent).get("schema_obs") or {}
+    from monad2.primitives import precondition
+
+    # A named primitive that the live roles do not support is inhibited in favor of one that does.
+    if named_primitive and (not prim or not precondition(prim, obs_now, _state(agent))):
+        listed = entries.get("primitive_list") or []
+        alt = next((item.get("id") for item in listed if item.get("id") and item.get("id") != "explore"), "explore")
+        if alt != prim:
+            prim = alt
+            if decision == "accept":
+                decision = "inhibit"
     if prim and prim != "explore" and contradicts_gradient(prim, chosen, _state(agent)):
         alt = suggest_action("hold_gradient", legal, _state(agent))
         if alt is not None and alt != chosen:
