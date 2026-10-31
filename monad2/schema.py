@@ -446,6 +446,52 @@ def _bindings(schema: dict, obs: dict) -> tuple[int, list[dict]]:
     return score, bindings
 
 
+def drop_contradictions(hit: dict | None, legal: list[int] | None, live_roles: set[str] | None):
+    """Drop a stored binding the live legal set or the live roles contradict.
+
+    A click-only frame has no avatar. A hazard or a movable that this frame
+    did not observe is not rebound from another episode.
+    """
+    if not hit:
+        return None, []
+    allowed = []
+    for aid in legal or []:
+        try:
+            number = int(aid)
+        except (TypeError, ValueError):
+            continue
+        if number not in allowed:
+            allowed.append(number)
+    dpad = any(number in (1, 2, 3, 4) for number in allowed)
+    click = 6 in allowed
+    interact = 5 in allowed
+    live = set(live_roles or [])
+    kept = []
+    dropped = []
+    for binding in hit.get("bindings") or []:
+        role = binding.get("role")
+        reject = False
+        if role == "avatar" and not dpad:
+            reject = True
+        elif role == "avatar" and live and "avatar" not in live:
+            reject = True
+        elif role == "movable" and "movable" not in live:
+            reject = True
+        elif role == "clickable" and not click:
+            reject = True
+        elif role == "switch" and not (click or interact) and "switch" not in live:
+            reject = True
+        elif role == "hazard" and "hazard" not in live:
+            reject = True
+        if reject:
+            dropped.append(str(role))
+        else:
+            kept.append(binding)
+    revised = dict(hit)
+    revised["bindings"] = kept
+    return (revised if kept else None), dropped
+
+
 def match(obs: dict, episode: str, rejected: set[str] | None = None) -> dict | None:
     rejected = rejected or set()
     best = None
@@ -534,12 +580,18 @@ def hypothesis_line(agent, scene: dict, diff: dict | None) -> str:
     rejected = set(state.get("schema_rejected") or [])
     override = state.get("schema_rebind") or {}
     hit = match(obs, episode, rejected)
-    if hit and override.get("id") == hit["id"]:
-        for binding in hit["bindings"]:
-            if binding["role"] == override.get("role") and override.get("geom"):
-                binding["kind"] = "rebind"
-                binding["observed"] = list(override["geom"])
-                binding["shape"] = _shape_name(override["geom"])
+    live_names = {slot.get("role") for slot in (live or {}).get("roles") or []} if live else set()
+    dpad = any(int(aid) in (1, 2, 3, 4) for aid in legal)
+    if hit and override.get("id") == hit["id"] and override.get("geom"):
+        role = override.get("role")
+        contradicted = role == "avatar" and (not dpad or (live_names and "avatar" not in live_names))
+        if not contradicted:
+            for binding in hit["bindings"]:
+                if binding["role"] == role:
+                    binding["kind"] = "rebind"
+                    binding["observed"] = list(override["geom"])
+                    binding["shape"] = _shape_name(override["geom"])
+    hit, dropped = drop_contradictions(hit, legal, live_names)
     if hit:
         state["schema_hyp"] = {
             "id": hit["id"],
@@ -552,6 +604,8 @@ def hypothesis_line(agent, scene: dict, diff: dict | None) -> str:
     else:
         state["schema_hyp"] = None
         line = "no stored schema from another episode yet; abstracting this play into roles"
+    if dropped:
+        line = f"{line} Rejected {', '.join(dropped)} because the legal actions contradict that binding."
     note = state.get("schema_note")
     if note:
         line = f"{line} {note}"
@@ -592,7 +646,16 @@ def account(agent, doc_hit: bool | None, diff: dict | None, before: list[dict]) 
             if binding.get("role") == "avatar":
                 bound = tuple(binding.get("geom") or binding.get("observed") or binding.get("schema") or ())
                 break
-        if moved and (not bound or moved[0] != tuple(bound)):
+        legal_now = []
+        for item in getattr(agent, "_m2_avail", None) or []:
+            try:
+                legal_now.append(int(item))
+            except (TypeError, ValueError):
+                continue
+        dpad_now = any(aid in (1, 2, 3, 4) for aid in legal_now)
+        if not dpad_now:
+            note = "avatar binding withheld; this frame has no directional actions"
+        elif moved and (not bound or moved[0] != tuple(bound)):
             state["schema_rebind"] = {"id": hyp["id"], "role": "avatar", "geom": list(moved[0])}
             note = f"binding refined: avatar rebound to geom {_fmt(moved[0])}"
         else:

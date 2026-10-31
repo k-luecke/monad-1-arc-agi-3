@@ -55,6 +55,8 @@ ACTIVE_MODULES = (
     "primitives.py",
     "roles.py",
     "predicates.py",
+    "menu.py",
+    "planmode.py",
 )
 
 HITS: list[str] = []

@@ -59,6 +59,7 @@ _E_SYSTEM = (
     "You are Mistral, the executive. Accept, combine, or inhibit one primitive from "
     "[primitives]. predicate is translate, no_reverse, contact, match, changed, or unchanged. "
     "Fill role, role_b, dir, and axis. expectation is a comment. "
+    "action is an index or a role reference from [menu]. "
     "A non-primitive move is explore. A MISMATCH revises the theory. "
     'JSON: {"decision":"inhibit","action":"SIMPLE 3","primitive":"hold_gradient",'
     '"binding":"avatar,goal","predicate":"no_reverse","role":"avatar","role_b":"goal",'
@@ -482,6 +483,11 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
     if 6 in legal:
         legal_bits.append("CLICK")
     entries["legal"] = ", ".join(legal_bits) or "none"
+    from monad2.menu import build_menu, menu_line
+
+    menu = build_menu(legal, state.get("affordances") or {})
+    entries["menu_items"] = menu
+    entries["menu"] = menu_line(menu)
     lines = [
         f"[scp] {_clip(entries['scp'], 220)}",
         f"[canvas_doc] {_clip(scene['shapes'], 280)}",
@@ -506,13 +512,17 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
         f"[schema] {_clip(entries['schema'], 360)}",
         f"[roles] {_clip(entries.get('roles') or 'none', 220)}",
         f"[legal] {entries.get('legal') or 'none'}",
+        f"[menu] {entries.get('menu') or 'none'}",
         f"[primitives] {_clip(entries['primitives'], 320)}",
     ]
     return "\n".join(lines), entries
 
 
-def _backend_complete(backend, role: str, system: str, user: str) -> tuple[str, float]:
-    return backend.complete(role, system, user)
+def _backend_complete(backend, role: str, system: str, user: str, **kwargs) -> tuple[str, float]:
+    try:
+        return backend.complete(role, system, user, **kwargs)
+    except TypeError:
+        return backend.complete(role, system, user)
 
 
 def _ladder_ok(agent, key, legal: list[int]) -> tuple[bool, str]:
@@ -615,7 +625,7 @@ def _for_model(text: str) -> str:
     Primitive and schema lines stay at the front so the 1400-character clip
     cannot drop the motion rules the models are asked to bind.
     """
-    first = ("[roles]", "[legal]", "[primitives]", "[pll]", "[schema]", "[avatar]", "[diff]", "[solver]")
+    first = ("[roles]", "[legal]", "[menu]", "[primitives]", "[pll]", "[schema]", "[avatar]", "[diff]", "[solver]")
     head = []
     rest = []
     for line in text.splitlines():
@@ -654,6 +664,163 @@ def _follow_plan(agent, legal: list[int]):
     return key
 
 
+def _touch_level(state: dict, level: int) -> None:
+    seen = state.get("llm_level")
+    if seen is None:
+        state["llm_level"] = level
+        state.setdefault("llm_calls_level", 0)
+        return
+    if seen == level:
+        return
+    state["llm_level"] = level
+    state["llm_calls_level"] = 0
+    state["script"] = []
+    state["plan"] = []
+    state["mode"] = "discover"
+    state["discover_steps"] = 0
+    state["stable_roles"] = ""
+    state["surprise_pending"] = None
+    state["stall_steps"] = 0
+
+
+def _call_model(agent, backend, role: str, system: str, user: str, **kwargs) -> tuple[str, float]:
+    text, ms = _backend_complete(backend, role, system, user, **kwargs)
+    _bump(agent, "llm_calls")
+    state = _state(agent)
+    state["llm_calls_level"] = int(state.get("llm_calls_level") or 0) + 1
+    return text, ms
+
+
+def _finish_fast(agent, mode: str, action, ref: str, step: dict, entries: dict, heuristic, reason: str, stream: str, executive_ms: float):
+    """Log a plan, execute, or replan step. Execute does not call a model."""
+    from monad2.planmode import plan_text, predicate_for
+
+    state = _state(agent)
+    obs = state.get("schema_obs") or {}
+    pred = predicate_for(step, action, obs)
+    from monad2.predicates import render
+
+    expectation = render(pred)
+    state["last_ref"] = ref
+    state["plan_predicate"] = pred
+    state["plan_primitive"] = step.get("primitive") or ""
+    if mode == "execute":
+        _bump(agent, "execute_steps")
+    _bump(agent, "coord_steps")
+    _bump(agent, "coord_plan_steps")
+    goal = (state.get("theory") or {}).get("goal")
+    state["pending"] = {
+        "action": action,
+        "expect_change": True,
+        "expectation": expectation,
+        "goal": goal,
+        "features": entries.get("features"),
+        "theory": (state.get("theory") or {}).get("text") or "",
+        "shapes": list((entries.get("scene") or {}).get("records") or []),
+        "primitive": step.get("primitive") or "",
+        "predicate": pred,
+        "comment": "",
+    }
+    script = plan_text(state.get("script") or [])
+    if mode == "execute":
+        why = "executing the level plan; models not called"
+    elif mode == "replan":
+        why = "replan after " + str(state.get("last_surprise") or "a surprise")
+    else:
+        why = "wrote a level plan"
+    _log(agent).append(
+        {
+            "level": int(getattr(agent, "current_level", 0) or 0),
+            "heuristic": _fmt(heuristic),
+            "heuristic_reason": _clip(reason or "", 80),
+            "solver": (entries.get("scene") or {}).get("solver"),
+            "scene": _clip((entries.get("scene") or {}).get("shapes") or "", 280),
+            "schema": entries.get("schema") or "",
+            "primitives": entries.get("primitives") or "",
+            "primitive": step.get("primitive") or "",
+            "stream": stream,
+            "decision": mode,
+            "mode": mode,
+            "action": _fmt(action),
+            "action_key": list(action) if action else None,
+            "reason": _clip(f"{why}. {script}", 200),
+            "expectation": expectation,
+            "expect_change": True,
+            "predicate": expectation,
+            "comment": "",
+            "roles": entries.get("roles") or "",
+            "plan": script,
+            "binding": step.get("binding") or "",
+            "llm_calls_level": int(state.get("llm_calls_level") or 0),
+            "latency_ms": {
+                "a": 0.0,
+                "b": 0.0,
+                "executive": round(float(executive_ms), 1),
+                "step": round(float(executive_ms), 1),
+            },
+        }
+    )
+    return action
+
+
+def _maybe_script(agent, legal, entries, heuristic, reason, stream, backend):
+    """Execute the current plan, or ask the executive to write one. None stays in discovery."""
+    from monad2.planmode import PLAN_SYSTEM, current_step, expand_action, parse_plan, plan_grammar, prompt, ready
+
+    state = _state(agent)
+    surprise = str(state.get("surprise_pending") or "")
+    if state.get("mode") == "execute" and not surprise:
+        step = current_step(state)
+        if step is not None:
+            action, ref = expand_action(step, legal, state, entries.get("menu_items") or [])
+            ok = action is not None and _ladder_ok(agent, action, legal)[0]
+            if ok:
+                return _finish_fast(agent, "execute", action, ref, step, entries, heuristic, reason, stream, 0.0)
+            surprise = "no progress"
+            state["surprise_pending"] = surprise
+    want = bool(surprise) or (ready(state) and not state.get("script"))
+    if not want:
+        return None
+    mode = "replan" if surprise else "plan"
+    if mode == "replan":
+        _bump(agent, "replan_calls")
+    state["last_surprise"] = surprise
+    if backend is None:
+        from monad2.llm import get_backend
+
+        backend = get_backend()
+    text, ms = _call_model(
+        agent,
+        backend,
+        "executive",
+        PLAN_SYSTEM,
+        prompt(entries, surprise if mode == "replan" else ""),
+        grammar=plan_grammar(),
+        max_tokens=160,
+        strict_grammar=True,
+    )
+    steps = parse_plan(text, state.get("schema_obs") or {}, state)
+    _bump(agent, "plan_writes")
+    state["surprise_pending"] = None
+    state["mismatch"] = None
+    if not steps:
+        state["mode"] = "discover"
+        state["script"] = []
+        return None
+    state["script"] = steps
+    state["script_i"] = 0
+    state["plan"] = []
+    state["plan_roles"] = state.get("role_line") or ""
+    state["stall_steps"] = 0
+    state["mode"] = "execute"
+    action, ref = expand_action(steps[0], legal, state, entries.get("menu_items") or [])
+    if action is None or not _ladder_ok(agent, action, legal)[0]:
+        state["mode"] = "discover"
+        state["script"] = []
+        return None
+    return _finish_fast(agent, mode, action, ref, steps[0], entries, heuristic, reason, stream, ms)
+
+
 def _remember_plan(state: dict, raw, chosen, legal: list[int]) -> None:
     plan = []
     if isinstance(raw, list):
@@ -669,6 +836,14 @@ def decide(agent, key, reason: str = "", backend=None):
     legal = _legal(agent)
     heuristic = _norm(key)
     stream, entries = _stream(agent, heuristic, reason, legal)
+    state = _state(agent)
+    _touch_level(state, int(getattr(agent, "current_level", 0) or 0))
+    if state.get("mode") == "execute":
+        planned = [part.strip() for part in str(state.get("plan_roles") or "").split(",") if part.strip()]
+        now = [part.strip() for part in str(state.get("role_line") or "").split(",") if part.strip()]
+        extra = [name for name in now if name not in planned]
+        if planned and extra and not state.get("surprise_pending"):
+            state["surprise_pending"] = "new role " + extra[0]
     if entries["fmf"] and not entries["fmf"].startswith("no overlapping"):
         _bump(agent, "fmf_in_stream")
     if "this is schema" in str(entries.get("schema") or ""):
@@ -711,6 +886,9 @@ def decide(agent, key, reason: str = "", backend=None):
             }
         )
         return followed
+    scripted = _maybe_script(agent, legal, entries, heuristic, reason, stream, backend)
+    if scripted is not None:
+        return scripted
     if backend is None:
         from monad2.llm import get_backend
 
@@ -738,7 +916,7 @@ def decide(agent, key, reason: str = "", backend=None):
             + "\nPropose one primitive from the [primitives] line and the role binding it uses."
             + " The action must be one of the legal actions."
         )
-        a_text, a_ms = _backend_complete(backend, "a", _A_SYSTEM, a_user)
+        a_text, a_ms = _call_model(agent, backend, "a", _A_SYSTEM, a_user)
         a_obj = _json_obj(a_text) or {}
         a_key = _parse_action(a_obj.get("action") or a_text, legal)
         a_key, a_fixed = repair_action(a_key, legal, str(a_obj.get("primitive") or ""), _state(agent))
@@ -753,7 +931,7 @@ def decide(agent, key, reason: str = "", backend=None):
             + f"reason={_clip(a_obj.get('reason') or a_text, 80)}"
             + (" repaired" if a_fixed else "")
         )
-        b_text, b_ms = _backend_complete(backend, "b", _B_SYSTEM, b_user)
+        b_text, b_ms = _call_model(agent, backend, "b", _B_SYSTEM, b_user)
         b_obj = _json_obj(b_text) or {}
         b_key = _parse_action(b_obj.get("action") or b_text, legal)
         b_key, b_fixed = repair_action(b_key, legal, str(b_obj.get("primitive") or "explore"), _state(agent))
@@ -772,7 +950,18 @@ def decide(agent, key, reason: str = "", backend=None):
             + f"reason={_clip(b_obj.get('reason') or '', 80)}"
             + (" repaired" if b_fixed else "")
         )
-        e_text, e_ms = _backend_complete(backend, "executive", _E_SYSTEM, e_user)
+        from monad2.menu import executive_grammar
+
+        menu = entries.get("menu_items") or []
+        e_text, e_ms = _call_model(
+            agent,
+            backend,
+            "executive",
+            _E_SYSTEM,
+            e_user,
+            grammar=executive_grammar(menu) if menu else None,
+            strict_grammar=bool(menu),
+        )
         e_obj = _json_obj(e_text) or {}
     except Exception as exc:
         _bump(agent, "coord_errors")
@@ -798,8 +987,17 @@ def decide(agent, key, reason: str = "", backend=None):
     reason_preview = str(e_obj.get("reason") or "")
     if "inhibit" in reason_preview.lower() and decision == "accept":
         decision = "inhibit"
-    chosen = _parse_action(e_obj.get("action") or e_text, legal)
+    from monad2.menu import resolve_choice
+
+    menu = entries.get("menu_items") or []
+    chosen = resolve_choice(e_obj.get("action"), menu, legal)
     if chosen is None:
+        chosen = resolve_choice(e_text, menu, legal)
+    if chosen is None and menu:
+        chosen = menu[0]["key"]
+        e_obj = dict(e_obj)
+        e_obj["reason"] = _clip((e_obj.get("reason") or "") + " resolved to menu 0", 180)
+    elif chosen is None:
         chosen = b_key or a_key or heuristic
         decision = "explore"
         e_obj = dict(e_obj)
@@ -923,6 +1121,8 @@ def decide(agent, key, reason: str = "", backend=None):
             "predicate": expectation if predicate else "",
             "comment": comment,
             "roles": entries.get("roles") or "",
+            "mode": "discover",
+            "llm_calls_level": int(state.get("llm_calls_level") or 0),
             "qwen_a_repaired": bool(a_fixed),
             "qwen_b_repaired": bool(b_fixed),
             "binding": _clip(str(e_obj.get("binding") or b_obj.get("binding") or a_obj.get("binding") or ""), 80),
@@ -947,6 +1147,9 @@ def decide(agent, key, reason: str = "", backend=None):
         }
     )
     _log(agent).append(row)
+    from monad2.planmode import note_discovery
+
+    note_discovery(state)
     return chosen
 
 
@@ -1003,13 +1206,17 @@ def observe(agent, changed: bool) -> None:
         try:
             from monad2.roles import note_effect
 
+            outcome = _outcome(agent, state)
             state["role_evidence"] = note_effect(
                 state.get("role_evidence") or {},
                 list(before),
                 after or list(before),
                 pending.get("action"),
-                _outcome(agent, state),
+                outcome,
             )
+            from monad2.planmode import note_result
+
+            note_result(state, pred_hit, pending.get("action"), outcome, list(before), after or list(before))
         except Exception:
             pass
         prim_name = str(pending.get("primitive") or "")
@@ -1131,6 +1338,7 @@ def format_sample(rows: list[dict], limit: int = 6) -> str:
                 [
                     f"Scene: {row.get('scene') or 'no canvas document'}.",
                     f"Solver proposal {row.get('solver') or row.get('heuristic')} ({row.get('heuristic_reason') or 'unspecified'}).",
+                    f"Mode: {row.get('mode') or 'discover'}.",
                     f"Roles: {row.get('roles') or 'none'}.",
                     f"Schema: {row.get('schema') or 'none'}.",
                     f"Proposed: {row.get('primitives') or 'none'}.",

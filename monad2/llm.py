@@ -118,7 +118,14 @@ class LocalLlama:
             use_mlock=False,
         )
 
-    def complete(self, system: str, user: str) -> tuple[str, float]:
+    def complete(
+        self,
+        system: str,
+        user: str,
+        grammar: str | None = None,
+        max_tokens: int | None = None,
+        strict_grammar: bool = False,
+    ) -> tuple[str, float]:
         """One prefill. The character budget keeps prompt + generation inside n_ctx."""
         t0 = time.perf_counter()
         room = 1100 - len(system)
@@ -126,27 +133,39 @@ class LocalLlama:
             room = 240
         if len(user) > room:
             user = user[:room]
-        text = self._complete(system, user)
-        if text is None:
-            text = self._complete(system, user[:240]) or ""
+        text = self._complete(system, user, grammar, max_tokens, strict_grammar)
+        if text is None and not strict_grammar:
+            text = self._complete(system, user[:240], grammar, max_tokens, strict_grammar) or ""
         ms = (time.perf_counter() - t0) * 1000.0
-        return text, ms
+        return text or "", ms
 
-    def _complete(self, system: str, user: str) -> str | None:
+    def _complete(
+        self,
+        system: str,
+        user: str,
+        grammar: str | None = None,
+        max_tokens: int | None = None,
+        strict_grammar: bool = False,
+    ) -> str | None:
+        from llama_cpp import LlamaGrammar
+
+        active = LlamaGrammar.from_string(grammar) if grammar else self.grammar
         kwargs = dict(
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
             temperature=0.0,
-            max_tokens=_token_cap(self.role),
+            max_tokens=max_tokens or _token_cap(self.role),
             seed=0,
-            grammar=self.grammar,
+            grammar=active,
         )
         try:
             out = self.llm.create_chat_completion(**kwargs)
         except Exception as exc:
             if "context" in str(exc).lower() or "token" in str(exc).lower():
+                return None
+            if strict_grammar:
                 return None
             kwargs.pop("grammar", None)
             try:
@@ -190,8 +209,8 @@ class LocalBackend:
             loaded[role] = f"{self.names[role]} @ {model.path}"
         return loaded
 
-    def complete(self, role: str, system: str, user: str) -> tuple[str, float]:
-        return self.ensure(role).complete(system, user)
+    def complete(self, role: str, system: str, user: str, **kwargs) -> tuple[str, float]:
+        return self.ensure(role).complete(system, user, **kwargs)
 
 
 _BACKEND: LocalBackend | None = None

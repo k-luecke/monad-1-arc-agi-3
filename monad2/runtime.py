@@ -71,6 +71,10 @@ COUNTERS = (
     "predicate_hits",
     "predicate_surprises",
     "qwen_repaired",
+    "llm_calls",
+    "plan_writes",
+    "execute_steps",
+    "replan_calls",
 )
 
 

@@ -19,11 +19,13 @@ def _quiet_flags() -> None:
 
     cap = os.environ.get("MONAD2_COORD_MAX_ACTIONS", "6")
     sample = os.environ.get("MONAD2_COORD_SAMPLE", "")
+    seconds = os.environ.get("MONAD2_COORD_MAX_SECONDS", "900")
     for name in list(os.environ):
         if name.startswith("MONAD2_") or name.startswith("MONAD1_"):
             os.environ.pop(name, None)
     os.environ["MONAD2_COORDINATE"] = "1"
     os.environ["MONAD2_COORD_MAX_ACTIONS"] = cap
+    os.environ["MONAD2_COORD_MAX_SECONDS"] = seconds
     if sample:
         os.environ["MONAD2_COORD_SAMPLE"] = sample
     os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
@@ -49,7 +51,7 @@ def main() -> int:
             "--game-order",
             ",".join(GAMES),
             "--max-game-seconds",
-            "900",
+            os.environ.get("MONAD2_COORD_MAX_SECONDS", "900"),
             "--environments-dir",
             "/workspace/environment_files",
             "--output",
@@ -116,6 +118,14 @@ def _summarize(payload: dict, loaded: dict) -> dict:
         "infl_schema",
         "schema_in_stream",
         "schema_revisions",
+        "predicate_checks",
+        "predicate_hits",
+        "predicate_surprises",
+        "qwen_repaired",
+        "llm_calls",
+        "plan_writes",
+        "execute_steps",
+        "replan_calls",
     )
     totals = {key: 0 for key in keys}
     latencies = []
