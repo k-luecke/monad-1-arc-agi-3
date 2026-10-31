@@ -627,7 +627,7 @@ def _for_model(text: str) -> str:
     Primitive and schema lines stay at the front so the 1400-character clip
     cannot drop the motion rules the models are asked to bind.
     """
-    first = ("[roles]", "[legal]", "[primitives]", "[schema]", "[avatar]", "[diff]", "[solver]")
+    first = ("[roles]", "[legal]", "[primitives]", "[pll]", "[schema]", "[avatar]", "[diff]", "[solver]")
     head = []
     rest = []
     for line in text.splitlines():
@@ -639,7 +639,8 @@ def _for_model(text: str) -> str:
             head.append(clipped)
         else:
             rest.append(clipped)
-    return "\n".join(head + rest)[:1400]
+    # 700 characters keeps prompt + generation inside the 1024 context. Role and predicate lines are already first.
+    return "\n".join(head + rest)[:700]
 
 
 def _follow_plan(agent, legal: list[int]):
@@ -955,7 +956,6 @@ def decide(agent, key, reason: str = "", backend=None):
                 "executive": round(e_ms, 1),
                 "step": round(a_ms + b_ms + e_ms, 1),
             },
-            "stream": e_user,
         }
     )
     _log(agent).append(row)

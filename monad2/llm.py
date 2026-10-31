@@ -120,6 +120,13 @@ class LocalLlama:
 
     def complete(self, system: str, user: str) -> tuple[str, float]:
         t0 = time.perf_counter()
+        text = self._complete(system, user)
+        if text is None:
+            text = self._complete(system, user[:500]) or ""
+        ms = (time.perf_counter() - t0) * 1000.0
+        return text, ms
+
+    def _complete(self, system: str, user: str) -> str | None:
         kwargs = dict(
             messages=[
                 {"role": "system", "content": system},
@@ -132,12 +139,15 @@ class LocalLlama:
         )
         try:
             out = self.llm.create_chat_completion(**kwargs)
-        except Exception:
+        except Exception as exc:
+            if "context" in str(exc).lower() or "token" in str(exc).lower():
+                return None
             kwargs.pop("grammar", None)
-            out = self.llm.create_chat_completion(**kwargs)
-        text = out["choices"][0]["message"]["content"] or ""
-        ms = (time.perf_counter() - t0) * 1000.0
-        return text, ms
+            try:
+                out = self.llm.create_chat_completion(**kwargs)
+            except Exception:
+                return None
+        return out["choices"][0]["message"]["content"] or ""
 
 
 class LocalBackend:
