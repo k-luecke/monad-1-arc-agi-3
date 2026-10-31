@@ -26,6 +26,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 12 | 2026-10-31 3:02 PM | 4cc3ef7 | role binding and predicate smoke, not a score run | 0 | 0/3 | 0 | 9 | — | yes |
 | 13 | 2026-10-31 3:36 PM | f910fbb | legal menu and plan-once smoke, not a score run | 0 | 0/3 | 0 | 30 | — | yes |
 | 14 | 2026-10-31 5:19 PM | 9707b51 | ABORTED coordination benchmark, 10/25 games, 0 levels | 0 | 0/10 | 0/183 | 98 | 0.0000 | no |
+| 15 | 2026-10-31 5:47 PM | 9707b51 | diagnosis, not a score: first break is perception | 0 | 0/2 | 0 | 16 live | — | no |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -201,3 +202,15 @@ LLM calls 204 (20.4 mean on the 10 level-0 rows, max 23). Modes discover 55, pla
 
 Per-level LLM counts for these 10 games are in `monad2/benchmark_entry14.json`.
 <!-- entry-14-end -->
+
+<!-- entry-15-begin -->
+### Entry 15 — diagnosis, not a score
+
+Written 2026-10-31 5:47 PM CT. Code diagnosed is `9707b51`. This entry is not a 25-game score and does not bear on entry 1 (19/183, 42,729 actions) or the optimal 6,444. No flag turns on. Fixes were not implemented.
+
+`MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`. The 300s cap was off for this diagnostic only. Games: `ls20` (d-pad) and `vc33` (click). Live coordination traces were capped at 8 actions each: `ls20` 338s, 0 levels, predicate 0/7, modes discover ×3 then plan then replan ×4, execute 0; `vc33` 322s, 0 levels, one execute step that confirmed contact between two labels of the same panel. Ground truth (solvers-on, not fed to the agent): `ls20` level 1 is left ×3, up ×4, right ×3, up ×3; `vc33` level 1 is three clicks at (62, 34).
+
+The first stage that breaks is perception. The goal role is a copy of the reference/HUD hollow rect. The controllable is the smallest matching mark, not the object the winning action moves. Later stages aim at those labels. Full verdicts, prompts, and overlays are in `monad2/DIAGNOSIS.md` and `monad2/diagnosis/`.
+
+A correct plan, hand-fed, does not win `ls20` through the executor: 200 actions, all up, level 0. It wins `vc33` only after the click anchor is replaced by hand with the pump; the live first anchor, pressed across 60 actions, does not.
+<!-- entry-15-end -->
