@@ -38,6 +38,51 @@ python run_competition_eval.py --self-test --blind-id
 
 ---
 
+## 2b. Blind Generalization Mode (`--no-game-solvers`): Game-Specific Solvers Disabled
+
+To measure fluid, game-agnostic performance, all 27 game-family solver methods
+(23 `_try_solve_*` plus `_try_plan_hybrid_switch_navigation`,
+`_step_gravity_shaft_mechanics`, `_step_peg_track_mechanics`, and
+`_try_monad1_scp_cegis_panel_solver`) can be disabled at runtime without editing
+the agent. The agent then runs on its generic tiers plus the **General Goal
+Engine** (goal hypothesis → subgoal → plan → verify/revise over REACH / PLACE /
+MATCH goal types, with per-type progress measures, decoy inhibition, learned
+walls/hazards, and object-relational goal memory in the Fuzzy Merkle Forest):
+
+```bash
+# Generalization eval (reports totals; win/level/action reference numbers are not asserted)
+python run_competition_eval.py --offline --blind-id --no-game-solvers --output scorecards/generalization.json
+
+# Ablation of the General Goal Engine itself (generic tiers only)
+MONAD1_DISABLE_GOAL_ENGINE=1 python run_competition_eval.py --offline --blind-id --no-game-solvers
+
+# Aggregate one or more runs into a per-game table with the goal-type identification metric
+python aggregate_generalization_results.py --engine-runs scorecards/generalization.json
+```
+
+Environment variables: `MONAD1_DISABLE_GAME_SOLVERS=1` (set automatically by
+`--no-game-solvers`) stubs the 27 game-specific methods;
+`MONAD1_DISABLE_GOAL_ENGINE=1` turns the General Goal Engine off;
+`MONAD1_FORCE_GOAL_ENGINE=1` enables the engine even with solvers on (note that
+this changes the solvers-on action trace, so the strict `6,444`-action
+verification applies only to the default configuration). Run-to-run variation
+of ±2 levels arises from Python hash randomization; fix `PYTHONHASHSEED` for
+reproducible runs.
+
+Round-2 metacognition flags default **off**, so the measured goal loop and the
+solvers-on trace are unchanged unless they are set:
+
+- `MONAD1_EFFECT_MODEL=1` learns an object-level forward model (stable per-color d-pad shifts, pushes, local toggles, appear/vanish counts) from the actions the policy already takes. While the goal loop is idle, between steps 8 and 24 of a level, and only after four steps with no new atom, it may also probe an untried d-pad (budget 7 per level). Clicks are probed only after a d-pad shift has been learned.
+- `MONAD1_CANVAS_REHEARSAL=1` rolls candidate plans through that model on the second-order canvas, commits the best positive-progress plan, and replans when a one-step prediction misses. If the model cannot score a plan, candidate 0 (the legacy order) is committed.
+- `MONAD1_WINS_TEACH=1` logs a general win record on every level clear and calls `inos_merkle_log_solved_pattern`. Records do not contain a game id.
+- `MONAD1_RELATION_MEMORY=/path/to/memory.json` loads relation-keyed records (no game ids). The key is a 64-bit biometric SimHash of translation-, color-, and rotation-invariant minutiae (object census, pairwise relations, control type, action-effect signature), retrieved with 8-band multi-probe LSH. It adds a capped goal-type prior and does not replay another game's action list. The Merkle node still stores the 16-bit census band in the existing 64-bit pack.
+
+`build_relation_memory.py` turns a solvers-on wins-teach scorecard into that JSON, dropping held-out fold 0 (`cd82`, `ft09`, `m0r0`, `tn36`, `tr87`) by the harness game id. `eval_relation_retrieval.py` scores whether those held-out games retrieve same-goal-type training memories more often than chance. `scorecards/relation_memory_train.json` is that export: `goal_type` is the agent's own inference, not a study label, and the file has no game id.
+
+On the Oct 30, 2026 solvers-on win records (America/Chicago), `eval_relation_retrieval.py --self-check` passes: synthetic translation, color permutation, and a quarter-turn land at Hamming 0. Of 31 held-out level records, 30 find a neighbor; 94/565 neighbor records (0.166) share the query's study goal type, below the chance rate of 0.217. The majority neighbor's goal type is correct for 2/31 queries. First-record Hamming between same-goal-type games averages 20.99 bits, and between different-goal-type games 20.40.
+
+---
+
 ## 3. Local Kaggle Competition Mode Rerun Gateway (`--local-gateway --blind-id`)
 
 In the official Kaggle evaluation container, the agent communicates over HTTP with a local `listen_and_serve(port=8001, competition_mode=True)` server with local environment files disabled (`environments_dir=""`) on the client. To reproduce this exact setup locally (including verifying the `HTTP 403` in-flight scorecard lock before `close_scorecard()` and asserting `25/25` wins, `183/183` levels, and `6,444` actions):

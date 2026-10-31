@@ -278,6 +278,8 @@ def play_single_game(
     raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
     env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
+    goal_report = None
+    win_records = None
     try:
         agent = MyAgent(
             card_id=card_id,
@@ -290,6 +292,17 @@ def play_single_game(
         )
         agent.max_game_seconds = 300.0
         agent.main()
+        try:
+            if getattr(agent, "ggl_enabled", False):
+                goal_report = agent._ggl_build_report()
+        except Exception:
+            goal_report = None
+        try:
+            records = getattr(agent, "win_records", None)
+            if records:
+                win_records = list(records)
+        except Exception:
+            win_records = None
         if blind_id:
             assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
             for frame in getattr(agent, "frames", []):
@@ -304,12 +317,20 @@ def play_single_game(
     lvls = int(agent.levels_completed)
     steps = int(agent.action_counter)
     blind_tag = f" (blind_proxy={agent_gid})" if blind_id else ""
+    goal_tag = ""
+    if goal_report is not None:
+        goal_tag = f" | goal={goal_report.get('confirmed_type') or '-'}"
+        pred = goal_report.get("prediction") or {}
+        if pred.get("scored"):
+            goal_tag += f" | pred={pred.get('hits')}/{pred.get('scored')}"
+        if goal_report.get("memory_retrievals"):
+            goal_tag += f" | mem={goal_report.get('memory_retrievals')}"
     print(
         f"  [{idx:02d}/{total:02d}] {gid:16s}{blind_tag} | state={state_name:9s} | "
-        f"levels={lvls:2d} | actions={steps:4d} | {dt:6.2f}s",
+        f"levels={lvls:2d} | actions={steps:4d} | {dt:6.2f}s{goal_tag}",
         flush=True,
     )
-    return {
+    result = {
         "game_id": gid,
         "agent_game_id": agent_gid,
         "state": state_name,
@@ -317,6 +338,11 @@ def play_single_game(
         "actions": steps,
         "elapsed_s": dt,
     }
+    if goal_report is not None:
+        result["goal_report"] = goal_report
+    if win_records:
+        result["win_records"] = win_records
+    return result
 
 
 def verify_claimed_totals(
@@ -324,10 +350,20 @@ def verify_claimed_totals(
     is_full_suite: bool,
     require_inflight_lock: bool = False,
     inflight_lock_verified: bool = False,
+    allow_losses: bool = False,
 ) -> None:
     wins = sum(1 for r in results if r["state"] == "WIN")
     lvls = sum(r["levels_completed"] for r in results)
     acts = sum(r["actions"] for r in results)
+
+    if allow_losses:
+        # Blind-generalization mode (game-specific solvers disabled): report totals
+        # without asserting the solvers-on reference numbers.
+        print(
+            f"[Monad(1) V7] Generalization-mode totals: wins={wins}/{len(results)} | "
+            f"levels={lvls} | actions={acts}"
+        )
+        return
 
     if require_inflight_lock:
         assert inflight_lock_verified, (
@@ -369,6 +405,15 @@ def main(argv: list[str] | None = None) -> int:
         help="Wrap environment in BlindEnvironmentProxy and scrub game_id on all frames",
     )
     parser.add_argument(
+        "--no-game-solvers",
+        action="store_true",
+        help=(
+            "Disable all 27 game-specific solver methods (blind generalization mode): "
+            "the agent runs on its generic tiers plus the General Goal Engine only. "
+            "Win/level/action totals are reported but not asserted."
+        ),
+    )
+    parser.add_argument(
         "--environments-dir",
         type=str,
         default="environment_files",
@@ -389,6 +434,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Output JSON path for the verification report",
     )
     args, _unknown = parser.parse_known_args(argv)
+
+    if args.no_game_solvers:
+        os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
 
     verify_agent_ast_no_env_introspection()
 
@@ -431,9 +479,34 @@ def main(argv: list[str] | None = None) -> int:
         wins = sum(1 for r in results if r["state"] == "WIN")
         lvls = sum(r["levels_completed"] for r in results)
         acts = sum(r["actions"] for r in results)
-        verify_claimed_totals(results, is_full_suite=is_full_suite)
+        verify_claimed_totals(
+            results,
+            is_full_suite=is_full_suite,
+            allow_losses=args.no_game_solvers,
+        )
+        out_path = Path(args.output)
+        try:
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(
+                json.dumps(
+                    {
+                        "mode": "offline",
+                        "blind_id_mode": args.blind_id,
+                        "game_specific_solvers_disabled": args.no_game_solvers,
+                        "elapsed_s": total_s,
+                        "per_game_results": results,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
         print("=" * 80)
-        print(f"[Monad(1) V7] Offline Verification PASSED ({'BLIND-ID PROXY' if args.blind_id else 'STANDARD'}):")
+        mode_tag = "BLIND-ID PROXY" if args.blind_id else "STANDARD"
+        if args.no_game_solvers:
+            mode_tag += ", GAME-SPECIFIC SOLVERS DISABLED"
+        print(f"[Monad(1) V7] Offline Verification {'COMPLETE' if args.no_game_solvers else 'PASSED'} ({mode_tag}):")
         print(f"  Environments Won: {wins} / {len(game_ids)} ({100.0 * wins / max(1, len(game_ids)):.1f}%)")
         print(f"  Levels Completed: {lvls}")
         print(f"  Total Actions:    {acts}")

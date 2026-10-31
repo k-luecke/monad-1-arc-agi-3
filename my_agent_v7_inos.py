@@ -2603,6 +2603,35 @@ class MonadAssociativeMerkleTree:                                               
             "board_hamming_dist": max(0, dist if idx >= 0 else 0),                          # Fuzzy Hamming distance
         }                                                                                   # Close exploratory endorsement dict
 
+    def inos_merkle_log_solved_pattern(                                                     # Log a solved (board-relational-signature, procedure) pattern with win-chain LTP
+        self,                                                                               # Instance reference for MonadAssociativeMerkleTree
+        board_sig16: int,                                                                   # 16-bit board signature (object-relational preferred over raw pixel SimHash)
+        procedure_name: str,                                                                # Procedure that was executing when the level completed (e.g. "GOAL:REACH")
+        level_idx: int = 0,                                                                 # Level index that was completed
+        payload: dict | None = None,                                                        # Optional metadata to store in the cold payload store
+    ) -> int:                                                                               # Returns the consolidated 16-bit weight written for the pattern
+        """Credit assignment on the agent's own wins (PRIM_11 autobiographical win chain):
+        consolidate the (board_sig16, procedure) node with strong LTP so later retrieval
+        ranks the winning procedure first in fuzzy-matching board contexts."""
+        p16 = self.compute_procedure_sig16(procedure_name)                                  # 16-bit procedural operator signature
+        c32 = (((int(board_sig16) & 0xFFFF) << 16) | p16) & 0xFFFFFFFF                      # Packed 32-bit causal signature
+        pid_win = self.parent_prim_to_id16.get("PRIM_11_AUTOBIOGRAPHICAL_CAUSAL_WIN_CHAIN", 11)  # Win-chain parent coordinate
+        idx, _dist, _pid, w = self._find_procedural_node_in_graph(int(board_sig16) & 0xFFFF, p16, max_board_hamming=0)  # Exact node lookup
+        w_new = min(0xF800, (int(w) if idx >= 0 else 0x0400) + 0x2000)                      # Strong dopaminergic LTP increment
+        u64_new = BitPackedMerkleNodeCodec.pack_u64(c32, pid_win, w_new)                    # Pack consolidated 64-bit node
+        if idx >= 0:                                                                        # Update existing node in place
+            self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(u64_new)                   # Write consolidated register
+        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Append new consolidated node
+            ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot
+            self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(u64_new)                 # Store node
+            self.dynamic_merkle_graph.active_count += 1                                     # Increment active count
+        self.dynamic_merkle_graph.cold_payload_store[c32] = dict(                           # Register solved-pattern metadata
+            {"procedure": procedure_name, "level_idx": int(level_idx), "solved": True},
+            **(payload or {}),
+        )
+        self.total_win_chain_backprops += 1                                                 # Count retrospective win-chain LTP backpropagation
+        return w_new                                                                        # Return consolidated weight
+
     def record_autobiographical_causal_episode(                                             # Encode lived (S_{t-1}, Procedure, Action, S_t, kappa) into Merkle Forest
         self,                                                                               # Instance reference for MonadAssociativeMerkleTree
         *,                                                                                  # Enforce keyword arguments
@@ -3322,6 +3351,9 @@ class SecondOrderCognitiveCanvas:                                               
         self.audit_reason: str = "uninitialized"
         self.audit_score: float = 0.0
         self.render_step: int = 0
+        self.rehearsal_scores: list[float] = []
+        self.rehearsal_best: int | None = None
+        self.rehearsal_note: str = ""
 
     def reset(self) -> None:
         h, w = self.height, self.width
@@ -3339,6 +3371,9 @@ class SecondOrderCognitiveCanvas:                                               
         self.audit_reason = "reset"
         self.audit_score = 0.0
         self.render_step = 0
+        self.rehearsal_scores = []
+        self.rehearsal_best = None
+        self.rehearsal_note = ""
 
     def _paint_box(
         self,
@@ -3724,7 +3759,19 @@ class SecondOrderCognitiveCanvas:                                               
             "audit_passed": self.audit_passed,
             "audit_reason": self.audit_reason,
             "audit_score": round(self.audit_score, 2),
+            "rehearsal_best": self.rehearsal_best,
+            "rehearsal_scores": list(self.rehearsal_scores),
+            "rehearsal_note": self.rehearsal_note,
         }
+
+    def note_forward_rehearsal(
+        self, scores: list[float], best_index: int | None, note: str
+    ) -> None:
+        """Record a forward-model rehearsal on the canvas. Does not change the
+        d-pad tie-break (`audited_first_raw_aid`); the caller commits the plan."""
+        self.rehearsal_scores = list(scores)
+        self.rehearsal_best = best_index
+        self.rehearsal_note = note
 
     def composite_grid(self) -> list[list[int]]:
         """Returns the 64x64 second-order visual canvas combining semantic experience roles
@@ -4398,6 +4445,34 @@ class MyAgent(Agent):
         self.cnn_experience_buffer: collections.deque[dict[str, Any]] = collections.deque(maxlen=30000)
         self.cnn_experience_hashes: set[tuple[int, int]] = set()
 
+        # Game-specific solver kill switch + General Goal Engine (GGL) wiring.
+        # MONAD1_DISABLE_GAME_SOLVERS=1 stubs all 27 game-family methods (blind
+        # generalization mode). The GGL runs in that mode by default and can be
+        # toggled independently via MONAD1_DISABLE_GOAL_ENGINE / MONAD1_FORCE_GOAL_ENGINE.
+        self.game_specific_solvers_disabled = (
+            os.getenv("MONAD1_DISABLE_GAME_SOLVERS", "0") == "1"
+        )
+        self.ggl_enabled = (
+            self.game_specific_solvers_disabled
+            and os.getenv("MONAD1_DISABLE_GOAL_ENGINE", "0") != "1"
+        ) or os.getenv("MONAD1_FORCE_GOAL_ENGINE", "0") == "1"
+        self._ggl_init_game_state()
+        # Round-2 metacognition. All default off so solvers-on and the measured
+        # goal loop are unchanged unless a flag is set.
+        #   MONAD1_EFFECT_MODEL=1      probe actions and learn an object-level forward model
+        #   MONAD1_CANVAS_REHEARSAL=1  roll candidate plans through that model before acting
+        #   MONAD1_WINS_TEACH=1        log general win records and call inos_merkle_log_solved_pattern
+        #   MONAD1_RELATION_MEMORY=path  load relation-keyed records (no game ids) and bias goal type
+        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1"
+        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1"
+        self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "0") == "1"
+        self.relation_memory_path = os.getenv("MONAD1_RELATION_MEMORY", "").strip()
+        self._fx_init_game_state()
+        if self.relation_memory_path:
+            self._wt_load_memory(self.relation_memory_path)
+        if self.game_specific_solvers_disabled:
+            self._disable_game_specific_solvers()
+
         self._reset_level_world_model()
 
     def _reset_cnn_for_level(self) -> None:
@@ -4606,6 +4681,10 @@ class MyAgent(Agent):
         else:
             self.second_order_canvas.reset()
         self.stm_shard = Monad1ShortTermMemoryShard(task_id=f"{self.game_id}_L{self.current_level}", level_idx=self.current_level)
+        if hasattr(self, "ggl_enabled"):
+            self._ggl_reset_level_state()
+        if hasattr(self, "fx_enabled"):
+            self._fx_reset_level_state()
         self._reset_cnn_for_level()
     def _rehash_world_model_after_hud_update(self) -> None:
         if not self.state_grids and self.prev_grid is None and self.level_start_grid is None:
@@ -4795,7 +4874,11 @@ class MyAgent(Agent):
         if (
             self.active_macro_family is not None
             and self.active_macro_family
-            not in ("online_learned_kinematic", "online_learned_switch_gate")
+            not in (
+                "online_learned_kinematic",
+                "online_learned_switch_gate",
+                "online_general_goal",
+            )
             and self.level_resets_in_level == 0
         ):
             return list(raw_plan), list(raw_plan)
@@ -4974,6 +5057,19 @@ class MyAgent(Agent):
                 self.active_macro_family,
                 True,
             )
+            if getattr(self, "ggl_enabled", False):
+                try:
+                    self._ggl_on_level_completed(lvl_done)
+                except Exception:
+                    pass
+            if getattr(self, "wins_teach", False):
+                try:
+                    # Prefer the last in-level board. The completion frame is often
+                    # already the next level, which is not the situation that was solved.
+                    end_grid = self.prev_grid or _grid_from_frame(latest_frame)
+                    self._wins_teach_on_level(end_grid)
+                except Exception:
+                    pass
             self.current_level = lvl_done
             self._reset_level_world_model()
             if self.replay_mode and self.replay_started:
@@ -16611,6 +16707,2176 @@ class MyAgent(Agent):
             if plan_start:
                 return (True, plan_start)
         return None
+
+    # ================================================================================
+    # Game-Specific Solver Kill Switch (MONAD1_DISABLE_GAME_SOLVERS=1)
+    #
+    # The 27 game-family methods below encode narrow, per-game detection and rules.
+    # For blind generalization evaluation they can be disabled at runtime without
+    # editing or deleting them: each is shadowed by an instance-level stub that
+    # returns "no plan" (None, or [] for the one list-annotated method), exactly
+    # mirroring the external ablation-study monkeypatch.
+    # ================================================================================
+    _GAME_SPECIFIC_SOLVERS_RETURN_NONE = (
+        "_try_solve_grammar_container_tree",
+        "_try_solve_stencil_linear_constraints",
+        "_try_solve_loop_tile_cycles",
+        "_try_solve_symbol_grammar_translation",
+        "_try_solve_fluid_spill_routing",
+        "_try_solve_midpoint_handle_orbs",
+        "_try_solve_hydraulic_columns",
+        "_try_solve_kinematic_arms",
+        "_try_solve_layered_stamp_peeling",
+        "_try_solve_cooperative_box_warehouse",
+        "_try_solve_binary_program_panel",
+        "_try_solve_mirrored_avatar_merge",
+        "_try_solve_node_graph_sentries",
+        "_try_solve_skewer_bead_threading",
+        "_try_solve_shape_target_alignment",
+        "_try_solve_connector_piece_assembly",
+        "_try_solve_mirror_reflection_targets",
+        "_try_solve_attraction_merge_ecology",
+        "_try_solve_shape_color_rot_labyrinth",
+        "_try_solve_rune_spell_labyrinth",
+        "_try_solve_time_clone_circuits",
+        "_try_solve_scaled_tile_navigation",
+        "_try_plan_hybrid_switch_navigation",
+        "_step_gravity_shaft_mechanics",
+        "_step_peg_track_mechanics",
+        "_try_monad1_scp_cegis_panel_solver",
+    )
+    _GAME_SPECIFIC_SOLVERS_RETURN_EMPTY = (
+        "_try_solve_kick_thruster_sliding_blocks",
+    )
+
+    def _game_solver_stub_none(self, *_a: Any, **_k: Any) -> None:
+        return None
+
+    def _game_solver_stub_empty(self, *_a: Any, **_k: Any) -> list:
+        return []
+
+    def _disable_game_specific_solvers(self) -> None:
+        for name in self._GAME_SPECIFIC_SOLVERS_RETURN_NONE:
+            setattr(self, name, self._game_solver_stub_none)
+        for name in self._GAME_SPECIFIC_SOLVERS_RETURN_EMPTY:
+            setattr(self, name, self._game_solver_stub_empty)
+
+    # ================================================================================
+    # General Goal Engine (GGL): goal hypothesis -> subgoal -> plan -> verify/revise
+    #
+    # A game-agnostic metacognition loop over three goal types, each with an explicit
+    # per-step progress measure learned online from pixels only (no game ids, no
+    # per-game colors or coordinates):
+    #   REACH  - move the learned controllable onto a candidate target object;
+    #            measure = planned-path / Manhattan distance avatar->target.
+    #   PLACE  - push an empirically-pushable object onto a same-size static target;
+    #            measure = box->target Manhattan distance.
+    #   MATCH  - two equal-size panels that differ; click differing work-panel cells;
+    #            measure = count of mismatching cells between the panels.
+    # A goal type is only *confirmed* when a level completes while that type's plan
+    # was executing and its measure had been falling (progress), per the design
+    # intent: confirm goal hypotheses on evidence, refute decoys (PRIM_06), learn
+    # walls (PRIM_03), route around hazard/sentry colors (PRIM_05), and defer to
+    # switch probing when gated (PRIM_04). Confirmations and refutations are written
+    # into the Fuzzy Merkle Forest under procedures "GOAL:<type>", keyed by an
+    # object-relational board signature instead of the raw pixel SimHash, and wins
+    # are logged through inos_merkle_log_solved_pattern (PRIM_11 win chain).
+    # ================================================================================
+    GGL_GOAL_TYPES = ("REACH", "PLACE", "MATCH")
+
+    def _ggl_init_game_state(self) -> None:
+        self.ggl_dir_votes: dict[int, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.ggl_mover_votes: collections.Counter = collections.Counter()
+        self.ggl_dynamic_colors: collections.Counter = collections.Counter()
+        self.ggl_pushable_votes: collections.Counter = collections.Counter()
+        self.ggl_hazard_colors: collections.Counter = collections.Counter()
+        self.ggl_type_stats: dict[str, collections.Counter] = {
+            t: collections.Counter() for t in self.GGL_GOAL_TYPES
+        }
+        self.ggl_confirmed_type: str | None = None
+        self.ggl_confirm_level: int | None = None
+        self.ggl_level_events: list[dict[str, Any]] = []
+        self.ggl_plans_issued = 0
+        self.ggl_steps_executed = 0
+        self.ggl_report: dict[str, Any] = {}
+
+    def _ggl_reset_level_state(self) -> None:
+        self.ggl_active: dict[str, Any] | None = None
+        self.ggl_refuted_targets: set = set()
+        self.ggl_match_bad: collections.Counter = collections.Counter()
+        self.ggl_match_refuted: bool = False
+        self.ggl_level_steps = 0
+        self.ggl_fail_streak = 0
+        self.ggl_backoff_until = 0
+        self.ggl_last_plan_step = -999
+        self.ggl_level_types_used: set = set()
+        self.ggl_level_progress_types: set = set()
+        self.ggl_level_type_plans: collections.Counter = collections.Counter()
+        self.ggl_level_decoys: collections.Counter = collections.Counter()
+        self.ggl_level_type_progress: collections.Counter = collections.Counter()
+        self.ggl_match_clicks = 0
+        self.ggl_match_progress = 0
+        self.ggl_panel_cache: tuple | None = None
+        self.ggl_panel_cache_step = -1
+
+    # ---------------- perception helpers ----------------
+
+    @staticmethod
+    def _ggl_bg_color(arr: Any) -> int:
+        vals, counts = np.unique(arr, return_counts=True)
+        return int(vals[int(np.argmax(counts))])
+
+    def _ggl_playfield_mask(self, arr: Any) -> Any:
+        mask = np.ones(arr.shape, dtype=bool)
+        gh, gw = arr.shape
+        for r in self.hud_rows:
+            if 0 <= r < gh:
+                mask[r, :] = False
+        for c in self.hud_cols:
+            if 0 <= c < gw:
+                mask[:, c] = False
+        for (r, c) in self.hud_coords:
+            if 0 <= r < gh and 0 <= c < gw:
+                mask[r, c] = False
+        return mask
+
+    @staticmethod
+    def _ggl_rigid_shift(arr0: Any, arr1: Any, color: int) -> tuple[int, int] | None:
+        """Translation (dx, dy) of color's pixel set between frames if it moved rigidly."""
+        a = np.argwhere(arr0 == color)
+        b = np.argwhere(arr1 == color)
+        if len(a) == 0 or len(a) != len(b) or len(a) > 400:
+            return None
+        d = b.mean(axis=0) - a.mean(axis=0)
+        dy, dx = int(round(float(d[0]))), int(round(float(d[1])))
+        if dy == 0 and dx == 0:
+            return (0, 0)
+        shifted = set(map(tuple, (a + (dy, dx)).tolist()))
+        actual = set(map(tuple, b.tolist()))
+        if len(shifted & actual) >= 0.7 * len(actual):
+            return (dx, dy)
+        return None
+
+    def _ggl_components(
+        self, arr: Any, bg: int, max_objs: int = 48
+    ) -> list[dict[str, Any]]:
+        """4-connected same-color components of non-background playfield pixels."""
+        gh, gw = arr.shape
+        play = self._ggl_playfield_mask(arr)
+        seen = np.zeros(arr.shape, dtype=bool)
+        out: list[dict[str, Any]] = []
+        ys, xs = np.nonzero((arr != bg) & play)
+        for y0, x0 in zip(ys.tolist(), xs.tolist()):
+            if seen[y0, x0]:
+                continue
+            c = int(arr[y0, x0])
+            stack = [(y0, x0)]
+            seen[y0, x0] = True
+            pts_y: list[int] = []
+            pts_x: list[int] = []
+            while stack:
+                y, x = stack.pop()
+                pts_y.append(y)
+                pts_x.append(x)
+                for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                    if (
+                        0 <= yy < gh
+                        and 0 <= xx < gw
+                        and not seen[yy, xx]
+                        and arr[yy, xx] == c
+                    ):
+                        seen[yy, xx] = True
+                        stack.append((yy, xx))
+            y1, y2 = min(pts_y), max(pts_y)
+            x1, x2 = min(pts_x), max(pts_x)
+            out.append(
+                {
+                    "color": c,
+                    "n": len(pts_y),
+                    "x": x1,
+                    "y": y1,
+                    "w": x2 - x1 + 1,
+                    "h": y2 - y1 + 1,
+                    "cx": (x1 + x2) / 2.0,
+                    "cy": (y1 + y2) / 2.0,
+                }
+            )
+            if len(out) >= max_objs:
+                break
+        return out
+
+    def _ggl_avatar_state(
+        self, arr: Any, h_curr: int
+    ) -> tuple[int, int, int, int, int] | None:
+        """Return (x, y, w, h, color) of the controllable, or None if unidentified."""
+        gh, gw = arr.shape
+        b = self.state_avatar_bbox.get(h_curr) or self.avatar_bbox
+        if b is not None:
+            ax, ay, aw, ah = b
+            if 0 <= ax and ax + aw <= gw and 0 <= ay and ay + ah <= gh:
+                sub = arr[ay : ay + ah, ax : ax + aw]
+                vals, counts = np.unique(sub, return_counts=True)
+                return (ax, ay, aw, ah, int(vals[int(np.argmax(counts))]))
+        for c, votes in self.ggl_mover_votes.most_common(3):
+            if votes < 3:
+                break
+            pts = np.argwhere(arr == c)
+            if 1 <= len(pts) <= 150:
+                y1, x1 = pts.min(axis=0)
+                y2, x2 = pts.max(axis=0)
+                if (y2 - y1) <= 10 and (x2 - x1) <= 10:
+                    return (int(x1), int(y1), int(x2 - x1 + 1), int(y2 - y1 + 1), int(c))
+        return None
+
+    def _ggl_moves(self, avail_ids: list[int]) -> dict[int, tuple[int, int]]:
+        """Empirically learned per-raw-action avatar displacement (dx, dy)."""
+        moves: dict[int, tuple[int, int]] = {}
+        for aid in (1, 2, 3, 4):
+            if aid not in avail_ids:
+                continue
+            votes = self.ggl_dir_votes.get(aid)
+            if not votes:
+                continue
+            (d, n) = votes.most_common(1)[0]
+            if n >= 2 and d != (0, 0) and abs(d[0]) <= 12 and abs(d[1]) <= 12:
+                moves[aid] = d
+        return moves
+
+    def _ggl_wall_color_set(self) -> set[int]:
+        return {
+            c
+            for c, n in self.empirical_wall_colors.items()
+            if n >= 2 and c not in self.empirical_floor_colors
+        }
+
+    # ---------------- online observation / verify-revise ----------------
+
+    def _ggl_observe(
+        self, grid: list[list[int]], doc: Any, h_curr: int, blackout: bool
+    ) -> None:
+        if blackout or self.prev_grid is None or self.prev_action is None:
+            return
+        arr0 = np.asarray(self.prev_grid, dtype=np.int16)
+        arr1 = np.asarray(grid, dtype=np.int16)
+        if arr0.shape != arr1.shape:
+            return
+        act = self.prev_action
+        changed = bool(h_curr != self.prev_hash)
+
+        if act[0] == "SIMPLE" and int(act[1]) in (1, 2, 3, 4) and changed:
+            aid = int(act[1])
+            b0 = self.state_avatar_bbox.get(self.prev_hash)
+            b1 = self.state_avatar_bbox.get(h_curr)
+            av_shift: tuple[int, int] | None = None
+            av_color: int | None = None
+            if (
+                b0 is not None
+                and b1 is not None
+                and b0[2:] == b1[2:]
+                and (b0[0] != b1[0] or b0[1] != b1[1])
+            ):
+                av_shift = (b1[0] - b0[0], b1[1] - b0[1])
+                cx, cy = b1[0] + b1[2] // 2, b1[1] + b1[3] // 2
+                if 0 <= cy < arr1.shape[0] and 0 <= cx < arr1.shape[1]:
+                    av_color = int(arr1[cy, cx])
+                if abs(av_shift[0]) <= 12 and abs(av_shift[1]) <= 12:
+                    self.ggl_dir_votes[aid][av_shift] += 1
+                    if av_color is not None:
+                        self.ggl_mover_votes[av_color] += 1
+            diffs = self.last_diff_coords or []
+            if diffs and len(diffs) <= 512:
+                diff_colors: set[int] = set()
+                for (r, c) in diffs[:512]:
+                    if 0 <= r < arr0.shape[0] and 0 <= c < arr0.shape[1]:
+                        diff_colors.add(int(arr0[r, c]))
+                        diff_colors.add(int(arr1[r, c]))
+                bg = self._ggl_bg_color(arr1)
+                diff_colors.discard(bg)
+                for c in list(diff_colors)[:8]:
+                    s = self._ggl_rigid_shift(arr0, arr1, c)
+                    if s is None or s == (0, 0):
+                        continue
+                    self.ggl_mover_votes[c] += 1
+                    if av_shift is None and av_color is None:
+                        best_c, best_n = self.ggl_mover_votes.most_common(1)[0]
+                        if best_c == c and best_n >= 3:
+                            self.ggl_dir_votes[aid][s] += 1
+                    elif av_shift is not None and c != av_color:
+                        if s == av_shift:
+                            # moved in lockstep with the avatar: pushable or coupled
+                            self.ggl_pushable_votes[c] += 1
+                        else:
+                            self.ggl_dynamic_colors[c] += 1
+        elif act[0] == "SIMPLE" and int(act[1]) in (1, 2, 3, 4) and not changed:
+            pass
+        elif changed and self.last_diff_coords and len(self.last_diff_coords) <= 256:
+            # Non-dpad action (or autonomous dynamics riding on a click): track movers
+            for c in {
+                int(arr0[r, cc])
+                for (r, cc) in self.last_diff_coords[:64]
+                if 0 <= r < arr0.shape[0] and 0 <= cc < arr0.shape[1]
+            }:
+                s = self._ggl_rigid_shift(arr0, arr1, c)
+                if s is not None and s != (0, 0):
+                    self.ggl_dynamic_colors[c] += 1
+
+        self._ggl_verify_active(arr1, h_curr)
+
+    def _ggl_verify_active(self, arr: Any, h_curr: int) -> None:
+        goal = self.ggl_active
+        if goal is None:
+            return
+        if goal.get("pending", 0) > 0:
+            if self.last_step_was_planned:
+                goal["pending"] -= 1
+                self.ggl_steps_executed += 1
+                self.ggl_level_steps += 1
+                self.ggl_last_plan_step = self.steps_in_level
+            elif not self.planned_queue:
+                goal["pending"] = 0  # queue was flushed by duress machinery
+            if goal.get("pending", 0) > 0:
+                return
+        m = self._ggl_measure(goal, arr, h_curr)
+        gtype = goal["type"]
+        if goal.get("await_levelup", 0) > 0:
+            goal["await_levelup"] -= 1
+            if goal["await_levelup"] <= 0:
+                # reached/zeroed the measure but the level did not complete: decoy
+                self.ggl_refuted_targets.add(goal.get("target_key"))
+                self.ggl_type_stats[gtype]["decoys"] += 1
+                self.ggl_level_decoys[gtype] += 1
+                self.decoy_goals_rejected += 1
+                self.ggl_active = None
+            return
+        if m is None:
+            # target vanished: usually consumed/absorbed -> treat as progress
+            self.ggl_type_stats[gtype]["progress"] += 1
+            self.ggl_level_progress_types.add(gtype)
+            self.ggl_level_type_progress[gtype] += 1
+            self.ggl_fail_streak = 0
+            self.ggl_active = None
+            return
+        last = goal.get("last_measure", goal["start_measure"])
+        goal["last_measure"] = m
+        if m <= goal.get("done_eps", 0):
+            goal["await_levelup"] = 2
+            self.ggl_type_stats[gtype]["zero_hits"] += 1
+            return
+        if m < last - goal.get("min_gain", 0.5):
+            self.ggl_type_stats[gtype]["progress"] += 1
+            self.ggl_level_progress_types.add(gtype)
+            self.ggl_level_type_progress[gtype] += 1
+            if gtype == "MATCH":
+                self.ggl_match_progress += 1
+            self.ggl_fail_streak = 0
+            goal["fails"] = 0
+            return
+        goal["fails"] = goal.get("fails", 0) + 1
+        if goal["fails"] >= 2:
+            if gtype == "MATCH":
+                cell = goal.get("last_cell")
+                if cell is not None:
+                    self.ggl_match_bad[cell] += 1
+            else:
+                self.ggl_refuted_targets.add(goal.get("target_key"))
+            self.ggl_type_stats[gtype]["refutes"] += 1
+            self.ggl_active = None
+            self.ggl_fail_streak += 1
+            if self.ggl_fail_streak >= 3:
+                self.ggl_backoff_until = self.steps_in_level + 60
+                self.ggl_fail_streak = 0
+
+    def _ggl_measure(self, goal: dict[str, Any], arr: Any, h_curr: int) -> float | None:
+        gtype = goal["type"]
+        if gtype == "REACH":
+            av = self._ggl_avatar_state(arr, h_curr)
+            if av is None:
+                return goal.get("last_measure", goal["start_measure"])
+            tc, (tx, ty, tw, th) = goal["target"]
+            pts = np.argwhere(arr == tc)
+            if len(pts) == 0:
+                return None
+            near = pts[
+                (np.abs(pts[:, 0] - (ty + th / 2.0)) <= th / 2.0 + 8)
+                & (np.abs(pts[:, 1] - (tx + tw / 2.0)) <= tw / 2.0 + 8)
+            ]
+            if len(near) == 0:
+                return None
+            cy, cx = near.mean(axis=0)
+            ax, ay, aw, ah, _ = av
+            return abs((ax + aw / 2.0) - float(cx)) + abs((ay + ah / 2.0) - float(cy))
+        if gtype == "PLACE":
+            bc = goal["box_color"]
+            (tx, ty, tw, th) = goal["target_bbox"]
+            pts = np.argwhere(arr == bc)
+            if len(pts) == 0:
+                return None
+            cy, cx = pts.mean(axis=0)
+            return abs(float(cx) - (tx + tw / 2.0)) + abs(float(cy) - (ty + th / 2.0))
+        if gtype == "MATCH":
+            pa, pb = goal["panels"]
+            ya, xa, ha, wa = pa
+            yb, xb, hb, wb = pb
+            gh, gw = arr.shape
+            if ya + ha > gh or xa + wa > gw or yb + hb > gh or xb + wb > gw:
+                return None
+            return float(
+                np.sum(arr[ya : ya + ha, xa : xa + wa] != arr[yb : yb + hb, xb : xb + wb])
+            )
+        return None
+
+    def _ggl_on_game_over(self) -> None:
+        if not getattr(self, "ggl_enabled", False):
+            return
+        try:
+            if (
+                self.prev_grid is not None
+                and self.last_stepped_logical_pos is not None
+            ):
+                px, py = self.last_stepped_logical_pos
+                arr0 = np.asarray(self.prev_grid, dtype=np.int16)
+                if 0 <= py < arr0.shape[0] and 0 <= px < arr0.shape[1]:
+                    c = int(arr0[py, px])
+                    if c not in self.empirical_floor_colors:
+                        self.ggl_hazard_colors[c] += 1
+            if self.ggl_active is not None:
+                self.ggl_active = None
+                self.ggl_fail_streak += 1
+        except Exception:
+            pass
+
+    def _ggl_on_level_completed(self, lvl_done: int) -> None:
+        if not getattr(self, "ggl_enabled", False):
+            return
+        credited: str | None = None
+        goal = self.ggl_active
+        recent = (self.steps_in_level - self.ggl_last_plan_step) <= 10
+        if goal is not None and recent:
+            credited = goal["type"]
+        event = {
+            "level": int(self.current_level),
+            "credited_type": credited,
+            "types_used": sorted(self.ggl_level_types_used),
+            "progress_types": sorted(self.ggl_level_progress_types),
+            "ggl_steps": int(self.ggl_level_steps),
+        }
+        self.ggl_level_events.append(event)
+        try:
+            tree = self.associative_merkle_tree
+            if credited is not None:
+                self.ggl_type_stats[credited]["level_credits"] += 1
+                if self.ggl_confirmed_type is None:
+                    self.ggl_confirmed_type = credited
+                    self.ggl_confirm_level = int(self.current_level)
+                sig16 = int(goal.get("sig16", 1)) if goal else 1
+                self._ggl_forest_reinforce(sig16, credited, True)
+                tree.inos_merkle_log_solved_pattern(
+                    sig16,
+                    "GOAL:" + credited,
+                    level_idx=int(self.current_level),
+                    payload={"game_level": int(self.current_level)},
+                )
+            for t in self.ggl_level_types_used:
+                if t != credited and t not in self.ggl_level_progress_types:
+                    sig = 1
+                    if goal is not None and goal.get("type") == t:
+                        sig = int(goal.get("sig16", 1))
+                    self._ggl_forest_reinforce(sig, t, False)
+        except Exception:
+            pass
+        self.ggl_report = self._ggl_build_report()
+
+    def _ggl_build_report(self) -> dict[str, Any]:
+        return {
+            "confirmed_type": self.ggl_confirmed_type,
+            "confirm_level": self.ggl_confirm_level,
+            "type_stats": {t: dict(c) for t, c in self.ggl_type_stats.items()},
+            "level_events": list(self.ggl_level_events),
+            "plans_issued": int(self.ggl_plans_issued),
+            "steps_executed": int(self.ggl_steps_executed),
+            "dir_model": {
+                aid: (votes.most_common(1)[0] if votes else None)
+                for aid, votes in self.ggl_dir_votes.items()
+            },
+            "prediction": {
+                "scored": int(getattr(self, "fx_pred_scored", 0)),
+                "hits": int(getattr(self, "fx_pred_hits", 0)),
+                "exact": int(getattr(self, "fx_pred_exact", 0)),
+                "mismatches": int(getattr(self, "fx_mismatches", 0)),
+                "replans": int(getattr(self, "fx_replans", 0)),
+                "probes": int(getattr(self, "fx_probes", 0)),
+                "first_miss": getattr(self, "fx_first_miss", None),
+            },
+            "effects_learned": {
+                "dpad_dirs": int(sum(1 for v in getattr(self, "fx_dpad", {}).values() if v)),
+                "push_colors": int(
+                    len({c for votes in getattr(self, "fx_push", {}).values() for c in votes})
+                ),
+                "toggles": int(
+                    sum(int(c["TOGGLE"]) for c in getattr(self, "fx_click", {}).values())
+                ),
+                "appear_colors": int(len(getattr(self, "fx_appear", {}))),
+                "vanish_colors": int(len(getattr(self, "fx_vanish", {}))),
+            },
+            "memory_retrievals": int(getattr(self, "wt_retrievals", 0)),
+            "memory_mean_band_agree": (
+                round(self.wt_agree_sum / self.wt_retrievals, 3)
+                if getattr(self, "wt_retrievals", 0)
+                else None
+            ),
+            "memory_mean_hamming": (
+                round(self.wt_dist_sum / self.wt_retrievals, 3)
+                if getattr(self, "wt_retrievals", 0)
+                else None
+            ),
+            "win_records": len(getattr(self, "win_records", [])),
+        }
+
+    # ---------------- action-effect model, rehearsal, wins, relation memory ----------------
+
+    def _fx_init_game_state(self) -> None:
+        self.fx_dpad: dict[int, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.fx_push: dict[int, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.fx_mover: collections.Counter = collections.Counter()
+        self.fx_click: dict[tuple, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        # Toggle pairs live beside the click counter. A Counter value that is
+        # itself a Counter breaks most_common() comparisons.
+        self.fx_toggle_pairs: dict[tuple, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
+        self.fx_appear: collections.Counter = collections.Counter()
+        self.fx_vanish: collections.Counter = collections.Counter()
+        # Per d-pad, per color, the rigid shifts actually observed.
+        self.fx_color_shift: dict[int, dict[int, collections.Counter]] = collections.defaultdict(
+            lambda: collections.defaultdict(collections.Counter)
+        )
+        self.fx_action5_seen = False
+        self.fx_first_miss: dict[str, Any] | None = None
+        self.fx_probes = 0
+        self.fx_pred_scored = 0
+        self.fx_pred_hits = 0
+        self.fx_pred_exact = 0
+        self.fx_mismatches = 0
+        self.fx_replans = 0
+        self.fx_pending: dict[str, Any] | None = None
+        self.win_records: list[dict[str, Any]] = []
+        self.wt_memory: list[dict[str, Any]] = []
+        self.wt_band_index: list[dict[int, list[int]]] = [dict() for _ in range(8)]
+        self.wt_retrievals = 0
+        self.wt_agree_sum = 0
+        self.wt_dist_sum = 0
+        self._fx_reset_level_state()
+
+    def _fx_reset_level_state(self) -> None:
+        self.fx_probed_level: set = set()
+        self.fx_probe_count_level = 0
+        self.fx_click_probes_level = 0
+        self.fx_pending = None
+
+    def _fx_summary(self, arr0: Any, arr1: Any) -> dict[str, Any]:
+        changed = int(np.sum(arr0 != arr1))
+        movers: list[tuple[int, int, int]] = []
+        cols: set[int] = set()
+        if changed and changed <= 2500:
+            cols = set(int(c) for c in arr0[arr0 != arr1].tolist())
+            cols.update(int(c) for c in arr1[arr0 != arr1].tolist())
+            bg = self._ggl_bg_color(arr1)
+            cols.discard(bg)
+            for c in list(cols)[:10]:
+                s = self._ggl_rigid_shift(arr0, arr1, c)
+                if s is not None and s != (0, 0):
+                    movers.append((int(c), int(s[0]), int(s[1])))
+        mover_colors = {c for c, _dx, _dy in movers}
+        appeared: list[int] = []
+        vanished: list[int] = []
+        if changed and changed <= 2500:
+            for c in list(cols)[:10]:
+                if c in mover_colors:
+                    continue
+                n0 = int(np.sum(arr0 == c))
+                n1 = int(np.sum(arr1 == c))
+                if n1 > n0:
+                    appeared.append(int(c))
+                elif n0 > n1:
+                    vanished.append(int(c))
+        return {
+            "changed": changed,
+            "inert": changed == 0,
+            "movers": tuple(sorted(movers)),
+            "appeared": tuple(sorted(appeared)),
+            "vanished": tuple(sorted(vanished)),
+        }
+
+    def _fx_apply_shifts(
+        self, arr: Any, shifts: list[tuple[int, tuple[int, int]]]
+    ) -> Any | None:
+        if not shifts:
+            return None
+        bg = np.int16(self._ggl_bg_color(arr))
+        out = arr.copy()
+        staged: list[tuple[Any, int, int, int]] = []
+        for color, (dx, dy) in shifts:
+            pts = np.argwhere(arr == color)
+            if len(pts) == 0 or len(pts) > 400:
+                return None
+            staged.append((pts, int(color), int(dx), int(dy)))
+            out[pts[:, 0], pts[:, 1]] = bg
+        gh, gw = arr.shape
+        for pts, color, dx, dy in staged:
+            ny = pts[:, 0] + dy
+            nx = pts[:, 1] + dx
+            if (
+                (ny < 0).any()
+                or (nx < 0).any()
+                or (ny >= gh).any()
+                or (nx >= gw).any()
+            ):
+                return None
+            out[ny, nx] = np.int16(color)
+        return out
+
+    def _fx_component_at(
+        self, arr: Any, x: int, y: int
+    ) -> tuple[int, int, int] | None:
+        gh, gw = arr.shape
+        if not (0 <= y < gh and 0 <= x < gw):
+            return None
+        color = int(arr[y, x])
+        bg = self._ggl_bg_color(arr)
+        if color == bg:
+            return None
+        for o in self._ggl_components(arr, bg, max_objs=40):
+            if o["color"] != color:
+                continue
+            if o["x"] <= x <= o["x"] + o["w"] - 1 and o["y"] <= y <= o["y"] + o["h"] - 1:
+                return (o["color"], o["w"], o["h"])
+        return (color, 1, 1)
+
+    def _fx_predict(self, arr: Any, action: ActionKey) -> Any | None:
+        """One-step object-level forward model. None means 'not enough evidence'."""
+        if action[0] == "SIMPLE" and int(action[1]) in (1, 2, 3, 4):
+            aid = int(action[1])
+            # Predict only colors whose shift for this action is stable.
+            # A color that sometimes rides along is recorded, not baked in.
+            chosen: list[tuple[int, tuple[int, int], int]] = []
+            for color, votes in self.fx_color_shift.get(aid, {}).items():
+                if not votes:
+                    continue
+                shift, n = votes.most_common(1)[0]
+                total = sum(votes.values())
+                if n < 2 or shift == (0, 0) or total <= 0 or n < 0.6 * total:
+                    continue
+                chosen.append((int(color), shift, int(n)))
+            if not chosen:
+                return None
+            chosen.sort(key=lambda item: -item[2])
+            primary_shift = chosen[0][1]
+            shifts = [
+                (color, shift)
+                for color, shift, _n in chosen
+                if shift == primary_shift
+            ][:4]
+            return self._fx_apply_shifts(arr, shifts)
+        if action[0] == "CLICK" and len(action) >= 3:
+            sig = self._fx_component_at(arr, int(action[1]), int(action[2]))
+            if sig is None:
+                return None
+            rec = self.fx_click.get(sig)
+            if not rec:
+                return None
+            if rec["INERT"] >= 1 and rec["CHANGE"] == 0 and rec["TOGGLE"] == 0:
+                return arr.copy()
+            if rec["TOGGLE"] >= 1:
+                pair = self.fx_toggle_pairs.get(sig)
+                if not pair:
+                    return None
+                (a, b), _n = pair.most_common(1)[0]
+                color = int(arr[int(action[2]), int(action[1])])
+                if color == a:
+                    other = b
+                elif color == b:
+                    other = a
+                else:
+                    return None
+                return self._fx_recolor_component(
+                    arr, int(action[1]), int(action[2]), int(other)
+                )
+        return None
+
+    def _fx_body_color(self) -> int | None:
+        """Color whose action-conditional shift is stable. Used as the body in REACH scores."""
+        best_c: int | None = None
+        best_n = 0
+        for per in self.fx_color_shift.values():
+            for color, votes in per.items():
+                if not votes:
+                    continue
+                _shift, n = votes.most_common(1)[0]
+                total = sum(votes.values())
+                if n >= 2 and total > 0 and n >= 0.6 * total and n > best_n:
+                    best_c, best_n = int(color), int(n)
+        return best_c
+
+    def _fx_recolor_component(self, arr: Any, x: int, y: int, new_color: int) -> Any | None:
+        """Recolor the connected component under a click. Local, not a full-board swap."""
+        gh, gw = arr.shape
+        if not (0 <= y < gh and 0 <= x < gw):
+            return None
+        src = int(arr[y, x])
+        if src == int(new_color):
+            return arr.copy()
+        bg = self._ggl_bg_color(arr)
+        if src == bg:
+            return None
+        out = arr.copy()
+        stack = [(y, x)]
+        seen = {(y, x)}
+        n = 0
+        while stack and n < 400:
+            cy, cx = stack.pop()
+            if int(out[cy, cx]) != src:
+                continue
+            out[cy, cx] = np.int16(new_color)
+            n += 1
+            for ny, nx in ((cy + 1, cx), (cy - 1, cx), (cy, cx + 1), (cy, cx - 1)):
+                if (
+                    0 <= ny < gh
+                    and 0 <= nx < gw
+                    and (ny, nx) not in seen
+                    and int(arr[ny, nx]) == src
+                ):
+                    seen.add((ny, nx))
+                    stack.append((ny, nx))
+        if n == 0:
+            return None
+        return out
+
+    def _fx_learn(self, arr0: Any, arr1: Any, action: ActionKey) -> None:
+        summary = self._fx_summary(arr0, arr1)
+        if action[0] == "SIMPLE" and int(action[1]) in (1, 2, 3, 4):
+            aid = int(action[1])
+            for color, dx, dy in summary["movers"]:
+                self.fx_mover[color] += 1
+                self.fx_color_shift[aid][color][(dx, dy)] += 1
+            if summary["movers"]:
+                # Stable body: the color whose shift for this action repeats,
+                # not whichever color has moved most often on the whole board.
+                avatar_color = None
+                avatar_n = 0
+                avatar_shift = (0, 0)
+                for color, dx, dy in summary["movers"]:
+                    votes = self.fx_color_shift[aid][color]
+                    shift, n = votes.most_common(1)[0]
+                    if shift != (dx, dy):
+                        continue
+                    if n > avatar_n or (n == avatar_n and self.fx_mover[color] > self.fx_mover.get(avatar_color, 0)):
+                        avatar_color, avatar_n, avatar_shift = color, n, shift
+                if avatar_color is not None:
+                    self.fx_dpad[aid][avatar_shift] += 1
+                    for color, dx, dy in summary["movers"]:
+                        if color != avatar_color and (dx, dy) == avatar_shift:
+                            self.fx_push[aid][color] += 1
+            for color in summary["appeared"]:
+                self.fx_appear[color] += 1
+            for color in summary["vanished"]:
+                self.fx_vanish[color] += 1
+        elif action[0] == "SIMPLE" and int(action[1]) == 5:
+            self.fx_action5_seen = True
+            for color in summary["appeared"]:
+                self.fx_appear[color] += 1
+            for color in summary["vanished"]:
+                self.fx_vanish[color] += 1
+        elif action[0] == "CLICK" and len(action) >= 3:
+            sig = self._fx_component_at(arr0, int(action[1]), int(action[2]))
+            if sig is None:
+                for color in summary["appeared"]:
+                    self.fx_appear[color] += 1
+                for color in summary["vanished"]:
+                    self.fx_vanish[color] += 1
+                return
+            if summary["inert"]:
+                self.fx_click[sig]["INERT"] += 1
+            else:
+                self.fx_click[sig]["CHANGE"] += 1
+                # Two colors exchanged the same number of pixels: a toggle.
+                diff = arr0 != arr1
+                if int(diff.sum()) <= 400:
+                    lost = collections.Counter(int(c) for c in arr0[diff].tolist())
+                    gained = collections.Counter(int(c) for c in arr1[diff].tolist())
+                    if (
+                        len(lost) == 1
+                        and len(gained) == 1
+                        and list(lost.values()) == list(gained.values())
+                    ):
+                        a, b = next(iter(lost)), next(iter(gained))
+                        clicked = int(arr0[int(action[2]), int(action[1])])
+                        ys, xs = np.nonzero(diff)
+                        local = (
+                            len(ys) > 0
+                            and int(ys.max() - ys.min()) <= 12
+                            and int(xs.max() - xs.min()) <= 12
+                        )
+                        if a != b and clicked in (a, b) and local:
+                            self.fx_click[sig]["TOGGLE"] += 1
+                            self.fx_toggle_pairs[sig][(min(a, b), max(a, b))] += 1
+            for color in summary["appeared"]:
+                self.fx_appear[color] += 1
+            for color in summary["vanished"]:
+                self.fx_vanish[color] += 1
+
+    def _fx_on_transition(self, grid: list[list[int]], h_curr: int, blackout: bool) -> None:
+        if blackout or self.prev_grid is None or self.prev_action is None:
+            self.fx_pending = None
+            return
+        arr0 = np.asarray(self.prev_grid, dtype=np.int16)
+        arr1 = np.asarray(grid, dtype=np.int16)
+        if arr0.shape != arr1.shape:
+            self.fx_pending = None
+            return
+        if self.fx_enabled:
+            self._fx_learn(arr0, arr1, self.prev_action)
+        pending = self.fx_pending
+        self.fx_pending = None
+        if pending and pending.get("summary") is not None:
+            actual = self._fx_summary(arr0, arr1)
+            pred = pending["summary"]
+            self.fx_pred_scored += 1
+            # A hit asserts nothing false: every predicted mover occurred.
+            # Extra actual movers (a second sprite color, an animation) stay
+            # in `exact`, which requires the sets to match.
+            pred_set = set(pred["movers"])
+            act_set = set(actual["movers"])
+            exact = pred["movers"] == actual["movers"] and pred["inert"] == actual["inert"]
+            hit = pred["inert"] == actual["inert"] and pred_set <= act_set
+            if exact:
+                self.fx_pred_exact += 1
+            if hit:
+                self.fx_pred_hits += 1
+            else:
+                self.fx_mismatches += 1
+                if self.fx_first_miss is None:
+                    self.fx_first_miss = {
+                        "pred_movers": [list(m) for m in pred["movers"][:6]],
+                        "act_movers": [list(m) for m in actual["movers"][:6]],
+                        "pred_changed": int(pred["changed"]),
+                        "act_changed": int(actual["changed"]),
+                    }
+                if (
+                    self.rehearse_enabled
+                    and self.ggl_active is not None
+                    and self.active_macro_family == "online_general_goal"
+                ):
+                    self.ggl_active = None
+                    self.planned_queue.clear()
+                    self.fx_replans += 1
+
+    def _fx_arm_prediction(self, grid: list[list[int]], action: ActionKey) -> None:
+        if not (self.fx_enabled or self.rehearse_enabled):
+            self.fx_pending = None
+            return
+        arr = np.asarray(grid, dtype=np.int16)
+        pred = self._fx_predict(arr, action)
+        if pred is None:
+            self.fx_pending = {"summary": None}
+            return
+        self.fx_pending = {"summary": self._fx_summary(arr, pred)}
+
+    def _fx_probe_action(
+        self, arr: Any, avail_ids: list[int], h_curr: int
+    ) -> ActionKey | None:
+        if self.fx_probe_count_level >= 7 or self.steps_in_level < 8 or self.steps_in_level >= 24:
+            return None
+        # While the explorer is still seeing new states, do not displace it.
+        # Probes are for actions the live policy has not revealed.
+        if self.steps_since_novel_atom < 4:
+            return None
+        for aid in (1, 2, 3, 4):
+            if aid not in avail_ids or self.fx_dpad.get(aid):
+                continue
+            key = ("D", aid)
+            if key in self.fx_probed_level:
+                continue
+            self.fx_probed_level.add(key)
+            self.fx_probe_count_level += 1
+            return ("SIMPLE", aid)
+        if (
+            5 in avail_ids
+            and ("A", 5) not in self.fx_probed_level
+            and not self.fx_action5_seen
+        ):
+            if not any(self.fx_color_shift.get(a) for a in (1, 2, 3, 4)):
+                return None
+            self.fx_probed_level.add(("A", 5))
+            self.fx_probe_count_level += 1
+            return ("SIMPLE", 5)
+        if 6 in avail_ids and self.fx_click_probes_level < 2:
+            if not any(self.fx_color_shift.get(a) for a in (1, 2, 3, 4)):
+                return None
+            bg = self._ggl_bg_color(arr)
+            comps = [
+                o
+                for o in self._ggl_components(arr, bg, max_objs=24)
+                if 2 <= o["n"] <= 80
+            ]
+            comps.sort(key=lambda o: o["n"])
+            for o in comps:
+                sig = (o["color"], o["w"], o["h"])
+                if sig in self.fx_click or sig in self.fx_probed_level:
+                    continue
+                self.fx_probed_level.add(sig)
+                self.fx_click_probes_level += 1
+                self.fx_probe_count_level += 1
+                return ("CLICK", int(round(o["cx"])), int(round(o["cy"])))
+        return None
+
+    def _fx_score_plan(
+        self, arr: Any, plan: list[ActionKey], goal: dict[str, Any] | None
+    ) -> float | None:
+        if goal is None:
+            return None
+        cur = arr
+        for act in plan[:6]:
+            nxt = self._fx_predict(cur, act)
+            if nxt is None:
+                return None
+            cur = nxt
+        return self._fx_progress_delta(arr, cur, goal)
+
+    def _fx_progress_delta(self, before: Any, after: Any, goal: dict[str, Any]) -> float | None:
+        gtype = goal.get("type")
+        if gtype == "REACH":
+            target = goal.get("target")
+            if not target:
+                return None
+            _c, (tx, ty, tw, th) = target
+            ac = self._fx_body_color()
+            if ac is None:
+                return None
+
+            def dist(a: Any) -> float | None:
+                pts = np.argwhere(a == ac)
+                if len(pts) == 0:
+                    return None
+                cy, cx = pts.mean(axis=0)
+                return abs(float(cx) - (tx + tw / 2.0)) + abs(float(cy) - (ty + th / 2.0))
+
+            d0, d1 = dist(before), dist(after)
+            if d0 is None or d1 is None:
+                return None
+            return float(d0 - d1)
+        if gtype == "PLACE":
+            bc = goal.get("box_color")
+            tb = goal.get("target_bbox")
+            if bc is None or tb is None:
+                return None
+            tx, ty, tw, th = tb
+
+            def dist(a: Any) -> float | None:
+                pts = np.argwhere(a == bc)
+                if len(pts) == 0:
+                    return None
+                cy, cx = pts.mean(axis=0)
+                return abs(float(cx) - (tx + tw / 2.0)) + abs(float(cy) - (ty + th / 2.0))
+
+            d0, d1 = dist(before), dist(after)
+            if d0 is None or d1 is None:
+                return None
+            return float(d0 - d1)
+        if gtype == "MATCH":
+            panels = goal.get("panels")
+            if not panels:
+                return None
+            pa, pb = panels
+
+            def mis(a: Any) -> float:
+                return float(
+                    np.sum(
+                        a[pa[0] : pa[0] + pa[2], pa[1] : pa[1] + pa[3]]
+                        != a[pb[0] : pb[0] + pb[2], pb[1] : pb[1] + pb[3]]
+                    )
+                )
+
+            try:
+                return mis(before) - mis(after)
+            except Exception:
+                return None
+        return None
+
+    def _fx_pick_rehearsed(
+        self, arr: Any, options: list[tuple[list[ActionKey], dict[str, Any] | None]]
+    ) -> tuple[int, list[ActionKey], dict[str, Any] | None]:
+        scores: list[float] = []
+        best_i = 0
+        best_s = -1e9
+        any_known = False
+        for i, (plan, goal) in enumerate(options):
+            sc = self._fx_score_plan(arr, plan, goal)
+            if sc is None:
+                scores.append(float("nan"))
+                continue
+            any_known = True
+            scores.append(float(sc))
+            if sc > best_s:
+                best_s = sc
+                best_i = i
+        if not any_known or best_s <= 0:
+            best_i = 0
+            note = "no_confident_gain" if not any_known else "nonpositive"
+        else:
+            note = "forward_gain"
+        try:
+            self.second_order_canvas.note_forward_rehearsal(scores, best_i, note)
+        except Exception:
+            pass
+        plan, goal = options[best_i]
+        return best_i, plan, goal
+
+    def _wt_abstract(self, actions: list[ActionKey]) -> str:
+        toks: list[str] = []
+        for act in actions[:80]:
+            if not act:
+                continue
+            if act[0] == "CLICK":
+                toks.append("C")
+            elif act[0] == "SIMPLE" and int(act[1]) in (1, 2, 3, 4):
+                toks.append("D")
+            elif act[0] == "SIMPLE":
+                toks.append("A" + str(int(act[1])))
+        out: list[str] = []
+        for t in toks:
+            if out and out[-1].split("*")[0] == t:
+                base, _, n = out[-1].partition("*")
+                out[-1] = base + "*" + str((int(n) if n else 1) + 1)
+            else:
+                out.append(t)
+        return ",".join(out[:24])
+
+    def _wt_infer_goal(self, start: list[list[int]] | None, end: list[list[int]] | None) -> str:
+        if not start or not end or len(start) != len(end):
+            return "UNKNOWN"
+        a0 = np.asarray(start, dtype=np.int16)
+        a1 = np.asarray(end, dtype=np.int16)
+        if a0.shape != a1.shape:
+            return "UNKNOWN"
+        try:
+            pair = self._ggl_find_panel_pair(a0)
+        except Exception:
+            pair = None
+        if pair is not None:
+            pa, pb, k0 = pair
+            try:
+                k1 = int(
+                    np.sum(
+                        a1[pa[0] : pa[0] + pa[2], pa[1] : pa[1] + pa[3]]
+                        != a1[pb[0] : pb[0] + pb[2], pb[1] : pb[1] + pb[3]]
+                    )
+                )
+            except Exception:
+                k1 = k0
+            if k1 < k0:
+                return "MATCH"
+        summary = self._fx_summary(a0, a1)
+        if len(summary["movers"]) >= 2:
+            return "PLACE"
+        if len(summary["movers"]) == 1:
+            return "REACH"
+        return "UNKNOWN"
+
+    def _wins_teach_on_level(self, end_grid: list[list[int]] | None) -> None:
+        if not self.wins_teach:
+            return
+        actions = [act for (_h, act, _n) in self.level_step_history]
+        if self.prev_action is not None and (not actions or actions[-1] != self.prev_action):
+            actions = actions + [self.prev_action]
+        abstract = self._wt_abstract(actions)
+        credited = None
+        if self.ggl_enabled and self.ggl_level_events:
+            credited = self.ggl_level_events[-1].get("credited_type")
+        inferred = self._wt_infer_goal(self.level_start_grid, end_grid)
+        gtype = credited or inferred
+        arr = None
+        if end_grid is not None:
+            arr = np.asarray(end_grid, dtype=np.int16)
+        elif self.level_start_grid is not None:
+            arr = np.asarray(self.level_start_grid, dtype=np.int16)
+        avail: list[int] = []
+        if any(a[0] == "SIMPLE" and int(a[1]) in (1, 2, 3, 4) for a in actions if a):
+            avail.extend([1, 2, 3, 4])
+        if any(a[0] == "CLICK" for a in actions if a):
+            avail.append(6)
+        sig16 = 1
+        sig64 = 0
+        bands = [0, 0, 0, 0]
+        has_panel = False
+        n_colors = 0
+        if arr is not None and arr.ndim == 2 and arr.shape[0] >= 8:
+            try:
+                sig64, bands = self._lsh_situation(
+                    arr,
+                    avail,
+                    actions=actions,
+                    start=self.level_start_grid,
+                    end=end_grid,
+                )
+                sig16 = int(bands[0]) or 1
+                has_panel = self._ggl_find_panel_pair(arr) is not None
+                n_colors = int(len(np.unique(arr)))
+            except Exception:
+                pass
+        record = {
+            "sig16": int(sig16),
+            "sig64": int(sig64),
+            "bands": [int(b) for b in bands],
+            "goal_type": gtype if gtype in self.GGL_GOAL_TYPES else "UNKNOWN",
+            "abstract": abstract,
+            "relations": {
+                "n_colors": n_colors,
+                "has_panel": bool(has_panel),
+                "n_actions": len(actions),
+                "credited": credited,
+                "inferred": inferred,
+            },
+            "level": int(self.current_level),
+        }
+        self.win_records.append(record)
+        if record["goal_type"] in self.GGL_GOAL_TYPES:
+            try:
+                self.associative_merkle_tree.inos_merkle_log_solved_pattern(
+                    int(sig16),
+                    "SOLVED:" + record["goal_type"],
+                    level_idx=int(self.current_level),
+                    payload={
+                        "abstract": abstract,
+                        "relations": record["relations"],
+                        "sig64": int(sig64),
+                        "bands": [int(b) for b in bands],
+                    },
+                )
+            except Exception:
+                pass
+
+    def _wt_load_memory(self, path: str) -> None:
+        try:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+        except Exception:
+            return
+        records = data.get("records", data if isinstance(data, list) else [])
+        seen: set[tuple[int, str]] = set()
+        self.wt_band_index = [dict() for _ in range(8)]
+        for rec in records:
+            gtype = str(rec.get("goal_type", ""))
+            if gtype not in self.GGL_GOAL_TYPES:
+                continue
+            sig64 = self._lsh_parse_sig64(rec)
+            if sig64 == 0:
+                continue
+            bands = rec.get("bands")
+            if not isinstance(bands, list) or len(bands) != 4:
+                bands = [(sig64 >> (16 * i)) & 0xFFFF for i in range(4)]
+            key = (sig64, gtype)
+            if key in seen:
+                continue
+            seen.add(key)
+            item = {
+                "sig64": int(sig64),
+                "bands": [int(b) & 0xFFFF for b in bands],
+                "sig16": int(bands[0]) & 0xFFFF or 1,
+                "goal_type": gtype,
+                "abstract": str(rec.get("abstract", ""))[:80],
+            }
+            idx = len(self.wt_memory)
+            self.wt_memory.append(item)
+            for s in range(8):
+                piece = (sig64 >> (8 * s)) & 0xFF
+                self.wt_band_index[s].setdefault(piece, []).append(idx)
+            try:
+                self.associative_merkle_tree.inos_merkle_log_solved_pattern(
+                    item["sig16"],
+                    "SOLVED:" + gtype,
+                    level_idx=-1,
+                    payload={"abstract": item["abstract"], "loaded": True, "sig64": int(sig64)},
+                )
+            except Exception:
+                pass
+
+    def _wt_memory_bonus(self, sig64: int, bands: list[int] | None = None) -> dict[str, float]:
+        """Banded multi-probe LSH over the 64-bit minutiae hash.
+
+        Eight 8-bit bands. A candidate is probed on an exact band hit or a
+        one-bit neighbor, then reranked by per-family Hamming. The effect
+        family is ignored when this situation has not learned one yet.
+        The prior is a capped goal-type vote. Action lists are not replayed.
+        """
+        bonus = {t: 0.0 for t in self.GGL_GOAL_TYPES}
+        if not self.wt_memory:
+            return bonus
+        sig64 = int(sig64) & 0xFFFFFFFFFFFFFFFF
+        if bands is None or len(bands) != 4:
+            bands = [(sig64 >> (16 * i)) & 0xFFFF for i in range(4)]
+        effect_unknown = int(bands[3]) == 0
+        cand_hits: collections.Counter = collections.Counter()
+        n_bands = 6 if effect_unknown else 8
+        for s in range(n_bands):
+            piece = (sig64 >> (8 * s)) & 0xFF
+            probes = [piece]
+            for bit in range(8):
+                probes.append(piece ^ (1 << bit))
+            seen_idx: set[int] = set()
+            for probe in probes:
+                for idx in self.wt_band_index[s].get(probe, ()):
+                    if idx in seen_idx:
+                        continue
+                    seen_idx.add(idx)
+                    cand_hits[idx] += 1
+        votes: collections.Counter = collections.Counter()
+        best_agree = 0
+        best_dist = 99
+        for idx, _hits in cand_hits.items():
+            if cand_hits[idx] < 2:
+                continue
+            rec = self.wt_memory[idx]
+            fam_dist = [
+                (int(bands[fam]) ^ int(rec["bands"][fam])).bit_count() for fam in range(4)
+            ]
+            # Control agreement alone is not a match: d-pad games share that band.
+            # At least one structural family (census or relations) must be close.
+            struct_agree = int(fam_dist[0] <= 4) + int(fam_dist[1] <= 4)
+            ctrl_ok = fam_dist[2] <= 4
+            if effect_unknown:
+                fx_ok = True
+                mask = (1 << 48) - 1
+                limit = 16
+            else:
+                fx_ok = fam_dist[3] <= 4
+                mask = (1 << 64) - 1
+                limit = 22
+            dist = ((sig64 ^ int(rec["sig64"])) & mask).bit_count()
+            agree = struct_agree + int(ctrl_ok) + (0 if effect_unknown else int(fx_ok))
+            if struct_agree < 1 or not ctrl_ok or not fx_ok or dist > limit:
+                continue
+            votes[rec["goal_type"]] += 1
+            if agree > best_agree or (agree == best_agree and dist < best_dist):
+                best_agree = agree
+                best_dist = dist
+        if not votes:
+            return bonus
+        self.wt_retrievals += 1
+        self.wt_agree_sum += int(best_agree)
+        self.wt_dist_sum += int(best_dist)
+        gtype, n = votes.most_common(1)[0]
+        # Cap the prior. Replaying another game's action list is not done:
+        # loaded action memory has transferred negatively before.
+        bonus[gtype] = min(3.0, float(n))
+        return bonus
+
+    @staticmethod
+    def _lsh_parse_sig64(rec: dict[str, Any]) -> int:
+        raw = rec.get("sig64", 0)
+        try:
+            sig = int(raw)
+        except (TypeError, ValueError):
+            sig = 0
+        if sig == 0 and rec.get("sig64_hex"):
+            try:
+                sig = int(str(rec["sig64_hex"]), 16)
+            except (TypeError, ValueError):
+                sig = 0
+        return sig & 0xFFFFFFFFFFFFFFFF
+
+    @staticmethod
+    def _lsh_token_planes(token: str) -> int:
+        """Non-cryptographic 64-bit mixer. Each minutia token votes a sign per bit."""
+        h = 0xCBF29CE484222325
+        for ch in token.encode("utf-8"):
+            h ^= ch
+            h = (h * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+        h ^= h >> 30
+        h = (h * 0xBF58476D1CE4E5B9) & 0xFFFFFFFFFFFFFFFF
+        h ^= h >> 27
+        h = (h * 0x94D049BB133111EB) & 0xFFFFFFFFFFFFFFFF
+        h ^= h >> 31
+        return h
+
+    @classmethod
+    def _lsh_simhash16(cls, tokens: list[tuple[str, int]]) -> int:
+        """16-bit SimHash. An empty token list is an uninformed band (0)."""
+        accum = [0] * 16
+        used = False
+        for tok, weight in tokens:
+            w = int(weight)
+            if w <= 0 or not tok:
+                continue
+            used = True
+            h = cls._lsh_token_planes(tok)
+            for bit in range(16):
+                accum[bit] += w if ((h >> bit) & 1) else -w
+        if not used:
+            return 0
+        out = 0
+        for bit in range(16):
+            if accum[bit] > 0:
+                out |= 1 << bit
+        return out
+
+    @staticmethod
+    def _lsh_shape_key(obj: dict[str, Any]) -> tuple[int, int, int]:
+        """Size, aspect, fill. Aspect uses min/max so a quarter-turn does not change it."""
+        area = int(obj["n"])
+        w = max(1, int(obj["w"]))
+        h = max(1, int(obj["h"]))
+        if area <= 4:
+            size = 0
+        elif area <= 16:
+            size = 1
+        elif area <= 64:
+            size = 2
+        else:
+            size = 3
+        aspect = min(w, h) / float(max(w, h))
+        asp = 0 if aspect >= 0.75 else (1 if aspect >= 0.4 else 2)
+        fill = area / float(w * h)
+        fil = 0 if fill >= 0.8 else (1 if fill >= 0.45 else 2)
+        return (size, asp, fil)
+
+    def _lsh_census_relation_tokens(
+        self, arr: Any
+    ) -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+        """Object census and pairwise relations. No absolute position, no raw color id."""
+        bg = self._ggl_bg_color(arr)
+        comps = [
+            o
+            for o in self._ggl_components(arr, bg, max_objs=64)
+            if int(o["n"]) >= 2
+        ]
+        comps.sort(key=lambda o: (-int(o["n"]), -int(o["w"]) * int(o["h"])))
+        objs = comps[:16]
+        census: list[tuple[str, int]] = [(f"nobj:{min(4, len(objs))}", 2)]
+        if not objs:
+            return census, []
+        shapes = [self._lsh_shape_key(o) for o in objs]
+        counts: collections.Counter = collections.Counter(shapes)
+        for (size, asp, fil), n in counts.items():
+            census.append((f"obj:{size}:{asp}:{fil}", min(4, int(n))))
+        census.append((f"nshape:{min(4, len(counts))}", 1))
+        # Role/frequency canonicalization: how many non-background colors, not which ids.
+        census.append((f"ncol:{min(6, len({int(o['color']) for o in objs}))}", 1))
+        top = shapes[0]
+        census.append((f"largest:{top[0]}:{top[1]}:{top[2]}", 3))
+        rel_names: list[str] = []
+        ccx = sum(float(o["cx"]) for o in objs) / len(objs)
+        ccy = sum(float(o["cy"]) for o in objs) / len(objs)
+
+        def inside(inner: dict[str, Any], outer: dict[str, Any]) -> bool:
+            return (
+                int(inner["n"]) < int(outer["n"])
+                and inner["x"] >= outer["x"] - 1
+                and inner["y"] >= outer["y"] - 1
+                and inner["x"] + inner["w"] <= outer["x"] + outer["w"] + 1
+                and inner["y"] + inner["h"] <= outer["y"] + outer["h"] + 1
+            )
+
+        for i in range(len(objs)):
+            for j in range(i + 1, len(objs)):
+                a, b = objs[i], objs[j]
+                gap_x = max(0, max(a["x"], b["x"]) - min(a["x"] + a["w"], b["x"] + b["w"]))
+                gap_y = max(0, max(a["y"], b["y"]) - min(a["y"] + a["h"], b["y"] + b["h"]))
+                if inside(a, b) or inside(b, a):
+                    rel_names.append("rel:contains")
+                elif gap_x <= 1 and gap_y <= 1:
+                    rel_names.append("rel:adj")
+                if abs(a["cx"] - b["cx"]) <= 1.5 or abs(a["cy"] - b["cy"]) <= 1.5:
+                    rel_names.append("rel:align")
+                sa, sb = shapes[i], shapes[j]
+                pair = tuple(sorted((sa, sb)))
+                rel_names.append(
+                    f"rel:pair:{pair[0][0]}{pair[0][1]}{pair[0][2]}:{pair[1][0]}{pair[1][1]}{pair[1][2]}"
+                )
+                dist = max(abs(float(a["cx"]) - float(b["cx"])), abs(float(a["cy"]) - float(b["cy"])))
+                db = 0 if dist <= 8 else (1 if dist <= 20 else (2 if dist <= 40 else 3))
+                rel_names.append(f"rel:dist:{db}:{1 if sa == sb else 0}")
+                if sa == sb:
+                    rel_names.append("rel:sameshape")
+                    mx = (float(a["cx"]) + float(b["cx"])) / 2.0
+                    my = (float(a["cy"]) + float(b["cy"])) / 2.0
+                    dx = abs(float(a["cx"]) - float(b["cx"]))
+                    dy = abs(float(a["cy"]) - float(b["cy"]))
+                    axis = dx <= 1.5 or dy <= 1.5 or abs(dx - dy) <= 1.5
+                    if axis and abs(mx - ccx) <= 2.0 and abs(my - ccy) <= 2.0 and (dx + dy) >= 4.0:
+                        rel_names.append("rel:sym")
+        relations: list[tuple[str, int]] = []
+        counted = collections.Counter(rel_names)
+        for name, n in counted.items():
+            if n <= 0:
+                continue
+            relations.append((f"{name}:{min(3, int(n))}", min(3, int(n))))
+        return census, relations
+
+    def _lsh_control_tokens(
+        self, avail_ids: list[int] | None, actions: list[ActionKey] | None
+    ) -> list[tuple[str, int]]:
+        has_d = False
+        has_p = False
+        for aid in avail_ids or []:
+            if aid in (1, 2, 3, 4):
+                has_d = True
+            elif aid == 6:
+                has_p = True
+        for act in actions or []:
+            if not act:
+                continue
+            if act[0] == "CLICK":
+                has_p = True
+            elif act[0] == "SIMPLE" and int(act[1]) in (1, 2, 3, 4):
+                has_d = True
+        if has_d and has_p:
+            return [("ctrl:hybrid", 2)]
+        if has_d:
+            return [("ctrl:dpad", 2)]
+        if has_p:
+            return [("ctrl:ptr", 2)]
+        return []
+
+    def _lsh_effect_tokens(
+        self,
+        start: list[list[int]] | None = None,
+        end: list[list[int]] | None = None,
+    ) -> list[tuple[str, int]]:
+        """Action-effect signature from the step-1 model, plus the observed transition."""
+        tokens: list[tuple[str, int]] = []
+        stable = 0
+        steps: collections.Counter = collections.Counter()
+        for _aid, per in getattr(self, "fx_color_shift", {}).items():
+            best_n = 0
+            best_shift: tuple[int, int] | None = None
+            best_total = 0
+            for _color, votes in per.items():
+                if not votes:
+                    continue
+                shift, n = votes.most_common(1)[0]
+                total = int(sum(votes.values()))
+                if n > best_n:
+                    best_n, best_shift, best_total = int(n), (int(shift[0]), int(shift[1])), total
+            if (
+                best_shift is not None
+                and best_n >= 2
+                and best_total > 0
+                and best_n >= 0.6 * best_total
+                and best_shift != (0, 0)
+            ):
+                stable += 1
+                mag = abs(best_shift[0]) + abs(best_shift[1])
+                bucket = 1 if mag <= 2 else (2 if mag <= 4 else (3 if mag <= 8 else 4))
+                steps[bucket] += 1
+        if stable:
+            tokens.append((f"fx:dirs:{min(4, stable)}", 2))
+            tokens.append((f"fx:step:{steps.most_common(1)[0][0]}", 2))
+        if any(int(n) >= 2 for votes in getattr(self, "fx_push", {}).values() for n in votes.values()):
+            tokens.append(("fx:push", 2))
+        if any(int(c["TOGGLE"]) >= 1 for c in getattr(self, "fx_click", {}).values()):
+            tokens.append(("fx:toggle", 2))
+        if getattr(self, "fx_appear", None):
+            tokens.append(("fx:appear", 1))
+        if getattr(self, "fx_vanish", None):
+            tokens.append(("fx:vanish", 1))
+        if start is not None and end is not None:
+            try:
+                a0 = np.asarray(start, dtype=np.int16)
+                a1 = np.asarray(end, dtype=np.int16)
+                if a0.shape == a1.shape and a0.size:
+                    summary = self._fx_summary(a0, a1)
+                    n_mov = len(summary["movers"])
+                    if n_mov >= 2:
+                        tokens.append(("fx:movers:2", 1))
+                    elif n_mov == 1:
+                        tokens.append(("fx:movers:1", 1))
+                    if summary["appeared"]:
+                        tokens.append(("fx:end-appear", 1))
+                    if summary["vanished"]:
+                        tokens.append(("fx:end-vanish", 1))
+            except Exception:
+                pass
+        return tokens
+
+    def _lsh_situation(
+        self,
+        arr: Any,
+        avail_ids: list[int] | None = None,
+        actions: list[ActionKey] | None = None,
+        start: list[list[int]] | None = None,
+        end: list[list[int]] | None = None,
+    ) -> tuple[int, list[int]]:
+        """64-bit biometric hash: 4 family bands of 16 SimHash bits.
+
+        [15:0] object census, [31:16] pairwise relations, [47:32] control type,
+        [63:48] action-effect signature. Near situations land at small Hamming
+        distance inside a band. Packing into the Merkle node uses the census
+        band as the 16-bit board half; retrieval uses all four bands.
+        """
+        census, relations = self._lsh_census_relation_tokens(arr)
+        control = self._lsh_control_tokens(avail_ids, actions)
+        effects = self._lsh_effect_tokens(start=start, end=end)
+        bands = [
+            self._lsh_simhash16(census),
+            self._lsh_simhash16(relations),
+            self._lsh_simhash16(control),
+            self._lsh_simhash16(effects),
+        ]
+        sig64 = 0
+        for i, band in enumerate(bands):
+            sig64 |= (int(band) & 0xFFFF) << (16 * i)
+        return sig64, bands
+
+    # ---------------- forest integration (object-relational keying) ----------------
+
+    def _ggl_relational_sig16(self, doc: Any, arr: Any, avail_ids: list[int]) -> int:
+        """Structured 16-bit object-relation signature (not a raw pixel hash):
+        [b15 dpad][b14 pointer][b13 avatar][b12 panel-pair]
+        [b11 pushable][b10:b8 shape-count bucket][b7:b4 color bucket][b3:b0 unique-small bucket]
+        Hamming distance over this signature reflects relational similarity."""
+        has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
+        has_ptr = 6 in avail_ids
+        sig = 0
+        if has_dpad:
+            sig |= 1 << 15
+        if has_ptr:
+            sig |= 1 << 14
+        try:
+            if self._ggl_avatar_state(arr, -1) is not None or self.avatar_bbox is not None:
+                sig |= 1 << 13
+        except Exception:
+            pass
+        try:
+            if self._ggl_find_panel_pair(arr) is not None:
+                sig |= 1 << 12
+        except Exception:
+            pass
+        if any(n >= 2 for n in self.ggl_pushable_votes.values()):
+            sig |= 1 << 11
+        n_sigs = 0
+        n_unique_small = 0
+        if doc is not None and getattr(doc, "shapes", None):
+            sig_counts = collections.Counter(s.sig for s in doc.shapes)
+            n_sigs = len(sig_counts)
+            n_unique_small = sum(
+                1
+                for s in doc.shapes
+                if sig_counts[s.sig] == 1 and 2 <= s.area <= 120
+            )
+        shape_bucket = min(7, int(n_sigs).bit_length())
+        sig |= (shape_bucket & 0x7) << 8
+        n_colors = int(len(np.unique(arr)))
+        sig |= (min(15, n_colors) & 0xF) << 4
+        sig |= min(15, n_unique_small) & 0xF
+        return sig if sig != 0 else 0x0001
+
+    def _ggl_forest_weight(self, sig16: int, gtype: str) -> int:
+        try:
+            tree = self.associative_merkle_tree
+            p16 = tree.compute_procedure_sig16("GOAL:" + gtype)
+            idx, _d, _pid, w = tree._find_procedural_node_in_graph(
+                sig16, p16, max_board_hamming=2
+            )
+            return int(w) if idx >= 0 else 0x0400
+        except Exception:
+            return 0x0400
+
+    def _ggl_forest_reinforce(self, sig16: int, gtype: str, success: bool) -> None:
+        try:
+            tree = self.associative_merkle_tree
+            p16 = tree.compute_procedure_sig16("GOAL:" + gtype)
+            c32 = ((int(sig16) & 0xFFFF) << 16) | p16
+            idx, _d, _pid, w = tree._find_procedural_node_in_graph(
+                sig16, p16, max_board_hamming=0
+            )
+            base = int(w) if idx >= 0 else 0x0400
+            if success:
+                w_new = min(0xF000, base + 0x1800)
+                pid16 = tree.parent_prim_to_id16.get(
+                    "PRIM_11_AUTOBIOGRAPHICAL_CAUSAL_WIN_CHAIN", 11
+                )
+            else:
+                w_new = max(0x0100, base - 0x0100)
+                pid16 = tree.parent_prim_to_id16.get(
+                    "PRIM_10_PROCEDURAL_OPERATOR_LTP_CONSOLIDATION", 10
+                )
+            u64_new = BitPackedMerkleNodeCodec.pack_u64(c32, pid16, w_new)
+            dg = tree.dynamic_merkle_graph
+            if idx >= 0:
+                dg.nodes_u64[idx] = np.uint64(u64_new)
+            elif dg.active_count < len(dg.nodes_u64):
+                dg.nodes_u64[dg.active_count] = np.uint64(u64_new)
+                dg.active_count += 1
+                dg.cold_payload_store[c32] = {
+                    "procedure": "GOAL:" + gtype,
+                    "relational_sig16": int(sig16),
+                    "success": bool(success),
+                }
+        except Exception:
+            pass
+
+    # ---------------- planners ----------------
+
+    def _ggl_blocked_mask(self, arr: Any, avatar_color: int, strict: bool) -> Any:
+        wall_colors = self._ggl_wall_color_set()
+        hazard_colors = {c for c, n in self.ggl_hazard_colors.items() if n >= 2}
+        blocked_colors = (wall_colors | hazard_colors) - {avatar_color}
+        if blocked_colors:
+            blocked = np.isin(arr, list(blocked_colors))
+        else:
+            blocked = np.zeros(arr.shape, dtype=bool)
+        if strict:
+            dyn = {
+                c
+                for c, n in self.ggl_dynamic_colors.items()
+                if n >= 3 and c != avatar_color
+            } - self.empirical_floor_colors
+            if dyn:
+                dmask = np.isin(arr, list(dyn))
+                # inflate dynamic (sentry) cells by one pixel in each direction
+                grow = dmask.copy()
+                grow[1:, :] |= dmask[:-1, :]
+                grow[:-1, :] |= dmask[1:, :]
+                grow[:, 1:] |= dmask[:, :-1]
+                grow[:, :-1] |= dmask[:, 1:]
+                blocked |= grow
+        return blocked
+
+    def _ggl_bfs_path(
+        self,
+        arr: Any,
+        start_xy: tuple[int, int],
+        size_wh: tuple[int, int],
+        moves: dict[int, tuple[int, int]],
+        goal_test: Any,
+        blocked: Any,
+        max_nodes: int = 4096,
+    ) -> list[int] | None:
+        gh, gw = arr.shape
+        w, h = size_wh
+        ii = np.zeros((gh + 1, gw + 1), dtype=np.int32)
+        ii[1:, 1:] = blocked.cumsum(axis=0).cumsum(axis=1)
+
+        def foot_blocked(x: int, y: int) -> bool:
+            return bool(
+                ii[y + h, x + w] - ii[y, x + w] - ii[y + h, x] + ii[y, x]
+            )
+
+        start = (int(start_xy[0]), int(start_xy[1]))
+        prev: dict[tuple[int, int], tuple[tuple[int, int], int] | None] = {start: None}
+        q: collections.deque = collections.deque([start])
+        while q and len(prev) < max_nodes:
+            p = q.popleft()
+            if p != start and goal_test(p):
+                path: list[int] = []
+                node = p
+                while prev[node] is not None:
+                    node, aid = prev[node]
+                    path.append(aid)
+                return path[::-1]
+            for aid, (dx, dy) in moves.items():
+                nx, ny = p[0] + dx, p[1] + dy
+                npos = (nx, ny)
+                if npos in prev:
+                    continue
+                if nx < 0 or ny < 0 or nx + w > gw or ny + h > gh:
+                    continue
+                if (p[0], p[1], aid) in self.blocked_avatar_edges:
+                    continue
+                if npos in self.verified_solid_walls or npos in self.cursed_squares:
+                    continue
+                if foot_blocked(nx, ny):
+                    continue
+                prev[npos] = (p, aid)
+                q.append(npos)
+        return None
+
+    def _ggl_reach_candidates(
+        self, arr: Any, doc: Any, avatar: tuple[int, int, int, int, int]
+    ) -> list[dict[str, Any]]:
+        ax, ay, aw, ah, ac = avatar
+        wall_colors = self._ggl_wall_color_set()
+        hazard_colors = {c for c, n in self.ggl_hazard_colors.items() if n >= 2}
+        bg = self._ggl_bg_color(arr)
+        comps = self._ggl_components(arr, bg)
+        total = collections.Counter(arr.ravel().tolist())
+        cands = []
+        for o in comps:
+            if o["color"] in wall_colors or o["color"] in hazard_colors:
+                continue
+            if o["color"] == ac or o["color"] == bg:
+                continue
+            if not (1 <= o["n"] <= 150):
+                continue
+            if o["x"] <= ax < o["x"] + o["w"] and o["y"] <= ay < o["y"] + o["h"]:
+                continue
+            key = ("REACH", o["color"], o["x"] // 4, o["y"] // 4, o["w"], o["h"])
+            if key in self.ggl_refuted_targets:
+                continue
+            o["key"] = key
+            o["rarity"] = total[o["color"]]
+            cands.append(o)
+        cands.sort(
+            key=lambda o: (
+                o["rarity"],
+                abs(o["cx"] - (ax + aw / 2.0)) + abs(o["cy"] - (ay + ah / 2.0)),
+            )
+        )
+        return cands
+
+    def _ggl_plan_reach(
+        self,
+        arr: Any,
+        doc: Any,
+        h_curr: int,
+        avail_ids: list[int],
+        continue_goal: dict[str, Any] | None = None,
+    ) -> list[ActionKey] | None:
+        avatar = self._ggl_avatar_state(arr, h_curr)
+        if avatar is None:
+            return None
+        moves = self._ggl_moves(avail_ids)
+        if len(moves) < 2:
+            return None
+        ax, ay, aw, ah, ac = avatar
+        blocked_strict = self._ggl_blocked_mask(arr, ac, strict=True)
+        blocked_loose = self._ggl_blocked_mask(arr, ac, strict=False)
+
+        def make_goal_test(t: dict[str, Any]) -> Any:
+            tx1, ty1 = t["x"] - 1, t["y"] - 1
+            tx2, ty2 = t["x"] + t["w"], t["y"] + t["h"]
+
+            def test(p: tuple[int, int]) -> bool:
+                return not (
+                    p[0] > tx2 or p[0] + aw - 1 < tx1 or p[1] > ty2 or p[1] + ah - 1 < ty1
+                )
+
+            return test
+
+        # With moving hazards/sentries on the board, execute closed-loop (short
+        # plan prefixes, re-plan every couple of steps around the sentry motion).
+        prefix = (
+            2
+            if any(
+                n >= 3 and c != ac for c, n in self.ggl_dynamic_colors.items()
+            )
+            else 6
+        )
+
+        if continue_goal is not None:
+            tc, (tx, ty, tw, th) = continue_goal["target"]
+            t = {"x": tx, "y": ty, "w": tw, "h": th, "color": tc}
+            for blocked in (blocked_strict, blocked_loose):
+                path = self._ggl_bfs_path(
+                    arr, (ax, ay), (aw, ah), moves, make_goal_test(t), blocked
+                )
+                if path:
+                    continue_goal["pending"] = len(path[:prefix])
+                    continue_goal["plan_len"] = len(path)
+                    continue_goal["last_measure"] = float(len(path))
+                    return [("SIMPLE", aid) for aid in path[:prefix]]
+            continue_goal["fails"] = continue_goal.get("fails", 0) + 2
+            return None
+
+        cands = self._ggl_reach_candidates(arr, doc, avatar)
+        if not cands:
+            return None
+        step = max(
+            1, min((abs(d[0]) + abs(d[1])) for d in moves.values())
+        )
+        for t in cands[:10]:
+            for blocked in (blocked_strict, blocked_loose):
+                path = self._ggl_bfs_path(
+                    arr, (ax, ay), (aw, ah), moves, make_goal_test(t), blocked
+                )
+                if path:
+                    sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
+                    self.ggl_active = {
+                        "type": "REACH",
+                        "target": (t["color"], (t["x"], t["y"], t["w"], t["h"])),
+                        "target_key": t["key"],
+                        "start_measure": float(len(path) * step),
+                        "last_measure": float(len(path) * step),
+                        "min_gain": float(step) * 0.9,
+                        "done_eps": float(step) * 1.5,
+                        "pending": len(path[:prefix]),
+                        "plan_len": len(path),
+                        "sig16": sig16,
+                        "fails": 0,
+                    }
+                    return [("SIMPLE", aid) for aid in path[:prefix]]
+        return None
+
+    def _ggl_find_panel_pair(
+        self, arr: Any
+    ) -> tuple[tuple[int, int, int, int], tuple[int, int, int, int], int] | None:
+        """Find two equal-size multi-color panels that differ in >=1 cell."""
+        if (
+            self.ggl_panel_cache_step == self.steps_in_level
+            and self.ggl_panel_cache is not None
+        ):
+            return self.ggl_panel_cache if self.ggl_panel_cache != () else None
+        self.ggl_panel_cache_step = self.steps_in_level
+        bg = self._ggl_bg_color(arr)
+        play = self._ggl_playfield_mask(arr)
+        mask = (arr != bg) & play
+        gh, gw = arr.shape
+        seen = np.zeros(arr.shape, dtype=bool)
+        boxes: list[tuple[int, int, int, int, int]] = []
+        ys, xs = np.nonzero(mask)
+        for y0, x0 in zip(ys.tolist(), xs.tolist()):
+            if seen[y0, x0]:
+                continue
+            stack = [(y0, x0)]
+            seen[y0, x0] = True
+            y1 = y2 = y0
+            x1 = x2 = x0
+            n = 0
+            while stack:
+                y, x = stack.pop()
+                n += 1
+                y1, y2 = min(y1, y), max(y2, y)
+                x1, x2 = min(x1, x), max(x2, x)
+                for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                    if 0 <= yy < gh and 0 <= xx < gw and mask[yy, xx] and not seen[yy, xx]:
+                        seen[yy, xx] = True
+                        stack.append((yy, xx))
+            if (y2 - y1) >= 3 and (x2 - x1) >= 3 and n >= 12:
+                boxes.append((y1, x1, y2 - y1 + 1, x2 - x1 + 1, n))
+            if len(boxes) >= 16:
+                break
+        best: tuple | None = None
+        for i in range(len(boxes)):
+            for j in range(i + 1, len(boxes)):
+                a, b = boxes[i], boxes[j]
+                if (a[2], a[3]) != (b[2], b[3]):
+                    continue
+                A = arr[a[0] : a[0] + a[2], a[1] : a[1] + a[3]]
+                B = arr[b[0] : b[0] + b[2], b[1] : b[1] + b[3]]
+                k = int(np.sum(A != B))
+                if k == 0 or k > 90:
+                    continue
+                area = a[2] * a[3]
+                if best is None or (area, -k) > (best[3], -best[2]):
+                    best = (
+                        (a[0], a[1], a[2], a[3]),
+                        (b[0], b[1], b[2], b[3]),
+                        k,
+                        area,
+                    )
+        result = (best[0], best[1], best[2]) if best is not None else None
+        self.ggl_panel_cache = result if result is not None else ()
+        return result
+
+    def _ggl_plan_match(self, arr: Any, h_curr: int, doc: Any, avail_ids: list[int]) -> list[ActionKey] | None:
+        if self.ggl_match_refuted:
+            return None
+        # Verify/revise at the type level: if the first clicks never reduce the
+        # panel mismatch, refute MATCH for this level instead of churning.
+        if self.ggl_match_clicks >= 10 and self.ggl_match_progress == 0:
+            self.ggl_match_refuted = True
+            return None
+        if self.ggl_match_clicks >= 60 + 4 * self.ggl_match_progress:
+            self.ggl_match_refuted = True
+            return None
+        pair = self._ggl_find_panel_pair(arr)
+        if pair is None:
+            return None
+        pa, pb, k = pair
+        diff = np.argwhere(
+            arr[pa[0] : pa[0] + pa[2], pa[1] : pa[1] + pa[3]]
+            != arr[pb[0] : pb[0] + pb[2], pb[1] : pb[1] + pb[3]]
+        )
+        if len(diff) == 0:
+            return None
+
+        def resp_in(p: tuple[int, int, int, int]) -> int:
+            return sum(
+                1
+                for (cx, cy) in self.level_responsive_coords
+                if p[1] <= cx < p[1] + p[3] and p[0] <= cy < p[0] + p[2]
+            )
+
+        work_first = resp_in(pa) >= resp_in(pb)
+        panels_in_order = (pa, pb) if work_first else (pb, pa)
+        for work in panels_in_order:
+            for (dy, dx) in diff.tolist():
+                cx, cy = work[1] + int(dx), work[0] + int(dy)
+                if self.ggl_match_bad[(cx, cy)] >= 2:
+                    continue
+                if self.level_inert_coords.get((cx, cy), 0) >= 2:
+                    continue
+                sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
+                self.ggl_active = {
+                    "type": "MATCH",
+                    "panels": (pa, pb),
+                    "target_key": ("MATCH", pa, pb),
+                    "last_cell": (cx, cy),
+                    "start_measure": float(k),
+                    "last_measure": float(k),
+                    "min_gain": 0.5,
+                    "done_eps": 0.0,
+                    "pending": 1,
+                    "plan_len": 1,
+                    "sig16": sig16,
+                    "fails": 0,
+                }
+                return [("CLICK", cx, cy)]
+        total_bad = sum(self.ggl_match_bad.values())
+        if total_bad >= max(12, 2 * k):
+            self.ggl_match_refuted = True
+        return None
+
+    def _ggl_plan_push(
+        self, arr: Any, doc: Any, h_curr: int, avail_ids: list[int]
+    ) -> list[ActionKey] | None:
+        pushable = {c for c, n in self.ggl_pushable_votes.items() if n >= 2}
+        if not pushable:
+            return None
+        avatar = self._ggl_avatar_state(arr, h_curr)
+        if avatar is None:
+            return None
+        moves = self._ggl_moves(avail_ids)
+        if len(moves) < 2:
+            return None
+        ax, ay, aw, ah, ac = avatar
+        bg = self._ggl_bg_color(arr)
+        comps = self._ggl_components(arr, bg)
+        wall_colors = self._ggl_wall_color_set()
+        boxes = [o for o in comps if o["color"] in pushable and o["n"] <= 120]
+        if not boxes:
+            return None
+        statics = [
+            o
+            for o in comps
+            if o["color"] not in pushable
+            and o["color"] != ac
+            and o["color"] not in wall_colors
+            and o["n"] <= 150
+        ]
+        blocked = self._ggl_blocked_mask(arr, ac, strict=False)
+        for b in boxes:
+            targs = [
+                t
+                for t in statics
+                if abs(t["w"] - b["w"]) <= 3
+                and abs(t["h"] - b["h"]) <= 3
+                and ("PLACE", b["color"], t["x"] // 4, t["y"] // 4)
+                not in self.ggl_refuted_targets
+            ]
+            if not targs:
+                continue
+            t = min(
+                targs,
+                key=lambda t: abs(t["cx"] - b["cx"]) + abs(t["cy"] - b["cy"]),
+            )
+            ddx = t["cx"] - b["cx"]
+            ddy = t["cy"] - b["cy"]
+            want: int | None = None
+            best_align = 0.0
+            for aid, (mdx, mdy) in moves.items():
+                align = mdx * ddx + mdy * ddy
+                if align > best_align:
+                    best_align = align
+                    want = aid
+            if want is None:
+                continue
+            mdx, mdy = moves[want]
+            if mdx > 0:
+                stand = (b["x"] - aw, b["y"])
+            elif mdx < 0:
+                stand = (b["x"] + b["w"], b["y"])
+            elif mdy > 0:
+                stand = (b["x"], b["y"] - ah)
+            else:
+                stand = (b["x"], b["y"] + b["h"])
+
+            def at_stand(p: tuple[int, int]) -> bool:
+                return abs(p[0] - stand[0]) + abs(p[1] - stand[1]) <= 1
+
+            if abs(ax - stand[0]) + abs(ay - stand[1]) <= 1:
+                path: list[int] | None = []
+            else:
+                path = self._ggl_bfs_path(
+                    arr, (ax, ay), (aw, ah), moves, at_stand, blocked
+                )
+            if path is None:
+                continue
+            n_push = max(1, min(4, int((abs(ddx) + abs(ddy)) / max(1, abs(mdx) + abs(mdy)))))
+            plan = path + [want] * n_push
+            sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
+            m0 = abs(ddx) + abs(ddy)
+            self.ggl_active = {
+                "type": "PLACE",
+                "box_color": b["color"],
+                "target_bbox": (t["x"], t["y"], t["w"], t["h"]),
+                "target_key": ("PLACE", b["color"], t["x"] // 4, t["y"] // 4),
+                "start_measure": float(m0),
+                "last_measure": float(m0),
+                "min_gain": 0.9,
+                "done_eps": float(max(b["w"], b["h"])),
+                "pending": len(plan[:8]),
+                "plan_len": len(plan),
+                "sig16": sig16,
+                "fails": 0,
+            }
+            return [("SIMPLE", aid) for aid in plan[:8]]
+        return None
+
+    # ---------------- top-level proposal ----------------
+
+    def _ggl_type_order(
+        self, arr: Any, doc: Any, avail_ids: list[int]
+    ) -> list[str]:
+        has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
+        has_ptr = 6 in avail_ids
+        prior = {
+            "REACH": 2.0 if has_dpad else 0.0,
+            "MATCH": (2.0 if (has_ptr and not has_dpad) else (1.0 if has_ptr else 0.0)),
+            "PLACE": 1.0
+            if (has_dpad and any(n >= 2 for n in self.ggl_pushable_votes.values()))
+            else 0.0,
+        }
+        if self.ggl_confirmed_type is not None and prior[self.ggl_confirmed_type] > 0:
+            prior[self.ggl_confirmed_type] += 4.0
+        sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
+        if getattr(self, "wt_memory", None):
+            try:
+                sig64, bands = self._lsh_situation(arr, avail_ids)
+                bonus = self._wt_memory_bonus(sig64, bands)
+            except Exception:
+                bonus = {}
+            for t in self.GGL_GOAL_TYPES:
+                prior[t] = prior.get(t, 0.0) + bonus.get(t, 0.0)
+        scored = sorted(
+            (t for t in self.GGL_GOAL_TYPES if prior[t] > 0),
+            key=lambda t: -(prior[t] + self._ggl_forest_weight(sig16, t) / float(0x0400)),
+        )
+        return scored
+
+    def _ggl_propose_plan(
+        self,
+        grid: list[list[int]],
+        doc: Any,
+        h_curr: int,
+        avail_ids: list[int],
+    ) -> list[ActionKey] | None:
+        if self.steps_in_level < 8 or self.steps_in_level < self.ggl_backoff_until:
+            return None
+        if self.ggl_level_steps >= max(40, int(0.5 * self.steps_in_level)):
+            return None
+        arr = np.asarray(grid, dtype=np.int16)
+        if arr.ndim != 2 or arr.shape[0] < 8 or arr.shape[1] < 8:
+            return None
+        goal = self.ggl_active
+        if goal is not None and goal.get("await_levelup", 0) > 0:
+            return None
+        if goal is not None and goal.get("pending", 0) <= 0 and goal.get("fails", 0) == 0:
+            # goal in progress and last verification showed progress: extend the plan
+            if goal["type"] == "REACH":
+                plan = self._ggl_plan_reach(
+                    arr, doc, h_curr, avail_ids, continue_goal=goal
+                )
+                if plan:
+                    self.ggl_plans_issued += 1
+                    self.ggl_level_types_used.add("REACH")
+                    self.ggl_level_type_plans["REACH"] += 1
+                    self.ggl_last_plan_step = self.steps_in_level
+                    return plan
+                self.ggl_active = None
+            else:
+                self.ggl_active = None
+
+        has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
+        tried_here = self.tried.get(h_curr, set())
+        untried_dpad_here = [
+            a
+            for a in (1, 2, 3, 4)
+            if a in avail_ids and ("SIMPLE", a) not in tried_here
+        ]
+        rehearse = bool(getattr(self, "rehearse_enabled", False))
+        options: list[tuple[list[ActionKey], dict[str, Any] | None]] = []
+        option_refuted: list[bool] = []
+        for gtype in self._ggl_type_order(arr, doc, avail_ids):
+            # Type-level revision: a type that issued many plans this level without a
+            # single progress event is suspended for the rest of the level.
+            if (
+                self.ggl_level_type_plans[gtype] >= 25
+                and gtype not in self.ggl_level_progress_types
+            ):
+                continue
+            # Many reached-but-no-level-up targets and little measurable progress:
+            # the "reach a rare object" proxy is wrong here, so stand down this level.
+            if (
+                self.ggl_level_decoys[gtype] >= 20
+                and self.ggl_type_stats[gtype]["level_credits"] == 0
+                and self.ggl_level_type_progress[gtype] * 3
+                < self.ggl_level_decoys[gtype]
+            ):
+                continue
+            plan: list[ActionKey] | None = None
+            refuted_before_type = self.ggl_match_refuted
+            if gtype == "REACH" and has_dpad:
+                if untried_dpad_here and self.steps_since_novel_atom < 4:
+                    continue
+                plan = self._ggl_plan_reach(arr, doc, h_curr, avail_ids)
+            elif gtype == "MATCH" and 6 in avail_ids:
+                if self.steps_in_level < 12:
+                    continue
+                plan = self._ggl_plan_match(arr, h_curr, doc, avail_ids)
+            elif gtype == "PLACE" and has_dpad:
+                plan = self._ggl_plan_push(arr, doc, h_curr, avail_ids)
+            if plan:
+                if not rehearse:
+                    self.ggl_plans_issued += 1
+                    self.ggl_level_types_used.add(gtype)
+                    self.ggl_level_type_plans[gtype] += 1
+                    if gtype == "MATCH":
+                        self.ggl_match_clicks += 1
+                    self.ggl_last_plan_step = self.steps_in_level
+                    return plan
+                options.append((list(plan), self.ggl_active))
+                option_refuted.append(bool(self.ggl_match_refuted))
+                self.ggl_active = None
+                # Hold this type's refute until it is the plan we commit.
+                # A type tried only because rehearsal wants alternatives must
+                # not change the flag when an earlier plan is committed.
+                self.ggl_match_refuted = refuted_before_type
+                if len(options) >= 3:
+                    break
+            elif options and self.ggl_match_refuted != refuted_before_type:
+                self.ggl_match_refuted = refuted_before_type
+        if rehearse and options:
+            _best_i, plan, goal = self._fx_pick_rehearsed(arr, options)
+            self.ggl_match_refuted = option_refuted[_best_i]
+            self.ggl_active = goal
+            gtype = str(goal["type"]) if goal is not None else "REACH"
+            self.ggl_plans_issued += 1
+            self.ggl_level_types_used.add(gtype)
+            self.ggl_level_type_plans[gtype] += 1
+            if gtype == "MATCH":
+                self.ggl_match_clicks += 1
+            self.ggl_last_plan_step = self.steps_in_level
+            return plan
+        # The goal loop is idle. Probe an action the forward model has not seen.
+        # This does not preempt the opening explorer steps or a real plan.
+        if getattr(self, "fx_enabled", False) and self.ggl_active is None:
+            try:
+                probe = self._fx_probe_action(arr, avail_ids, h_curr)
+            except Exception:
+                probe = None
+            if probe is not None:
+                self.fx_probes += 1
+                return [probe]
+        return None
+
     def _order_simple_actions(
         self, doc: CanvasDocument | None, simple_ids: list[int]
     ) -> list[int]:
@@ -22192,6 +24458,8 @@ class MyAgent(Agent):
                     if self.non_reset_steps_in_level <= prev_d + 2:
                         self.dead_actions[self.prev_hash].add(self.prev_action)
                         self.tried[self.prev_hash].add(self.prev_action)
+            if self.ggl_enabled and latest_frame.state is GameState.GAME_OVER:
+                self._ggl_on_game_over()
             if (
                 latest_frame.state is GameState.GAME_OVER
                 and self.active_macro_family == "mirrored_avatar_merge"
@@ -22415,6 +24683,20 @@ class MyAgent(Agent):
             is_hybrid=is_hybrid,
             from_macro_plan=from_macro,
         )
+        if self.ggl_enabled:
+            try:
+                self._ggl_observe(
+                    grid, doc, h_curr, is_blackout or was_blackout_last_step
+                )
+            except Exception:
+                pass
+        if self.fx_enabled or self.wins_teach or self.rehearse_enabled:
+            try:
+                self._fx_on_transition(
+                    grid, h_curr, is_blackout or was_blackout_last_step
+                )
+            except Exception:
+                pass
 
         if self.level_dpad_successes > 0 and self.level_click_successes > 0:
             self.self_narrative["control_law"] = "Hybrid"
@@ -23291,6 +25573,19 @@ class MyAgent(Agent):
                 if sw_plan:
                     self.active_macro_family = "online_learned_switch_gate"
                     self.planned_queue.extend(sw_plan)
+
+            # Tier 2.6: General Goal Engine (goal hypothesis -> subgoal -> plan -> verify/revise)
+            if (
+                self.ggl_enabled
+                and not self.planned_queue
+                and not is_blackout
+                and not was_blackout_last_step
+                and not self.replay_mode
+            ):
+                ggl_plan = self._ggl_propose_plan(grid, doc, h_curr, avail_ids)
+                if ggl_plan:
+                    self.active_macro_family = "online_general_goal"
+                    self.planned_queue.extend(ggl_plan)
         except Exception:
             pass
 
@@ -23301,6 +25596,14 @@ class MyAgent(Agent):
             self.controller_state = ControllerState.USE
             self.level_action_counter = 0
             chosen = self.planned_queue.popleft()
+            if (
+                self.active_macro_family == "online_general_goal"
+                and (self.fx_enabled or self.rehearse_enabled)
+            ):
+                try:
+                    self._fx_arm_prediction(grid, chosen)
+                except Exception:
+                    self.fx_pending = None
             if self.warehouse_sim is not None and chosen[0] == "SIMPLE":
                 try:
                     self.warehouse_prev_sim = self.warehouse_sim.clone()
