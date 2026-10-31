@@ -5246,7 +5246,11 @@ class MyAgent(Agent):
             and not self.responsive_geom_sigs
             and not self.mutable_object_sigs
         ):
-            return self.GLOBAL_SOLVED_GEOM_PRIORS[geom] > 0
+            n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[geom])
+            rt = getattr(self, "_m2_runtime", None)
+            if rt is not None:
+                n = rt.earned_count(self, n, geom, "geom")
+            return n > 0
         return False
 
     def _compute_active_playfield_bbox(
@@ -16487,11 +16491,16 @@ class MyAgent(Agent):
             for s in doc.shapes:
                 if 1 <= s.area <= 64:
                     by_geom[s.shape_geom_sig].append(s)
-            unique_priors = [
-                (self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g], lst[0])
-                for g, lst in by_geom.items()
-                if len(lst) == 1 and self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g] > 0
-            ]
+            unique_priors = []
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            for g, lst in by_geom.items():
+                if len(lst) != 1:
+                    continue
+                n = int(self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g])
+                if _m2_rt is not None:
+                    n = _m2_rt.earned_count(self, n, g, "avatar")
+                if n > 0:
+                    unique_priors.append((n, lst[0]))
             if unique_priors:
                 unique_priors.sort(key=lambda item: -item[0])
                 return unique_priors[0][1]
@@ -19150,8 +19159,9 @@ class MyAgent(Agent):
             )
             resp_geom = -self.responsive_geom_sigs[s.shape_geom_sig]
             _m2_geom_n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
-            if getattr(self, "m2_cross_game", "carry") == "earned" and _m2_geom_n < 2:
-                _m2_geom_n = 0
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None:
+                _m2_geom_n = _m2_rt.earned_count(self, _m2_geom_n, s.shape_geom_sig, "geom")
             cross_geom = -min(3, _m2_geom_n)
             inert_pen = (
                 1

@@ -37,13 +37,38 @@ def init_agent(agent) -> None:
     agent.m2_rehearsal_log = []
     if agent.m2_cross_game == "reset":
         agent.reset_cross_puzzle_archive()
+    # Snapshot is the cross-game residue. Increments after this belong to the episode.
+    if agent.m2_cross_game == "earned":
+        agent.m2_geom_snapshot = dict(agent.GLOBAL_SOLVED_GEOM_PRIORS)
+        agent.m2_avatar_snapshot = dict(agent.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS)
+    else:
+        agent.m2_geom_snapshot = None
+        agent.m2_avatar_snapshot = None
+
+
+def earned_count(agent, n: int, key=None, kind: str = "geom") -> int:
+    """Counts that may steer a decision.
+
+    Carry and reset return ``n`` unchanged (reset has already cleared the archive).
+    Earned memory ignores a cross-game residue below 2. A count that grew during
+    this episode is within-game evidence and is kept.
+    """
+    n = int(n)
+    if getattr(agent, "m2_cross_game", "carry") != "earned":
+        return n
+    snap_name = "m2_avatar_snapshot" if kind == "avatar" else "m2_geom_snapshot"
+    snap = getattr(agent, snap_name, None)
+    if not isinstance(snap, dict) or key is None:
+        return n if n >= 2 else 0
+    carried = int(snap.get(key, 0))
+    if n > carried:
+        return n
+    return n if carried >= 2 else 0
 
 
 def geom_count(agent, geom) -> int:
     n = int(agent.GLOBAL_SOLVED_GEOM_PRIORS[geom])
-    if getattr(agent, "m2_cross_game", "carry") == "earned" and n < 2:
-        return 0
-    return n
+    return earned_count(agent, n, geom, "geom")
 
 
 def note_step(agent, changed: bool, plan_active: bool) -> None:
