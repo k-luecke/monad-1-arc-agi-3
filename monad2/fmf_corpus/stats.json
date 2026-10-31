@@ -1,0 +1,39 @@
+{
+  "n_records": 469,
+  "with_game_id": 97,
+  "with_outcome": 99,
+  "with_goal_types": 204,
+  "by_kind": {
+    "assistant_thought": 280,
+    "dream_schema": 37,
+    "kyle_sot": 84,
+    "assistant_thought_game": 68
+  },
+  "goal_type_counts": {
+    "META_ARCHITECTURE": 80,
+    "MATCH": 68,
+    "SWITCH": 40,
+    "NAVIGATE": 38,
+    "ANNIHILATE": 25,
+    "UNLOCK": 19,
+    "AVOID": 17,
+    "REACH": 14,
+    "WIN": 8,
+    "PLACE": 6,
+    "PORTAL": 4,
+    "GAUGE": 4
+  },
+  "source_files": 14,
+  "dates": [
+    "2026-09-30",
+    "2026-10-15",
+    "2026-10-20",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-24",
+    "2026-10-25",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+  ]
+}

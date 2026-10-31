@@ -56,10 +56,67 @@ def design_row(index: int) -> dict[str, int]:
     return {name: int(bit) for name, bit in zip(FACTORS, bits)}
 
 
+def _balanced_triples() -> list[tuple[int, int, int]]:
+    rows = [design_row(i) for i in range(32)]
+    good: list[tuple[int, int, int]] = []
+    for i in range(32):
+        for j in range(i + 1, 32):
+            for k in range(j + 1, 32):
+                if all(rows[i][n] + rows[j][n] + rows[k][n] in (1, 2) for n in FACTORS):
+                    good.append((i, j, k))
+    return good
+
+
+_SCHEDULE: dict[tuple[int, int], tuple[int, int, int]] | None = None
+
+
+def schedule() -> dict[tuple[int, int], tuple[int, int, int]]:
+    """One balanced triple per (slot, level). Seeds 0, 1, 2 play its three rows.
+
+    Each factor is on in 1 or 2 of those three plays. Across slots 0..24 and
+    levels 0..7 the 32 rows all appear.
+    """
+    global _SCHEDULE
+    if _SCHEDULE is not None:
+        return _SCHEDULE
+    triples = _balanced_triples()
+    if not triples:
+        raise RuntimeError("no balanced factorial triple")
+    usage = [0] * 32
+    built: dict[tuple[int, int], tuple[int, int, int]] = {}
+    # Low level indices are the ones most games actually play, so cover
+    # every design row there before filling deeper levels.
+    for level in range(8):
+        for slot in range(25):
+            best: tuple[int, int, int] | None = None
+            best_key: tuple[int, int, int] | None = None
+            for triple in triples:
+                fresh = sum(1 for row in triple if usage[row] == 0)
+                key = (fresh, -max(usage[row] for row in triple), -sum(usage[row] for row in triple))
+                if best_key is None or key > best_key:
+                    best_key = key
+                    best = triple
+            assert best is not None
+            built[(slot, level)] = best
+            for row in best:
+                usage[row] += 1
+    _SCHEDULE = built
+    return built
+
+
 def row_index(seed: int, slot: int, level: int) -> int:
+    """Row for this play. Seeds 0..2 are the balanced triple for that cell."""
+    seed_i = int(seed)
+    slot_i = int(slot) % 25
+    level_i = int(level)
+    if level_i < 0:
+        level_i = 0
+    level_key = level_i if level_i < 8 else level_i % 8
+    if seed_i in (0, 1, 2):
+        return schedule()[(slot_i, level_key)][seed_i]
     order = list(range(32))
-    random.Random(int(seed)).shuffle(order)
-    return order[(int(slot) * 3 + int(level)) % 32]
+    random.Random(seed_i).shuffle(order)
+    return order[(slot_i * 3 + level_i) % 32]
 
 
 def factorial_on() -> bool:
@@ -76,6 +133,8 @@ def assign_level(agent) -> None:
         return
     seed = int(os.getenv("MONAD2_FACTORIAL_SEED", "0") or "0")
     index = row_index(seed, slot, level)
+    agent._m2_stall_fallback = False
+    agent._m2_unchanged_streak = 0
     flags = design_row(index)
     for name, bit in flags.items():
         os.environ[name] = "1" if bit else "0"

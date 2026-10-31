@@ -17,10 +17,11 @@ Kyle's rule for gaps 4, 7, 8, and 9: do not drop a module because turning that m
 | General goal engine plans | `planned_queue` | the committed plan |
 | `MONAD2_REHEARSAL` | `_fx_pick_rehearsed` | which of the goal plans is committed |
 | `MONAD2_SCP` | goal-type order, and the callosum when that flag is also on | type priority from the compact projection |
-| `MONAD2_GOAL_MEMORY` | goal-type confirmation | a type is locked only after two credits; record retrieval is used when `MONAD2_RECORDS` is set |
-| `MONAD2_CALLOSUM` | `maybe_replace_key` | replaces the key when B' accepts a proposal |
+| `MONAD2_GOAL_MEMORY` | goal-type confirmation | a type is locked only after two credits; retrieval reads `monad2/fmf_corpus/records.jsonl` unless `MONAD2_RECORDS` is set, and excludes the held-out game |
+| `MONAD2_CALLOSUM` | `maybe_replace_key` | replaces the key only when the world model (`fx_dpad` / `fx_click`) says the alternative makes progress and A's choice does not |
 | `MONAD2_DLADDER` | `maybe_replace_key` | vetoes a predicted no-op, illegal, or hazard and re-picks |
-| `MONAD2_PLL_SURPRISE` | plan queue and `ggl_active` | clears them on a lock loss while a plan is active |
+| `MONAD2_PLL_SURPRISE` | plan queue, `ggl_active`, `EpisodeLTP` | on a lock loss while a plan is active, clears the plan and demotes that goal hypothesis |
+| stall fallback | the nine decision flags | after 48 unchanged frames, a reset loop near the 600-step exit, or step 900 of a flagged level, those flags go off for the rest of the level |
 | `MONAD2_TONIC` | goal BFS depth and rehearsal breadth | reads `inos_depth_budget` (default 4) |
 | `MONAD2_SKIP_DEAD_ORGANS` | master loop | skips PLL, Gohst, observer, Qwen, tonic, joints |
 

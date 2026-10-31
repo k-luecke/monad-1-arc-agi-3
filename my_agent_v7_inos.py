@@ -18815,24 +18815,21 @@ class MyAgent(Agent):
         if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
             path = os.getenv("MONAD2_RECORDS", "").strip()
             hyps: list[str] = []
-            if path and os.path.isfile(path):
-                try:
-                    from monad2.memory import eligible, load_records, retrieve
+            try:
+                from monad2.memory import corpus_path, eligible, grid_features, load_records, retrieve
+                from monad2.scp import project as _m2_project
 
+                if not path:
+                    path = str(corpus_path())
+                if os.path.isfile(path):
                     held = os.getenv("MONAD2_HOLDOUT_GAME", "")
                     recs = load_records(path)
                     if held:
                         recs = eligible(recs, held)
-                    feats = []
-                    if has_dpad:
-                        feats.append("aff:avatar")
-                    if has_ptr:
-                        feats.append("aff:click")
-                    if prior["PLACE"] > 0:
-                        feats.append("aff:push")
-                    hyps = retrieve(tuple(feats), recs, k=3)
-                except Exception:
-                    hyps = []
+                    proj = _m2_project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                    hyps = retrieve(grid_features(proj, avail_ids), recs, k=3)
+            except Exception:
+                hyps = []
             self.m2_goal_hypotheses = hyps
             for hyp in hyps:
                 if prior.get(hyp, 0) > 0:

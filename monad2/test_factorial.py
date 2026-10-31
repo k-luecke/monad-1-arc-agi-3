@@ -15,10 +15,20 @@ def main() -> int:
         for b in names[i + 1 :]:
             dot = sum(x * y for x, y in zip(cols[a], cols[b]))
             assert dot == 0, (a, b, dot)
-    # Same seed, different levels, different rows. Slot is not a game id.
-    seen = {row_index(0, slot, level) for slot in range(25) for level in range(4)}
+    # Seeds 0..2 put each factor on in 1 or 2 of 3 plays of every cell,
+    # and together they cover every design row.
+    seen = set()
+    for slot in range(25):
+        for level in range(4):
+            idxs = [row_index(seed, slot, level) for seed in (0, 1, 2)]
+            assert len(set(idxs)) == 3, (slot, level, idxs)
+            rows = [design_row(i) for i in idxs]
+            for name in FACTORS:
+                total = sum(row[name] for row in rows)
+                assert total in (1, 2), (name, total, slot, level)
+            seen.update(idxs)
+            assert row_index(0, slot, level) == idxs[0]
     assert len(seen) == 32
-    assert row_index(0, 3, 1) == row_index(0, 3, 1)
     assert row_index(0, 3, 1) != row_index(0, 3, 2)
 
     class A:

@@ -19,6 +19,9 @@ COUNTERS = (
     "loss_and_fail",
     "rehearsal_taken",
     "dead_skipped",
+    "callosum_blocked",
+    "stall_fallbacks",
+    "goal_demotions",
 )
 
 
@@ -71,6 +74,46 @@ def geom_count(agent, geom) -> int:
     return earned_count(agent, n, geom, "geom")
 
 
+def stall_n() -> int:
+    """Consecutive unchanged frames before falling back to baseline. 0 disables."""
+    raw = os.getenv("MONAD2_STALL_N", "").strip()
+    if not raw:
+        return 48
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 48
+
+
+def _decision_flags_on() -> bool:
+    from monad2.factorial import FACTORS
+
+    return any(on(name) for name in FACTORS)
+
+
+def _fallback_to_baseline(agent) -> None:
+    """Drop Monad(2) decision flags for the rest of this level."""
+    if getattr(agent, "_m2_stall_fallback", False):
+        return
+    from monad2.factorial import FACTORS
+
+    agent._m2_stall_fallback = True
+    stats = getattr(agent, "m2", None)
+    if isinstance(stats, dict):
+        stats["stall_fallbacks"] = stats.get("stall_fallbacks", 0) + 1
+    for name in FACTORS:
+        os.environ[name] = "0"
+    agent.m2_cross_game = "carry"
+    os.environ["MONAD2_CROSS_GAME"] = "carry"
+    if os.getenv("MONAD1_CANVAS_REHEARSAL", "0") != "1":
+        agent.rehearse_enabled = False
+    if os.getenv("MONAD1_EFFECT_MODEL", "0") != "1":
+        agent.fx_enabled = False
+    log = getattr(agent, "m2_level_log", None)
+    if isinstance(log, list) and log:
+        log[-1]["stall_fallback"] = int(getattr(agent, "action_counter", 0) or 0)
+
+
 def note_step(agent, changed: bool, plan_active: bool) -> None:
     stats = getattr(agent, "m2", None)
     if stats is None:
@@ -80,6 +123,25 @@ def note_step(agent, changed: bool, plan_active: bool) -> None:
         stats["wasted_noop"] += 1
     if plan_active:
         stats["plan_steps"] += 1
+    # Flags-off is a no-op. A bad combo that freezes the frame, or that is
+    # about to hit the 600-step reset loop / the 1500-step level cap, hands
+    # the rest of the level back to baseline.
+    n = stall_n()
+    if n <= 0 or not _decision_flags_on() or getattr(agent, "_m2_stall_fallback", False):
+        return
+    streak = 0 if changed else int(getattr(agent, "_m2_unchanged_streak", 0)) + 1
+    agent._m2_unchanged_streak = streak
+    novel = int(getattr(agent, "steps_since_novel_atom", 0) or 0)
+    resets = int(getattr(agent, "level_resets_in_level", 0) or 0)
+    steps = int(getattr(agent, "steps_in_level", 0) or 0)
+    frozen = streak >= n
+    # tu93 died at ~600 steps (novel drought plus resets, 33s, not the clock).
+    # Hand back before that exit, including when the resets arrive late.
+    loop = (novel >= 240 and resets >= 3 and steps >= 480) or (steps >= 560 and novel >= 280)
+    # sc25 died at the 1500-step cap with the frame still changing.
+    cap = steps >= 900
+    if frozen or loop or cap:
+        _fallback_to_baseline(agent)
 
 
 def _action_id(key) -> int:
@@ -147,6 +209,45 @@ def _alternative(agent, key, legal: list[int]):
     return None
 
 
+def _predicted_progress(agent, key) -> bool | None:
+    """World-model opinion. None means it has not seen this action yet.
+
+    True only when the recorded effect is a real change. A known no-op or a
+    known hazard is a confident False.
+    """
+    if _known_noop(agent, key) or _known_hazard(agent, key):
+        return False
+    aid = _action_id(key)
+    if aid in (1, 2, 3, 4):
+        fx = getattr(agent, "fx_dpad", None)
+        votes = fx.get(aid) if fx is not None else None
+        if not votes:
+            return None
+        try:
+            shift, n = votes.most_common(1)[0]
+        except (AttributeError, ValueError, IndexError):
+            return None
+        if n < 1:
+            return None
+        return tuple(shift) != (0, 0)
+    if aid == 6:
+        clicks = getattr(agent, "fx_click", None)
+        if not clicks:
+            return None
+        change = inert = 0
+        try:
+            items = clicks.values()
+        except AttributeError:
+            return None
+        for counter in items:
+            change += int(counter.get("CHANGE", 0))
+            inert += int(counter.get("INERT", 0))
+        if change + inert <= 0:
+            return None
+        return change > inert
+    return None
+
+
 def _callosum_key(agent, key, legal: list[int]):
     grid = getattr(agent, "_m2_grid", None)
     if grid is None:
@@ -180,6 +281,13 @@ def _callosum_key(agent, key, legal: list[int]):
     # B' rejects a proposal the ladder will not defend.
     if not verdict.ok:
         return None
+    # Override only when the world model says the alternative makes progress
+    # and A's choice does not. No opinion means leave A's choice alone.
+    alt_prog = _predicted_progress(agent, proposal)
+    cur_prog = _predicted_progress(agent, key)
+    if alt_prog is not True or cur_prog is not False:
+        agent._m2_callosum_gated = True
+        return None
     return proposal
 
 
@@ -211,7 +319,10 @@ def maybe_replace_key(agent, key):
                 key = alt
     if callosum:
         stats["callosum_seen"] += 1
+        agent._m2_callosum_gated = False
         alt = _callosum_key(agent, key, legal)
+        if getattr(agent, "_m2_callosum_gated", False):
+            stats["callosum_blocked"] += 1
         if alt is not None:
             stats["callosum_overrides"] += 1
             key = alt
@@ -248,10 +359,24 @@ def pll_observation(agent, changed_pixels: int) -> dict | None:
         if any(hist):
             stats["loss_and_fail"] += 1
     if not locked and plan_active:
+        active = getattr(agent, "ggl_active", None)
+        gtype = active.get("type") if isinstance(active, dict) else None
         if getattr(agent, "planned_queue", None):
             agent.planned_queue.clear()
-        if getattr(agent, "ggl_active", None) is not None:
-            agent.ggl_active = None
+        agent.ggl_active = None
+        if gtype:
+            from monad2.memory import EpisodeLTP
+
+            ltp = getattr(agent, "m2_ltp", None)
+            if ltp is None:
+                ltp = EpisodeLTP()
+                if getattr(agent, "ggl_confirmed_type", None) == gtype:
+                    ltp.confirms[gtype] = 2
+                agent.m2_ltp = ltp
+            left = ltp.demote(gtype)
+            stats["goal_demotions"] += 1
+            if getattr(agent, "ggl_confirmed_type", None) == gtype and left < 2:
+                agent.ggl_confirmed_type = None
     hist.append(not locked)
     return {"locked": locked, "expected": expected, "observed": observed}
 

@@ -65,7 +65,9 @@ def _self_check() -> None:
             grid[r][c] = 5
     proj = project(grid, legal=[1, 2, 3, 4])
     assert proj.n_objects == 2
+    assert sum(1 for t in proj.tokens() if t.startswith("L")) == 16
     assert len(proj.tokens()) < len(raw_tokens(grid))
+    assert any(t.startswith("dir:") for t in proj.tokens())
     shifted = [[0] * 64 for _ in range(64)]
     for r in range(12, 16):
         for c in range(12, 16):
@@ -101,6 +103,7 @@ def _collect(env_dir: Path) -> tuple[list, list, dict]:
         if frame is None or not frame.frame:
             continue
         prev = frame.frame[-1]
+        older = None
         held = prefix in HOLDOUT
         for _ in range(STEPS):
             legal = [int(a) for a in (frame.available_actions or []) if int(a) != 0]
@@ -108,7 +111,10 @@ def _collect(env_dir: Path) -> tuple[list, list, dict]:
             if not legal or state_name in ("WIN", "GAME_OVER"):
                 break
             aid = rng.choice(legal)
-            proj = project(prev, legal=legal)
+            # Feedback is the transition that already happened. The label is
+            # the next one. The first measured run omitted the prior frame, so
+            # this token was stuck on "start".
+            proj = project(prev, older, legal=legal)
             p_toks = tuple(proj.tokens() + [f"act:{aid}"])
             r_toks = tuple(raw_tokens(prev) + [f"act:{aid}"])
             tok_p += len(proj.tokens())
@@ -124,6 +130,7 @@ def _collect(env_dir: Path) -> tuple[list, list, dict]:
             # Key is a short prefix so unseen layouts still share buckets.
             bucket_p.append((p_toks, label))
             bucket_r.append((r_toks, label))
+            older = prev
             prev = nxt.frame[-1]
             frame = nxt
             if str(getattr(frame.state, "name", frame.state)) in ("WIN", "GAME_OVER"):

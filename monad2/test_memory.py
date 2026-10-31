@@ -4,11 +4,22 @@ from __future__ import annotations
 from monad2.memory import EpisodeLTP, eligible, retrieve
 
 RECORDS = [
-    {"kind": "SCHEMA_REMOTE_AFFORDANCE", "text": "remote affordance, reach the distant object", "goal_type": "REACH"},
-    {"kind": "SCHEMA_PANEL", "text": "panel match", "goal_type": "MATCH"},
-    {"kind": "trace", "game_id": "ft09-0d8bbf25", "text": "debug ft09 match clicks", "goal_type": "MATCH"},
-    {"kind": "trace", "text": "working on cd82 panels", "goal_type": "MATCH"},
-    {"kind": "trace", "game_id": "sc25-635fd71a", "text": "avatar reach", "goal_type": "REACH"},
+    {
+        "record_kind": "dream_schema",
+        "observation": "SCHEMA_REMOTE_AFFORDANCE",
+        "hypothesis": "remote affordance, the avatar moves to the distant object",
+        "inferred_goal": "REACH",
+    },
+    {"kind": "SCHEMA_PANEL", "text": "panel pair", "goal_type": "MATCH"},
+    {
+        "record_kind": "assistant_thought",
+        "game_id": "ft09-0d8bbf25",
+        "game_ids": ["ft09", "sb26"],
+        "observation": "debug ft09 clicks",
+        "inferred_goal": "MATCH",
+    },
+    {"kind": "trace", "observation": "working on cd82 panels", "goal_type": "MATCH"},
+    {"kind": "trace", "game_id": "sc25-635fd71a", "text": "avatar in a corridor", "goal_type": "REACH"},
     {"kind": "trace", "text": "push the block into the hole", "goal_type": "PLACE"},
 ]
 
@@ -19,10 +30,14 @@ def main() -> int:
     assert "ft09" not in blob
     kept_cd = eligible(RECORDS, "cd82")
     assert all("cd82" not in str(r).lower() for r in kept_cd)
-    # SCHEMA records are listed before traces.
-    assert str(kept[0].get("kind", "")).startswith("SCHEMA")
+    # SCHEMA records are listed before traces. Goal words are not features.
+    assert kept[0].get("record_kind") == "dream_schema" or str(kept[0].get("kind", "")).startswith("SCHEMA")
     hyp = retrieve(("aff:avatar", "aff:remote"), kept, k=2)
-    assert hyp and hyp[0] == "REACH"
+    assert hyp and hyp[0] == "REACH", hyp
+    from monad2.memory import _features
+
+    leaked = _features({"observation": "the goal is to reach and match"})
+    assert "aff:avatar" not in leaked and "aff:panel" not in leaked
     ltp = EpisodeLTP()
     assert ltp.confirm("REACH") is False
     assert ltp.confirm("REACH") is True
