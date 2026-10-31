@@ -103,8 +103,8 @@ class LocalLlama:
         self.role = role
         self.path = path
         self.grammar = LlamaGrammar.from_string(_GRAMMAR[role])
-        # A' and B' share the executive window. A 768 window overflowed once the role and predicate lines were kept.
-        n_ctx = 1024
+        # One window for every role. The prompt is clipped to fit inside it on the first call.
+        n_ctx = 1536
         threads = _threads()
         self.llm = Llama(
             model_path=str(path),
@@ -119,10 +119,16 @@ class LocalLlama:
         )
 
     def complete(self, system: str, user: str) -> tuple[str, float]:
+        """One prefill. The character budget keeps prompt + generation inside n_ctx."""
         t0 = time.perf_counter()
+        room = 1100 - len(system)
+        if room < 240:
+            room = 240
+        if len(user) > room:
+            user = user[:room]
         text = self._complete(system, user)
         if text is None:
-            text = self._complete(system, user[:500]) or ""
+            text = self._complete(system, user[:240]) or ""
         ms = (time.perf_counter() - t0) * 1000.0
         return text, ms
 
