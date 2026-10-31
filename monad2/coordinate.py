@@ -150,19 +150,59 @@ def _fmt(key) -> str:
     return f"SIMPLE {key[1]} ({names.get(key[1], '?')})"
 
 
+_JSON_STRING_KEYS = (
+    "decision",
+    "action",
+    "primitive",
+    "binding",
+    "expectation",
+    "effect",
+    "reason",
+    "theory",
+    "verdict",
+    "goal",
+)
+
+
 def _json_obj(text: str) -> dict | None:
+    """Parse a model object. A token cap can cut the closing brace; keep the fields already written."""
     if not text:
         return None
     start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end <= start:
+    if start < 0:
         return None
-    blob = text[start : end + 1]
-    try:
-        obj = json.loads(blob)
-    except json.JSONDecodeError:
-        return None
-    return obj if isinstance(obj, dict) else None
+    blob = text[start:]
+    end = blob.rfind("}")
+    if end > 0:
+        try:
+            obj = json.loads(blob[: end + 1])
+        except json.JSONDecodeError:
+            obj = None
+        if isinstance(obj, dict):
+            return obj
+    found: dict = {}
+    for key in _JSON_STRING_KEYS:
+        match = re.search(rf'"{key}"\s*:\s*"([^"\\]*)"', blob)
+        if match:
+            found[key] = match.group(1)
+            continue
+        partial = re.search(rf'"{key}"\s*:\s*"([^"\\]{{0,80}})', blob)
+        if partial and partial.group(1):
+            found[key] = partial.group(1)
+    flag = re.search(r'"expect_change"\s*:\s*(true|false)', blob)
+    if flag:
+        found["expect_change"] = flag.group(1) == "true"
+    for key in ("plan", "used"):
+        match = re.search(rf'"{key}"\s*:\s*(\[[^\]]*\])', blob)
+        if not match:
+            continue
+        try:
+            value = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, list):
+            found[key] = value
+    return found or None
 
 
 def _parse_action(raw, legal: list[int]):

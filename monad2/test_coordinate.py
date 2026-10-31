@@ -71,6 +71,8 @@ def main() -> int:
     assert expectation_matches("sig 3,3,12,1 moves +4x +0y", diff) is True
     assert expectation_matches("sig 3,3,12,1 vanishes", diff) is False
     assert expectation_matches("no shape change", diff_records(before, before)) is True
+    assert expectation_matches("avatar translates toward the goal", diff) is True
+    assert expectation_matches("frame changes under labeled exploration", diff) is True
 
     os.environ.pop("MONAD2_COORDINATE", None)
     os.environ.pop("MONAD2_HOLDOUT_GAME", None)
@@ -181,6 +183,17 @@ def main() -> int:
     assert agent.m2["coord_plan_steps"] == 1
     assert agent.m2_thought_log[-1]["decision"] == "plan"
     assert agent.m2_thought_log[-1]["latency_ms"]["step"] == 0.0
+
+    agent = _agent()
+    cut_off = (
+        '{"decision":"inhibit","action":"SIMPLE 3","primitive":"approach","binding":"avatar,goal",'
+        '"expect_change":true,"expectation":"avatar translates toward the goal","reason":"The solver'
+    )
+    held = decide(agent, ("SIMPLE", 1), "heuristic", backend=Backend(cut_off))
+    assert held == ("SIMPLE", 3), held
+    assert agent.m2_thought_log[-1]["decision"] == "inhibit"
+    assert agent.m2_thought_log[-1]["primitive"] == "approach"
+    assert agent.m2_thought_log[-1]["binding"] == "avatar,goal"
 
     reset_carried()
     os.environ.pop("MONAD2_COORDINATE", None)

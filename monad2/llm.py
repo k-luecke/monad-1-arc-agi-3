@@ -37,7 +37,7 @@ def model_path(role: str) -> Path:
 
 _STRING = r'''
 ws ::= " "?
-string ::= "\"" ([^"\\\n ] | " ")* "\""
+string ::= "\"" ([^"\\\n ] | " "){0,24} "\""
 action ::= "\"SIMPLE 1\"" | "\"SIMPLE 2\"" | "\"SIMPLE 3\"" | "\"SIMPLE 4\"" | "\"SIMPLE 5\"" | ("\"CLICK " [0-9]+ " " [0-9]+ "\"")
 bool ::= "true" | "false"
 goal ::= "\"REACH\"" | "\"PLACE\"" | "\"MATCH\""
@@ -86,7 +86,8 @@ def _token_cap(role: str) -> int:
             return max(16, int(raw))
         except ValueError:
             pass
-    return {"a": 48, "b": 48, "executive": 64}.get(role, 48)
+    # The object has to close. 48/64 cut the executive off inside "reason" and the step became explore.
+    return {"a": 72, "b": 80, "executive": 128}.get(role, 72)
 
 
 class LocalLlama:

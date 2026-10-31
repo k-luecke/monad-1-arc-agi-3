@@ -146,8 +146,10 @@ def expectation_matches(expectation: str, diff: dict | None) -> bool | None:
         return appeared
     if any(word in text for word in ("no shape", "unchanged", "stays")):
         return not any_change
-    if any(word in text for word in ("move", "shift", "+")):
+    if any(word in text for word in ("move", "shift", "+", "translat")):
         return moved
+    if "frame change" in text or "changes under" in text:
+        return any_change
     return None
 
 
