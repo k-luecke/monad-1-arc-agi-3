@@ -25,7 +25,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 11 | 2026-10-31 2:21 PM | e880261 | motor-primitive smoke, not a score run | 0 | 0/3 | 0 | 6 | — | yes |
 | 12 | 2026-10-31 3:02 PM | 4cc3ef7 | role binding and predicate smoke, not a score run | 0 | 0/3 | 0 | 9 | — | yes |
 | 13 | 2026-10-31 3:36 PM | f910fbb | legal menu and plan-once smoke, not a score run | 0 | 0/3 | 0 | 30 | — | yes |
-| 14 | 2026-10-31 4:20 PM | 9707b51 | coordination benchmark, in progress 6/25 | 0 | 0/25 | 0/183 | 56 | 0.0000 | — |
+| 14 | 2026-10-31 4:55 PM | 9707b51 | coordination benchmark, in progress 7/25 | 0 | 0/25 | 0/183 | 63 | 0.0000 | — |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -174,11 +174,11 @@ The executive grammar only admits a menu index or a role reference. Code turns `
 `vc33` level 0. Roles: receptor, reference, wall, clickable, switch, goal. No avatar. Rejected avatar on the S0 line; receptor and goal rebound to hollow_rect geom 2,4,6, wall to line geom 3,1,64. Actions were legal clicks (CLICK 38 29, CLICK 61 25, CLICK 61 33, CLICK 51 29). One plan, `assemble(receptor,reference)`, confirmed `contact(roleA=receptor, roleB=reference)`. A later replan did not parse, so that step stayed in discover. No level completed.
 
 <!-- entry-14-begin -->
-### Entry 14 — coordination benchmark, in progress 6/25
+### Entry 14 — coordination benchmark, in progress 7/25
 
-Recorded 2026-10-31 4:20 PM CT. Code is `9707b51`. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, `--offline --blind-id --no-game-solvers`, 300s per game. The harness action cap stays at 6000. No `MONAD2_COORD_MAX_ACTIONS`. This is a score run. Models load once before the first game clock (warmup 5.36s, not charged to a game).
+Recorded 2026-10-31 4:55 PM CT. Code is `9707b51`. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, `--offline --blind-id --no-game-solvers`, 300s per game. The harness action cap stays at 6000. No `MONAD2_COORD_MAX_ACTIONS`. This is a score run. Models load once before the first game clock (warmup 5.36s, not charged to a game).
 
-So far: 0/25 wins, 0/183 levels, 56 actions, play time 1959.06s. LLM calls 130 (21.67 mean on 6 touched levels, max 23). Modes discover 36, plan 9, execute 3, replan 8. Predicate hits 23/50 (0.46). Surprises 27. Plan writes 22, execute steps 3, replans 10. Qwen repairs 10. Solver hits 0. Coordination errors 0.
+So far: 0/25 wins, 0/183 levels, 63 actions, play time 2286.05s. LLM calls 147 (21.0 mean on 7 touched levels, max 23). Modes discover 40, plan 11, execute 3, replan 9. Predicate hits 24/56 (0.4286). Surprises 32. Plan writes 27, execute steps 3, replans 12. Qwen repairs 10. Solver hits 0. Coordination errors 0.
 
 Entry 1 is 19/183 levels and 42,729 actions. The optimal count is 6,444 actions. Those comparisons are written when all 25 games have finished. A partial total is not a score.
 
@@ -190,6 +190,7 @@ Entry 1 is 19/183 levels and 42,729 actions. The optimal count is 6,444 actions.
 | cn04 | NOT_FINISHED | 0 | 7 | 305.13 | 23 | 7 | 0 | 0 | 0 | 6/6 |
 | dc22 | NOT_FINISHED | 0 | 9 | 361.43 | 23 | 6 | 2 | 0 | 1 | 0/8 |
 | ft09 | NOT_FINISHED | 0 | 10 | 359.83 | 21 | 5 | 1 | 0 | 4 | 1/9 |
+| g50t | NOT_FINISHED | 0 | 7 | 326.98 | 17 | 4 | 2 | 0 | 1 | 1/6 |
 
 Per-level LLM counts are in `monad2/benchmark_entry14.json`. No flag turns on from this entry.
 The run is still going. This section is replaced as each game finishes.
