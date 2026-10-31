@@ -17,25 +17,33 @@ HOLDOUT = {"cd82", "ft09", "m0r0", "tn36", "tr87"}
 STEPS = 20
 
 
-def _majority_accuracy(rows: list[tuple[tuple, str]]) -> tuple[float, int]:
-    """rows are (key, label). Predict the training majority for that key."""
-    return 0.0, 0
-
-
 def _fit_predict(train: list[tuple[tuple, str]], test: list[tuple[tuple, str]]) -> float:
-    by_key: dict[tuple, Counter] = defaultdict(Counter)
-    global_c: Counter = Counter()
+    """Laplace naive Bayes over tokens. Exact keys do not have to repeat."""
+    import math
+
+    label_c: Counter = Counter()
+    token_c: dict[str, Counter] = defaultdict(Counter)
     for key, label in train:
-        by_key[key][label] += 1
-        global_c[label] += 1
-    fallback = global_c.most_common(1)[0][0] if global_c else "noop"
-    if not test:
+        label_c[label] += 1
+        for tok in key:
+            token_c[str(tok)][label] += 1
+    labels = list(label_c)
+    n = sum(label_c.values())
+    if not test or not labels:
         return 0.0
     hit = 0
-    for key, label in test:
-        bucket = by_key.get(key)
-        pred = bucket.most_common(1)[0][0] if bucket else fallback
-        hit += int(pred == label)
+    k = len(labels)
+    for key, truth in test:
+        best = None
+        best_s = -1e300
+        for label in labels:
+            score = math.log((label_c[label] + 1) / (n + k))
+            denom = label_c[label] + 0.5 * k
+            for tok in key:
+                score += math.log((token_c[str(tok)][label] + 0.5) / denom)
+            if score > best_s:
+                best, best_s = label, score
+        hit += int(best == truth)
     return hit / len(test)
 
 
@@ -73,7 +81,8 @@ def _self_check() -> None:
 
 
 def _collect(env_dir: Path) -> tuple[list, list, dict]:
-    from arc_agi import Arcade, GameAction, OperationMode
+    from arc_agi import Arcade, OperationMode
+    from arcengine import GameAction
 
     arc = Arcade(operation_mode=OperationMode.OFFLINE, environments_dir=str(env_dir))
     game_ids = sorted({e.game_id for e in arc.get_environments()})
@@ -95,7 +104,8 @@ def _collect(env_dir: Path) -> tuple[list, list, dict]:
         held = prefix in HOLDOUT
         for _ in range(STEPS):
             legal = [int(a) for a in (frame.available_actions or []) if int(a) != 0]
-            if not legal or str(getattr(frame, "state", "")).endswith("WIN") or str(getattr(frame, "state", "")) == "GameState.WIN":
+            state_name = str(getattr(getattr(frame, "state", None), "name", frame.state))
+            if not legal or state_name in ("WIN", "GAME_OVER"):
                 break
             aid = rng.choice(legal)
             proj = project(prev, legal=legal)
@@ -105,15 +115,15 @@ def _collect(env_dir: Path) -> tuple[list, list, dict]:
             tok_r += len(raw_tokens(prev))
             n += 1
             data = {"x": 32, "y": 32} if aid == 6 else None
-            nxt = env.step(GameAction.from_id(aid) if hasattr(GameAction, "from_id") else GameAction(aid), data=data)
+            nxt = env.step(GameAction.from_id(aid), data=data)
             if nxt is None or not nxt.frame:
                 break
             label = delta_label(prev, nxt.frame[-1])
             bucket_p = (train_p, test_p)[held]
             bucket_r = (train_r, test_r)[held]
             # Key is a short prefix so unseen layouts still share buckets.
-            bucket_p.append((p_toks[:6], label))
-            bucket_r.append((r_toks[:6], label))
+            bucket_p.append((p_toks, label))
+            bucket_r.append((r_toks, label))
             prev = nxt.frame[-1]
             frame = nxt
             if str(getattr(frame.state, "name", frame.state)) in ("WIN", "GAME_OVER"):

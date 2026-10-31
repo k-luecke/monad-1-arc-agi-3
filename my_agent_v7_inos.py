@@ -4470,6 +4470,14 @@ class MyAgent(Agent):
         self._fx_init_game_state()
         if self.relation_memory_path:
             self._wt_load_memory(self.relation_memory_path)
+        self._m2_runtime = None
+        self.m2_cross_game = "carry"
+        try:
+            import monad2.runtime as _m2rt
+            self._m2_runtime = _m2rt
+            _m2rt.init_agent(self)
+        except Exception:
+            self.m2_cross_game = "carry"
         if self.game_specific_solvers_disabled:
             self._disable_game_specific_solvers()
 
@@ -18855,6 +18863,12 @@ class MyAgent(Agent):
                 self.ggl_match_refuted = refuted_before_type
         if rehearse and options:
             _best_i, plan, goal = self._fx_pick_rehearsed(arr, options)
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None:
+                try:
+                    _m2_rt.note_rehearsal(self, _best_i, str(goal.get("type") if goal else ""))
+                except Exception:
+                    pass
             self.ggl_match_refuted = option_refuted[_best_i]
             self.ggl_active = goal
             gtype = str(goal["type"]) if goal is not None else "REACH"
@@ -19135,7 +19149,10 @@ class MyAgent(Agent):
                 2 if s.sig in self.mutable_object_sigs else 0
             )
             resp_geom = -self.responsive_geom_sigs[s.shape_geom_sig]
-            cross_geom = -min(3, self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
+            _m2_geom_n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
+            if getattr(self, "m2_cross_game", "carry") == "earned" and _m2_geom_n < 2:
+                _m2_geom_n = 0
+            cross_geom = -min(3, _m2_geom_n)
             inert_pen = (
                 1
                 if (
@@ -22019,6 +22036,13 @@ class MyAgent(Agent):
         return []
 
     def _materialize_action(self, key: ActionKey, reason: str) -> GameAction:
+        rt = getattr(self, "_m2_runtime", None)
+        if rt is not None:
+            try:
+                key = rt.maybe_replace_key(self, key)
+                rt.arm_expectation(self, key)
+            except Exception:
+                pass
         self.current_level_executed_actions.append(key)
         if self.prev_grid is not None:
             self.prev_logical_avatar_pos = self._extract_logical_avatar_pos(
@@ -23359,6 +23383,11 @@ class MyAgent(Agent):
         """Executes the Bidirectional Bottom-Up -> Small Qwen A & B -> Associative Merkle Sift ->
         Conscious Observer Top-Down Loop on arrival of sensory frame S_t.
         Returns True if the Conscious Observer issued a top-down control gauge recalibration."""
+        if os.getenv("MONAD2_SKIP_DEAD_ORGANS", "0") == "1":
+            stats = getattr(self, "m2", None)
+            if isinstance(stats, dict):
+                stats["dead_skipped"] = int(stats.get("dead_skipped", 0)) + 1
+            return False
         cur_av_info = self._extract_logical_avatar_pos(grid)                                # Execute collaborative step: cur_av_info = self._extract_logical_avatar_pos(grid)
         cur_pos = cur_av_info[1] if cur_av_info is not None else None                       # Execute collaborative step: cur_pos = cur_av_info[1] if cur_av_info is not None 
         open_dirs = self._extract_visibly_open_corridor_dirs(grid, cur_av_info)             # Execute collaborative step: open_dirs = self._extract_visibly_open_corridor_dirs
@@ -23473,8 +23502,18 @@ class MyAgent(Agent):
             0.55 * float(top_down_field_state.top_down_omega_hz) + 0.45 * gohst_omega       # 55% Top-Down Observer Klein-Gordon wave + 45% Gohst MST carrier
         )                                                                                   # Close frequency blend
         gohst_sharpness = 4.0 if gohst_tsp_report.get("coupling_mode") == "COUPLED_SYNCHRONIZED_EXECUTION" else 2.5  # Set PLL resonance sharpness exponent n
+        _m2_surprise = None
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        if _m2_rt is not None:
+            try:
+                _m2_surprise = _m2_rt.pll_observation(self, outcome_delta.actual_changed_pixels)
+            except Exception:
+                _m2_surprise = None
+        # Legacy PLL targets the live signature, so it locks on every step. Surprise mode
+        # compares the pre-action prediction to the observed change and only locks on a match.
+        _pll_target = live_sig32 if _m2_surprise is None or _m2_surprise.get("locked") else (live_sig32 ^ 0x1F)
         self.resonant_pll.inject_resonant_probe(                                            # Radiate Top-Down Observer resonant probe into low-level PLL modulator
-            live_sig32,                                                                     # Target 32-bit fuzzy signature fragment
+            _pll_target,                                                                    # Predicted signature, or the live signature when surprise mode is off
             target_omega_hz=blended_top_down_omega,                                         # Top-down modulated target carrier frequency
             sharpness_exponent=gohst_sharpness,                                             # Resonance sharpness exponent n
             reason=f"top_down_field:{outcome_delta.tension_regime}",                        # Audit tag recording top-down field probe origin
@@ -23484,6 +23523,9 @@ class MyAgent(Agent):
             live_fuzzy_sig32=live_sig32,                                                    # Live 32-bit stream signature
             live_packed_u64=packed_u64,                                                     # Live 64-bit packed Merkle node
         )                                                                                   # Close PLL stream evaluation
+        if _m2_surprise is not None:
+            pll_report["phase_locked"] = bool(_m2_surprise["locked"])
+            pll_report["source_epoch"] = "PREDICTED_VS_OBSERVED"
         observer_field_report = self.observer_field_engine.compute_bidirectional_standing_wave(  # Compute Bidirectional Top-Down <-> Bottom-Up Standing-Wave Interference
             field_state=top_down_field_state,                                               # Top-Down Conscious Observer wave state Psi_TD(t)
             bottom_up_omega_hz=float(pll_report.get("omega_t_hz", blended_top_down_omega)),  # Bottom-Up PLL modulated frequency omega_BU(t)
@@ -24503,6 +24545,8 @@ class MyAgent(Agent):
         grid = self._scp_canonicalize_node_graph_palette(grid)
 
         avail_ids = [a for a in latest_frame.available_actions if a != 0]
+        self._m2_avail = list(avail_ids)
+        self._m2_grid = grid
         has_pointer = 6 in avail_ids
         has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
         is_hybrid = any(a not in (6, 7) for a in avail_ids) and has_pointer
@@ -24631,6 +24675,13 @@ class MyAgent(Agent):
             and self.prev_hash is not None
         ):
             h_curr = self.prev_hash
+        self._m2_state_hash = h_curr
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        if _m2_rt is not None and self.prev_hash is not None:
+            try:
+                _m2_rt.note_step(self, h_curr != self.prev_hash, bool(getattr(self, "_m2_plan_active", False)))
+            except Exception:
+                pass
         if len(self.state_grids) < 256 or h_curr in self.state_grids:
             self.state_grids[h_curr] = grid
 

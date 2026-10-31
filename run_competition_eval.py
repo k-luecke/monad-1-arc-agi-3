@@ -300,6 +300,7 @@ def play_single_game(
     agent_gid = "blind_unknown_env" if blind_id else gid
     goal_report = None
     win_records = None
+    monad2_report = None
     try:
         agent = MyAgent(
             card_id=card_id,
@@ -323,6 +324,15 @@ def play_single_game(
                 win_records = list(records)
         except Exception:
             win_records = None
+        monad2_report = None
+        try:
+            stats = getattr(agent, "m2", None)
+            if isinstance(stats, dict) and stats:
+                monad2_report = dict(stats)
+                monad2_report["rehearsal_log"] = list(getattr(agent, "m2_rehearsal_log", []) or [])
+                monad2_report["cross_game"] = getattr(agent, "m2_cross_game", "carry")
+        except Exception:
+            monad2_report = None
         if blind_id:
             assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
             for frame in getattr(agent, "frames", []):
@@ -362,6 +372,8 @@ def play_single_game(
         result["goal_report"] = goal_report
     if win_records:
         result["win_records"] = win_records
+    if monad2_report:
+        result["monad2"] = monad2_report
     return result
 
 
