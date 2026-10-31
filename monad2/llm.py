@@ -103,8 +103,8 @@ class LocalLlama:
         self.role = role
         self.path = path
         self.grammar = LlamaGrammar.from_string(_GRAMMAR[role])
-        # One window for every role. The prompt is clipped to fit inside it on the first call.
-        n_ctx = 1536
+        # 1024 is enough once the prompt is clipped, and a wider cache slowed every token.
+        n_ctx = 1024
         threads = _threads()
         self.llm = Llama(
             model_path=str(path),
