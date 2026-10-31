@@ -215,17 +215,16 @@ def induce(records: list[dict], diff: dict | None, meta: str, playfield: str) ->
             break
 
     movers = [rec for rec in recs if is_moved(rec) and id(rec) not in taken]
-    movers.sort(key=lambda rec: (int(rec.get("area") or 0), _geom(rec) or (0, 0, 0)))
-    if movers:
+    counts: dict[tuple, int] = {}
+    for rec in recs:
+        geom = _geom(rec)
+        if geom is not None:
+            counts[geom] = counts.get(geom, 0) + 1
+    unique_movers = [rec for rec in movers if counts.get(_geom(rec) or (), 0) == 1]
+    if len(unique_movers) == 1:
+        add("avatar", unique_movers[0])
+    elif len(movers) == 1 and counts.get(_geom(movers[0]) or (), 0) == 1:
         add("avatar", movers[0])
-        for extra in movers[1:]:
-            if not any(item["role"] == "movable" for item in roles):
-                add("movable", extra)
-    else:
-        rest = [rec for rec in recs if id(rec) not in taken and _geom(rec) is not None]
-        rest.sort(key=lambda rec: (int(rec.get("area") or 0), _geom(rec) or (0, 0, 0)))
-        if rest:
-            add("avatar", rest[0])
     for rec in recs:
         geom = _geom(rec)
         if geom is None or id(rec) in taken:
@@ -238,19 +237,8 @@ def induce(records: list[dict], diff: dict | None, meta: str, playfield: str) ->
             if id(rec) not in taken:
                 add("hazard", rec)
                 break
-    if "terminal_goal" in meta_l or any(item["role"] == "receptor" for item in roles):
-        receptor = next((rec for rec in recs if _geom(rec) and int(_geom(rec)[0]) == 2), None)
-        if receptor is not None:
-            if not any(item["role"] == "goal" for item in roles):
-                roles.append(
-                    {
-                        "role": "goal",
-                        "geom": list(_geom(receptor)),
-                        "shape": "hollow_rect",
-                    }
-                )
-        elif "terminal_goal" in meta_l:
-            add("goal", None)
+    if "terminal_goal" in meta_l and not any(item["role"] == "goal" for item in roles):
+        add("goal", None)
     if _hud_present(playfield):
         add("counter_hud", None)
 
@@ -483,6 +471,8 @@ def drop_contradictions(hit: dict | None, legal: list[int] | None, live_roles: s
             reject = True
         elif role == "hazard" and "hazard" not in live:
             reject = True
+        elif role == "goal" and "goal" not in live:
+            reject = True
         if reject:
             dropped.append(str(role))
         else:
@@ -571,6 +561,7 @@ def hypothesis_line(agent, scene: dict, diff: dict | None) -> str:
         live = infer_roles(records, state.get("role_evidence") or {}, legal, span or None)
     except Exception:
         live = None
+    state["frame_records"] = records
     if live and live.get("roles"):
         state["schema_obs"] = {"roles": live["roles"], "relations": live["relations"]}
         state["affordances"] = live.get("affordances") or {}
@@ -746,6 +737,29 @@ def _enlarge_avatar(grid, records: list[dict], prefer: tuple | None = None) -> l
     return out
 
 
+def _effect_mover(records: list[dict]) -> dict | None:
+    """One shape a directional action could have translated. Shared geometries are skipped."""
+    counts: dict[tuple, int] = {}
+    for rec in records or []:
+        geom = _geom(rec)
+        if geom is not None:
+            counts[geom] = counts.get(geom, 0) + 1
+    pool = []
+    for rec in records or []:
+        geom = _geom(rec)
+        if geom is None or counts.get(geom, 0) != 1:
+            continue
+        if int(geom[0]) == 2 or int(geom[2]) >= 8:
+            continue
+        if not rec.get("sig"):
+            continue
+        pool.append(rec)
+    if not pool:
+        return None
+    pool.sort(key=lambda rec: (int(rec.get("area") or 0), _geom(rec) or ()))
+    return pool[0]
+
+
 def transformed_case(grid=None, hud_rows=None, hud_cols=None) -> dict:
     """Recolor and rotate a played frame, then substitute one shape's geometry."""
     frame = grid if grid is not None else LAST_FRAME.get("grid")
@@ -754,7 +768,9 @@ def transformed_case(grid=None, hud_rows=None, hud_cols=None) -> dict:
     rows = hud_rows if hud_rows is not None else LAST_FRAME.get("hud_rows") or set()
     cols = hud_cols if hud_cols is not None else LAST_FRAME.get("hud_cols") or set()
     base_records = _records_from_grid(frame, rows, cols)
-    base = induce(base_records, None, "", _playfield(rows, cols))
+    mover = _effect_mover(base_records)
+    base_diff = {"moved": [{"sig": mover["sig"]}], "vanished": [], "appeared": []} if mover else None
+    base = induce(base_records, base_diff, "", _playfield(rows, cols))
     turned = _permute(_rot90(frame))
     t_rows, t_cols = _rot_hud(len(frame), rows, cols)
     turned_records = _records_from_grid(turned, t_rows, t_cols)
@@ -767,7 +783,19 @@ def transformed_case(grid=None, hud_rows=None, hud_cols=None) -> dict:
     )
     larger = _permute(_rot90(_enlarge_avatar(frame, base_records, avatar_geom)))
     alt_records = _records_from_grid(larger, t_rows, t_cols)
-    alt = induce(alt_records, None, "", _playfield(t_rows, t_cols))
+    known_geoms = {_geom(rec) for rec in base_records}
+    grown = next(
+        (
+            rec
+            for rec in alt_records
+            if _geom(rec) and _geom(rec) not in known_geoms and int(_geom(rec)[0]) != 2 and rec.get("sig")
+        ),
+        None,
+    )
+    if grown is None:
+        grown = _effect_mover(alt_records)
+    alt_diff = {"moved": [{"sig": grown["sig"]}], "vanished": [], "appeared": []} if grown else None
+    alt = induce(alt_records, alt_diff, "", _playfield(t_rows, t_cols))
     source = upsert(base, episode="ep-frame")
     hit = None
     if source:

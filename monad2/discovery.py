@@ -564,9 +564,13 @@ def _open_watch(agent, level: int, *, boundary: bool, before, after) -> WatchEpi
     return ep
 
 
-def watch_step(agent, changed: bool) -> None:
-    """Update the open segment from the transition the baseline policy just made."""
-    if not watch_on():
+def watch_step(agent, changed: bool, force: bool = False) -> None:
+    """Update the open segment from the transition that just happened.
+
+    The coordination path passes force so a watch hypothesis is available as a
+    labeled candidate. That hypothesis is not a bound goal.
+    """
+    if not force and not watch_on():
         return
     level = int(getattr(agent, "current_level", 0) or 0)
     before = getattr(agent, "prev_grid", None)

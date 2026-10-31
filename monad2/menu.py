@@ -124,9 +124,9 @@ def _term(text: str) -> str:
     return '"\\"' + text + '\\""'
 
 
-def executive_grammar(items: list[dict]) -> str:
+def executive_grammar(items: list[dict], click_only: bool = False) -> str:
     """GBNF whose action field is only a menu index or a role reference."""
-    from monad2.llm import _GRAMMAR
+    from monad2.llm import _GRAMMAR, drop_directional_roles
 
     choices = []
     for item in items:
@@ -139,4 +139,7 @@ def executive_grammar(items: list[dict]) -> str:
             lines.append(action)
         elif line:
             lines.append(line)
-    return "\n".join(lines) + "\n"
+    grammar = "\n".join(lines) + "\n"
+    if click_only:
+        return drop_directional_roles(grammar)
+    return grammar

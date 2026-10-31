@@ -70,12 +70,15 @@ def main() -> int:
     from monad2.test_coordinate import Backend, _agent
 
     agent = _agent()
+    agent._m2_grid = _grid()
+    agent.prev_grid = _grid()
     agent._m2_coord = {
         "theory": {"goal": None, "text": ""},
         "pending": None,
         "mismatch": None,
         "progress_axis": 4,
         "schema_obs": obs,
+        "role_evidence": {"avatar": [4, 2, 2]},
     }
     executive = (
         '{"decision":"accept","action":"SIMPLE 3","primitive":"approach","binding":"avatar,goal",'

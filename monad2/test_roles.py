@@ -83,16 +83,17 @@ def _same_roles(grid, legal):
 
 def main() -> int:
     click = _same_roles(_click_scene(), [6])
-    assert "clickable" in _names(click)
     assert "reference" in _names(click) or "receptor" in _names(click)
     assert "avatar" not in _names(click)
-    assert any(rel.get("kind") == "shape_match" for rel in click["relations"]), click["relations"]
+    assert "goal" not in _names(click)
+    assert "clickable" not in _names(click)
     assert click["affordances"].get("clickable")
 
     dpad = _same_roles(_dpad_scene(), [1, 2, 3, 4, 5])
-    assert "avatar" in _names(dpad)
+    assert "avatar" not in _names(dpad)
+    assert "goal" not in _names(dpad)
     assert "wall" in _names(dpad)
-    assert "goal" in _names(dpad) or "receptor" in _names(dpad)
+    assert "receptor" in _names(dpad) or "reference" in _names(dpad)
 
     before = _records_from_grid(_dpad_scene())
     after = _records_from_grid(_shift_avatar(_dpad_scene()))
@@ -106,15 +107,21 @@ def main() -> int:
 
     pushed = [dict(rec) for rec in before]
     # A second shape beside the avatar translates with it: that one was touched.
-    box = {"sig": (1, 8, 2, 2), "geom": (1, 2, 2), "xy": (6, 8), "wh": (2, 2), "area": 4, "click": (7, 9), "type": 1}
+    box = {"sig": (1, 8, 3, 2), "geom": (1, 2, 3), "xy": (6, 8), "wh": (3, 2), "area": 6, "click": (7, 9), "type": 1}
     pushed.append(box)
     moved_box = dict(box)
     moved_box["xy"] = (8, 8)
     moved_box["click"] = (9, 9)
     after_push = [dict(rec) for rec in after] + [moved_box]
     # The avatar record in `after` already shifted. The box started touching x=6 next to avatar x=4,w=2.
-    touched = note_effect({}, pushed, after_push, ("SIMPLE", 4), "continue")
+    touched = note_effect({"avatar": evidence["avatar"]}, pushed, after_push, ("SIMPLE", 4), "continue")
     assert touched.get("movable"), touched
+    same_a = {"sig": (1, 4, 2, 2), "geom": (1, 2, 2), "xy": (1, 1), "wh": (2, 2), "area": 4, "click": (2, 2), "type": 1}
+    same_b = {"sig": (1, 7, 2, 2), "geom": (1, 2, 2), "xy": (6, 1), "wh": (2, 2), "area": 4, "click": (7, 2), "type": 1}
+    same_b_moved = dict(same_b)
+    same_b_moved["xy"] = (7, 1)
+    crowded = note_effect({}, [same_a, same_b], [same_a, same_b_moved], ("SIMPLE", 4), "continue")
+    assert not crowded.get("avatar"), crowded
 
     clicked_before = _records_from_grid(_click_scene())
     clicked_after = [dict(rec) for rec in clicked_before]
@@ -132,8 +139,25 @@ def main() -> int:
             point = rec.get("click") or rec["xy"]
             break
     assert point is not None
-    switched = note_effect({}, clicked_before, clicked_after, ("CLICK", point[0], point[1]), "continue")
+    shared = note_effect({}, clicked_before, clicked_after, ("CLICK", point[0], point[1]), "continue")
+    assert not shared.get("switch"), shared
+    lone_before = [
+        {"sig": (4, 9, 1, 1), "geom": (4, 1, 1), "xy": (3, 3), "wh": (1, 1), "area": 1, "click": (3, 3), "type": 4},
+    ]
+    lone_after = [
+        {"sig": (4, 9, 1, 1), "geom": (4, 1, 1), "xy": (3, 4), "wh": (1, 1), "area": 1, "click": (3, 4), "type": 4},
+    ]
+    switched = note_effect({}, lone_before, lone_after, ("CLICK", 3, 3), "continue")
     assert switched.get("switch"), switched
+    twin_before = lone_before + [
+        {"sig": (4, 8, 1, 1), "geom": (4, 1, 1), "xy": (8, 8), "wh": (1, 1), "area": 1, "click": (8, 8), "type": 4},
+    ]
+    twin_after = [
+        {"sig": (4, 9, 1, 1), "geom": (4, 1, 1), "xy": (3, 5), "wh": (1, 1), "area": 1, "click": (3, 5), "type": 4},
+        twin_before[1],
+    ]
+    ambiguous = note_effect({}, twin_before, twin_after, ("CLICK", 3, 3), "continue")
+    assert not ambiguous.get("switch"), ambiguous
 
     ended = note_effect(dict(switched), clicked_before, clicked_before, ("CLICK", point[0], point[1]), "reset")
     assert ended.get("hazard"), ended
@@ -148,7 +172,7 @@ def main() -> int:
     assert action_legal(repaired, [6])
     assert suggest_action("toggle", [6], state)[0] == "CLICK"
 
-    avatar = _geom(dpad, "avatar")
+    avatar = _geom(learned, "avatar")
     still = [rec for rec in before if tuple(rec.get("geom") or ()) == avatar]
     pred = {
         "kind": "translate",
@@ -157,7 +181,7 @@ def main() -> int:
         "dir": "left",
         "axis": "none",
         "geom": list(avatar),
-        "geom_b": list(_geom(dpad, "goal") or _geom(dpad, "receptor") or avatar),
+        "geom_b": list(_geom(learned, "receptor") or avatar),
     }
     assert evaluate(pred, still, still) is False
     moved = [dict(rec) for rec in still]
@@ -167,21 +191,23 @@ def main() -> int:
     assert evaluate(pred, still, moved) is False
     assert render(pred) == "translate(role=avatar, dir=right)"
 
-    bound = bind_predicate("hold_gradient", ("SIMPLE", 4), {"roles": dpad["roles"]}, {})
+    bound = bind_predicate("hold_gradient", ("SIMPLE", 4), {"roles": learned["roles"]}, {})
     assert bound["kind"] == "no_reverse" and bound["dir"] == "right" and bound["axis"] == "x"
     assert evaluate(bound, still, moved) is False
     assert evaluate(bound, still, still) is True
 
+    click_recs = _records_from_grid(_click_scene())
+    obj_rec = next(rec for rec in click_recs if rec.get("geom") and int(rec["geom"][0]) != 2)
+    ref_rec = next(rec for rec in click_recs if rec.get("geom") and int(rec["geom"][0]) == 2)
     same = {
         "kind": "match",
         "role": "clickable",
         "role_b": "reference",
         "dir": "none",
         "axis": "none",
-        "geom": list(_geom(click, "clickable")),
-        "geom_b": list(_geom(click, "reference") or _geom(click, "receptor")),
+        "geom": list(obj_rec["geom"]),
+        "geom_b": list(ref_rec["geom"]),
     }
-    click_recs = _records_from_grid(_click_scene())
     # A clickable whose geometry differs from the reference fails the match.
     if tuple(same["geom"]) != tuple(same["geom_b"]):
         fills_differ = True

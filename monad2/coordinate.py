@@ -420,6 +420,28 @@ def _pll_line(state: dict) -> str:
     )
 
 
+def _hypothesis_line(agent, fmf_goals, state: dict) -> str:
+    """Watch and memory candidates. They stay labeled until a completion confirms a goal."""
+    bits = []
+    ep = getattr(agent, "m2_watch", None)
+    frozen = getattr(ep, "frozen", None) if ep is not None else None
+    if frozen is None and ep is not None and getattr(ep, "scores", None):
+        from monad2.discovery import leader
+
+        frozen, _margin = leader(ep.scores)
+    if frozen in GOAL_TYPES:
+        status = "confirmed" if (state.get("role_evidence") or {}).get("goal") else "unconfirmed"
+        bits.append(f"watch {frozen} {status}")
+    for goal in fmf_goals or []:
+        if goal in GOAL_TYPES and f"memory {goal} unconfirmed" not in bits:
+            bits.append(f"memory {goal} unconfirmed")
+    if (state.get("role_evidence") or {}).get("goal"):
+        bits.append("goal role confirmed by completion")
+    else:
+        bits.append("goal role unbound")
+    return "; ".join(bits)
+
+
 def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]:
     from monad2.canvas_stream import scene_brief, solver_name
 
@@ -478,6 +500,7 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
     entries["primitives"] = prim_line
     entries["primitive_list"] = prim_items
     entries["roles"] = state.get("role_line") or "none"
+    entries["hypothesis"] = _hypothesis_line(agent, fmf_goals, state)
     names = {1: "SIMPLE 1", 2: "SIMPLE 2", 3: "SIMPLE 3", 4: "SIMPLE 4", 5: "SIMPLE 5"}
     legal_bits = [names[aid] for aid in legal if aid in names]
     if 6 in legal:
@@ -511,6 +534,7 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
         f"[theory] {entries['theory_goal'] or 'none'}: {_clip(entries['theory'], 160)}",
         f"[schema] {_clip(entries['schema'], 360)}",
         f"[roles] {_clip(entries.get('roles') or 'none', 220)}",
+        f"[hypothesis] {_clip(entries.get('hypothesis') or 'goal role unbound', 180)}",
         f"[legal] {entries.get('legal') or 'none'}",
         f"[menu] {entries.get('menu') or 'none'}",
         f"[primitives] {_clip(entries['primitives'], 320)}",
@@ -625,7 +649,18 @@ def _for_model(text: str) -> str:
     Primitive and schema lines stay at the front so the 1400-character clip
     cannot drop the motion rules the models are asked to bind.
     """
-    first = ("[roles]", "[legal]", "[menu]", "[primitives]", "[pll]", "[schema]", "[avatar]", "[diff]", "[solver]")
+    first = (
+        "[roles]",
+        "[hypothesis]",
+        "[legal]",
+        "[menu]",
+        "[primitives]",
+        "[pll]",
+        "[schema]",
+        "[avatar]",
+        "[diff]",
+        "[solver]",
+    )
     head = []
     rest = []
     for line in text.splitlines():
@@ -765,7 +800,17 @@ def _finish_fast(agent, mode: str, action, ref: str, step: dict, entries: dict, 
 
 def _maybe_script(agent, legal, entries, heuristic, reason, stream, backend):
     """Execute the current plan, or ask the executive to write one. None stays in discovery."""
-    from monad2.planmode import PLAN_SYSTEM, current_step, expand_action, parse_plan, plan_grammar, prompt, ready
+    from monad2.planmode import (
+        PLAN_SYSTEM,
+        current_step,
+        expand_action,
+        parse_plan,
+        plan_grammar,
+        plan_signature,
+        prompt,
+        ready,
+        reject_same,
+    )
 
     state = _state(agent)
     surprise = str(state.get("surprise_pending") or "")
@@ -789,17 +834,25 @@ def _maybe_script(agent, legal, entries, heuristic, reason, stream, backend):
         from monad2.llm import get_backend
 
         backend = get_backend()
+    click_only = not any(int(aid) in (1, 2, 3, 4) for aid in legal)
     text, ms = _call_model(
         agent,
         backend,
         "executive",
         PLAN_SYSTEM,
-        prompt(entries, surprise if mode == "replan" else ""),
-        grammar=plan_grammar(),
+        prompt(entries, surprise if mode == "replan" else "", state.get("replan_context")),
+        grammar=plan_grammar(click_only=click_only),
         max_tokens=160,
         strict_grammar=True,
     )
-    steps = parse_plan(text, state.get("schema_obs") or {}, state)
+    obs = state.get("schema_obs") or {}
+    steps = parse_plan(text, obs, state)
+    if mode == "replan":
+        proposed = list(steps)
+        steps, banned = reject_same(state.get("script") or [], steps, obs, state, state.get("rejected_sigs"))
+        state["rejected_sigs"] = banned
+        if plan_signature(steps) != plan_signature(proposed):
+            state["plan_rejected"] = "identical"
     _bump(agent, "plan_writes")
     state["surprise_pending"] = None
     state["mismatch"] = None
@@ -808,10 +861,12 @@ def _maybe_script(agent, legal, entries, heuristic, reason, stream, backend):
         state["script"] = []
         return None
     state["script"] = steps
+    state["plan_sig"] = plan_signature(steps)
     state["script_i"] = 0
     state["plan"] = []
     state["plan_roles"] = state.get("role_line") or ""
     state["stall_steps"] = 0
+    state["blocked_here"] = []
     state["mode"] = "execute"
     action, ref = expand_action(steps[0], legal, state, entries.get("menu_items") or [])
     if action is None or not _ladder_ok(agent, action, legal)[0]:
@@ -910,13 +965,28 @@ def decide(agent, key, reason: str = "", backend=None):
     try:
         from monad2.primitives import repair_action
 
+        click_only = not any(int(aid) in (1, 2, 3, 4) for aid in legal)
+        from monad2.llm import grammar_for
+
+        click_note = ""
+        if click_only:
+            click_note = " This frame has no directional actions. Do not use SIMPLE, avatar, or hold_gradient."
         a_user = (
             _for_model(stream)
             + f"\nLegal actions: {entries.get('legal') or 'none'}."
             + "\nPropose one primitive from the [primitives] line and the role binding it uses."
             + " The action must be one of the legal actions."
+            + click_note
         )
-        a_text, a_ms = _call_model(agent, backend, "a", _A_SYSTEM, a_user)
+        a_text, a_ms = _call_model(
+            agent,
+            backend,
+            "a",
+            _A_SYSTEM,
+            a_user,
+            grammar=grammar_for("a", click_only) if click_only else None,
+            strict_grammar=click_only,
+        )
         a_obj = _json_obj(a_text) or {}
         a_key = _parse_action(a_obj.get("action") or a_text, legal)
         a_key, a_fixed = repair_action(a_key, legal, str(a_obj.get("primitive") or ""), _state(agent))
@@ -931,7 +1001,15 @@ def decide(agent, key, reason: str = "", backend=None):
             + f"reason={_clip(a_obj.get('reason') or a_text, 80)}"
             + (" repaired" if a_fixed else "")
         )
-        b_text, b_ms = _call_model(agent, backend, "b", _B_SYSTEM, b_user)
+        b_text, b_ms = _call_model(
+            agent,
+            backend,
+            "b",
+            _B_SYSTEM,
+            b_user + click_note,
+            grammar=grammar_for("b", click_only) if click_only else None,
+            strict_grammar=click_only,
+        )
         b_obj = _json_obj(b_text) or {}
         b_key = _parse_action(b_obj.get("action") or b_text, legal)
         b_key, b_fixed = repair_action(b_key, legal, str(b_obj.get("primitive") or "explore"), _state(agent))
@@ -959,7 +1037,7 @@ def decide(agent, key, reason: str = "", backend=None):
             "executive",
             _E_SYSTEM,
             e_user,
-            grammar=executive_grammar(menu) if menu else None,
+            grammar=executive_grammar(menu, click_only=click_only) if menu else None,
             strict_grammar=bool(menu),
         )
         e_obj = _json_obj(e_text) or {}
@@ -1037,7 +1115,11 @@ def decide(agent, key, reason: str = "", backend=None):
             prim = alt
             if decision == "accept":
                 decision = "inhibit"
-    if prim and prim != "explore" and contradicts_gradient(prim, chosen, _state(agent)):
+    if (
+        not click_only
+        and decision != "explore"
+        and contradicts_gradient("approach", chosen, _state(agent))
+    ):
         alt = suggest_action("hold_gradient", legal, _state(agent))
         if alt is not None and alt != chosen:
             chosen = alt
@@ -1159,6 +1241,12 @@ def observe(agent, changed: bool) -> None:
     pending = state.get("pending")
     if not pending:
         return
+    try:
+        from monad2.discovery import watch_step
+
+        watch_step(agent, changed, force=True)
+    except Exception:
+        pass
     state["pending"] = None
     observed = "changed" if changed else "unchanged"
     hit = bool(pending.get("expect_change")) == bool(changed)

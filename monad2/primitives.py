@@ -68,12 +68,125 @@ def _has(roles: set[str], *need: str) -> bool:
     return all(name in roles for name in need)
 
 
+def _role_geom(obs: dict, role: str):
+    for slot in (obs or {}).get("roles") or []:
+        if slot.get("role") == role and slot.get("geom") and len(slot["geom"]) == 3:
+            return (int(slot["geom"][0]), int(slot["geom"][1]), int(slot["geom"][2]))
+    return None
+
+
+def _rec_geom(rec: dict):
+    raw = rec.get("geom")
+    if not raw or len(raw) != 3:
+        return None
+    return (int(raw[0]), int(raw[1]), int(raw[2]))
+
+
+def _rec_box(rec: dict):
+    xy = rec.get("xy")
+    wh = rec.get("wh")
+    if not xy or not wh or len(xy) != 2 or len(wh) != 2:
+        return None
+    return (int(xy[0]), int(xy[1]), int(wh[0]), int(wh[1]))
+
+
+def _boxes_for(records, geom) -> list:
+    if geom is None:
+        return []
+    found = []
+    for rec in records or []:
+        if _rec_geom(rec) != geom:
+            continue
+        box = _rec_box(rec)
+        if box is not None:
+            found.append(box)
+    return found
+
+
+def _overlap(a, b) -> bool:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
+
+
+def _neg() -> int:
+    return 0 - 1
+
+
+def _ahead(box, aid: int):
+    x, y, w, h = box
+    step = _neg()
+    if aid == 1:
+        return (x, y + step, w, 1)
+    if aid == 2:
+        return (x, y + h, w, 1)
+    if aid == 3:
+        return (x + step, y, 1, h)
+    if aid == 4:
+        return (x + w, y, 1, h)
+    return None
+
+
+def _dir_order(dx: int, dy: int) -> list[int]:
+    step = _neg()
+    deltas = ((1, 0, step), (2, 0, 1), (3, step, 0), (4, 1, 0))
+    scored = []
+    for aid, sx, sy in deltas:
+        scored.append((sx * dx + sy * dy, aid))
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [aid for _score, aid in scored]
+
+
+def step_toward(name: str, legal: list[int], state: dict):
+    """One d-pad step toward the bound target. None when that target has no unique box."""
+    if name not in ("approach", "convey", "route"):
+        return None
+    obs = (state or {}).get("schema_obs") or {}
+    records = (state or {}).get("frame_records") or []
+    mover_role = str((state or {}).get("step_role") or "")
+    target_role = str((state or {}).get("step_target") or "")
+    if name == "convey" and not mover_role:
+        mover_role = "movable"
+    if not mover_role:
+        mover_role = "avatar"
+    if not target_role or target_role == "none":
+        target_role = "goal" if name != "route" else "wall"
+    if target_role == "goal" and _role_geom(obs, "goal") is None:
+        return None
+    mover_boxes = _boxes_for(records, _role_geom(obs, mover_role))
+    target_boxes = _boxes_for(records, _role_geom(obs, target_role))
+    if len(mover_boxes) != 1 or len(target_boxes) != 1:
+        return None
+    mover = mover_boxes[0]
+    target = target_boxes[0]
+    walls = _boxes_for(records, _role_geom(obs, "wall"))
+    blocked = set()
+    for item in (state or {}).get("blocked_here") or []:
+        try:
+            blocked.add(int(item))
+        except (TypeError, ValueError):
+            continue
+    cx = mover[0] + mover[2] // 2
+    cy = mover[1] + mover[3] // 2
+    gx = target[0] + target[2] // 2
+    gy = target[1] + target[3] // 2
+    options = _dpad(legal)
+    for aid in _dir_order(gx - cx, gy - cy):
+        if aid not in options or aid in blocked:
+            continue
+        probe = _ahead(mover, aid)
+        if probe is not None and any(_overlap(probe, wall) for wall in walls):
+            continue
+        return aid
+    return None
+
+
 def precondition(name: str, obs: dict, state: dict) -> bool:
     roles = _roles(obs)
     rels = _relations(obs)
     progress = state.get("progress_axis")
     if name == "approach":
-        return "avatar" in roles and ("goal" in roles or "receptor" in roles)
+        return "avatar" in roles and "goal" in roles
     if name == "hold_gradient":
         return progress in _REVERSE and "avatar" in roles
     if name == "convey":
@@ -154,6 +267,11 @@ def suggest_action(name: str, legal: list[int], state: dict):
     progress = state.get("progress_axis")
     reverse = _REVERSE.get(progress)
     options = _dpad(legal)
+    if name in ("approach", "convey", "route") and (state.get("step_target") or state.get("step_role")):
+        aimed = step_toward(name, legal, state)
+        if aimed is not None:
+            return ("SIMPLE", int(aimed))
+        return None
     if name in ("approach", "hold_gradient", "convey", "route"):
         if progress in options:
             return ("SIMPLE", int(progress))
@@ -172,8 +290,27 @@ def suggest_action(name: str, legal: list[int], state: dict):
             return ("SIMPLE", int(options[0]))
         return _click_at(state, "avatar", "clickable")
     if name in ("toggle", "cycle_select"):
-        if 5 in legal:
+        if 5 in legal and not state.get("step_role"):
             return ("SIMPLE", 5)
+        index = 0
+        try:
+            index = int(state.get("anchor_i") or 0)
+        except (TypeError, ValueError):
+            index = 0
+        if index < 0:
+            index = 0
+        roles = []
+        for role in (state.get("step_role"), state.get("step_target"), "switch", "clickable"):
+            if role and role not in roles and role != "none":
+                roles.append(role)
+        aff = (state or {}).get("affordances") or {}
+        for role in roles:
+            points = aff.get(role) or []
+            if not isinstance(points, (list, tuple)) or index >= len(points):
+                continue
+            point = points[index]
+            if isinstance(point, (list, tuple)) and len(point) == 2:
+                return ("CLICK", int(point[0]), int(point[1]))
         return _click_at(state, "switch", "clickable", "reference")
     if name in ("align", "assemble"):
         if progress in options:
@@ -253,8 +390,8 @@ def _binding_text(name: str, obs: dict) -> str:
             picked.append("reference")
         elif role == "avatar" and "clickable" in have and name in ("align", "toggle", "assemble"):
             picked.append("clickable")
-        elif role == "goal" and "reference" in have:
-            picked.append("reference")
+        elif role == "goal" and "goal" in have:
+            picked.append("goal")
     if name in ("toggle", "cycle_select", "align") and "clickable" in have and "clickable" not in picked:
         picked.insert(0, "clickable")
     return ",".join(picked or _BINDING.get(name, ()))

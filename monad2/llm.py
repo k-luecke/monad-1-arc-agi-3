@@ -72,6 +72,34 @@ root ::= "{" ws "\"decision\"" ws ":" ws decision ws "," ws "\"action\"" ws ":" 
 }
 
 
+def drop_directional_roles(grammar: str) -> str:
+    """Click-only frames cannot name a d-pad primitive or an avatar."""
+    lines = []
+    for line in grammar.splitlines():
+        if line.startswith("prim ::="):
+            line = line.replace(' | "\\"hold_gradient\\""', "")
+        elif line.startswith("role ::="):
+            line = line.replace('"\\"avatar\\"" | ', "")
+        lines.append(line)
+    text = "\n".join(lines)
+    if grammar.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def grammar_for(role: str, click_only: bool = False) -> str:
+    """The role grammar. A click-only legal set drops SIMPLE, avatar, and hold_gradient."""
+    text = _GRAMMAR[role]
+    if not click_only:
+        return text
+    lines = []
+    for line in text.splitlines():
+        if line.startswith("action ::="):
+            line = 'action ::= ("\\"CLICK " [0-9]+ " " [0-9]+ "\\"")'
+        lines.append(line)
+    return drop_directional_roles("\n".join(lines) + "\n")
+
+
 def _threads() -> int:
     raw = os.environ.get("INOS_LLM_THREADS", "").strip()
     if raw:

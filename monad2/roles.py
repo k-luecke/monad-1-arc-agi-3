@@ -3,8 +3,10 @@
 What translates under a directional action is the avatar. What translates when
 it was touching that avatar is movable. What changes under a click is a switch.
 A region that ends or resets the level is a hazard. What blocks a step is a
-wall. What level completion touches is the goal. A shape or fill match between
-a reference and another region is the align relation.
+wall. The goal stays unbound until a level completion names the object it
+touched. A hypothesis is not a goal. A shape or fill match between a reference
+and another region is the align relation. A geometry that matches more than
+one object is not a binding.
 
 Click games have no avatar. Their roles are the clickable objects and the
 reference panel. Stored slots are geometry only: no palette entry, no
@@ -110,6 +112,23 @@ def _find_geom(records: list[dict], geom, taken: set[int] | None = None):
     return None
 
 
+def _geom_counts(records: list[dict]) -> dict:
+    counts: dict = {}
+    for rec in records or []:
+        geom = _geom(rec)
+        if geom is None:
+            continue
+        counts[geom] = counts.get(geom, 0) + 1
+    return counts
+
+
+def _unique_geom(records: list[dict], geom) -> bool:
+    if not geom or len(geom) != 3:
+        return False
+    want = (int(geom[0]), int(geom[1]), int(geom[2]))
+    return _geom_counts(records).get(want, 0) == 1
+
+
 def _largest(records: list[dict], taken: set[int]) -> dict | None:
     pool = [rec for rec in records if id(rec) not in taken and _geom(rec) is not None]
     if not pool:
@@ -174,22 +193,14 @@ def infer_roles(
             taken.add(id(reference))
 
     evidence_avatar = _find_geom(recs, evidence.get("avatar"), taken)
-    if dpad and evidence_avatar is not None:
-        _add(roles, taken, "avatar", evidence_avatar)
-    elif dpad and not click:
-        rest = [rec for rec in recs if id(rec) not in taken]
-        rest.sort(key=lambda rec: (_area(rec), _geom(rec) or (0, 0, 0)))
-        if rest:
-            _add(roles, taken, "avatar", rest[0])
-    elif dpad and click and evidence_avatar is not None:
+    if dpad and evidence_avatar is not None and _unique_geom(recs, evidence.get("avatar")):
         _add(roles, taken, "avatar", evidence_avatar)
 
     evidence_movable = _find_geom(recs, evidence.get("movable"), taken)
-    if evidence_movable is not None:
+    if evidence_movable is not None and _unique_geom(recs, evidence.get("movable")):
         _add(roles, taken, "movable", evidence_movable)
-    evidence_switch = _find_geom(recs, evidence.get("switch"))
     evidence_hazard = _find_geom(recs, evidence.get("hazard"), taken)
-    if evidence_hazard is not None:
+    if evidence_hazard is not None and _unique_geom(recs, evidence.get("hazard")):
         _add(roles, taken, "hazard", evidence_hazard)
 
     clickables = []
@@ -202,22 +213,19 @@ def infer_roles(
             if any(slot.get("role") == "wall" and slot.get("geom") == list(_geom(rec) or ()) for slot in roles):
                 continue
             clickables.append(rec)
-        clickables.sort(key=lambda rec: (_area(rec), _geom(rec) or (0, 0, 0)))
-        if clickables:
-            _add(roles, taken, "clickable", clickables[0])
-            for extra in clickables[1:]:
-                taken.add(id(extra))
-    if evidence_switch is not None:
-        _add(roles, set(), "switch", evidence_switch)
-    elif any(slot.get("role") == "clickable" for slot in roles) and len(clickables) == 1:
-        _add(roles, set(), "switch", clickables[0])
+    if evidence.get("switch") and _unique_geom(recs, evidence.get("switch")):
+        host = _find_geom(recs, evidence.get("switch"))
+        if host is not None:
+            _add(roles, set(), "switch", host)
+            _add(roles, taken, "clickable", host)
+    elif evidence.get("clickable") and _unique_geom(recs, evidence.get("clickable")):
+        host = _find_geom(recs, evidence.get("clickable"))
+        if host is not None:
+            _add(roles, taken, "clickable", host)
 
     goal_rec = _find_geom(recs, evidence.get("goal"))
-    if goal_rec is not None:
+    if goal_rec is not None and _unique_geom(recs, evidence.get("goal")):
         _add(roles, set(), "goal", goal_rec)
-    elif any(slot.get("role") in ("receptor", "reference") for slot in roles):
-        host = next(slot for slot in roles if slot.get("role") in ("receptor", "reference") and slot.get("geom"))
-        _add(roles, set(), "goal", None, host.get("geom"))
 
     relations: list[dict] = []
     if evidence.get("avatar"):
@@ -414,25 +422,30 @@ def note_effect(evidence: dict | None, before: list[dict], after: list[dict], ac
     kept = dict(evidence or {})
     moved = _deltas_of(list(before or []), list(after or []))
     kind = action[0] if action else ""
+    counts = _geom_counts(list(before or []))
     if kind == "SIMPLE" and action and int(action[1]) in (1, 2, 3, 4):
         geoms = []
-        for rec, _dx, _dy in moved:
+        for rec, dx, dy in moved:
             geom = _geom(rec)
-            if geom is not None and geom not in geoms:
-                geoms.append(geom)
+            if geom is None or geom in geoms or not (dx or dy):
+                continue
+            if counts.get(geom, 0) != 1:
+                continue
+            geoms.append(geom)
         known = tuple(kept["avatar"]) if kept.get("avatar") else None
+        if known is not None and counts.get(known, 0) != 1:
+            known = None
+            kept.pop("avatar", None)
         avatar_geom = None
         if known is not None and known in geoms:
             avatar_geom = known
         elif len(geoms) == 1:
             avatar_geom = geoms[0]
-        elif geoms:
-            avatar_geom = min(geoms, key=lambda geom: (geom[1] * geom[2], geom))
         if avatar_geom is not None:
             kept["avatar"] = [avatar_geom[0], avatar_geom[1], avatar_geom[2]]
             for rec, _dx, _dy in moved:
                 geom = _geom(rec)
-                if geom is None or geom == avatar_geom:
+                if geom is None or geom == avatar_geom or counts.get(geom, 0) != 1:
                     continue
                 host = _find_geom(before, avatar_geom)
                 if host is not None and _touched(host, rec):
@@ -440,22 +453,28 @@ def note_effect(evidence: dict | None, before: list[dict], after: list[dict], ac
                     break
         if not geoms and kept.get("avatar"):
             wall = _blocker(list(before or []), kept.get("avatar"), int(action[1]))
-            if wall is not None:
+            if wall is not None and _unique_geom(list(before or []), wall):
                 kept["wall"] = [wall[0], wall[1], wall[2]]
     if kind == "CLICK":
         target = _clicked(list(before or []), action)
         geom = _geom(target) if target is not None else None
-        if geom is not None and _changed(list(before or []), list(after or [])):
+        changed = _changed(list(before or []), list(after or []))
+        if geom is not None and changed and counts.get(geom, 0) == 1:
             kept["switch"] = [geom[0], geom[1], geom[2]]
-            kept["clickable"] = [geom[0], geom[1], geom[2]]
-        elif geom is not None:
             kept["clickable"] = [geom[0], geom[1], geom[2]]
     if outcome == "reset":
         hazard = kept.get("avatar") or kept.get("switch") or kept.get("clickable")
-        if hazard:
+        if hazard and _geom_counts(list(before or [])).get(tuple(int(v) for v in hazard), 0) <= 1:
             kept["hazard"] = list(hazard)
     if outcome == "completed":
-        goal = kept.get("movable") or kept.get("avatar") or kept.get("switch") or kept.get("clickable")
-        if goal:
-            kept["goal"] = list(goal)
+        after_counts = _geom_counts(list(after or before or []))
+        for key in ("movable", "avatar", "switch", "clickable"):
+            goal = kept.get(key)
+            if not goal or len(goal) != 3:
+                continue
+            want = (int(goal[0]), int(goal[1]), int(goal[2]))
+            seen = after_counts.get(want, counts.get(want, 0))
+            if seen <= 1:
+                kept["goal"] = [want[0], want[1], want[2]]
+                break
     return kept

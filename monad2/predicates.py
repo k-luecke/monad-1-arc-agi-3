@@ -29,7 +29,7 @@ _ALIASES = {
     "reference": ("reference", "receptor", "goal"),
     "switch": ("switch", "clickable"),
     "receptor": ("receptor", "reference", "goal"),
-    "goal": ("goal", "receptor", "reference"),
+    "goal": ("goal",),
     "avatar": ("avatar",),
     "movable": ("movable", "avatar"),
     "hazard": ("hazard",),
