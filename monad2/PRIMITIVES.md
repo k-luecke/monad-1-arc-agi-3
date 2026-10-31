@@ -17,6 +17,16 @@ The old solver methods stay in `my_agent_v7_inos.py` for reference. With game so
 
 Qwen A' and B' propose one of these with a role binding. Mistral picks or inhibits it and states the effect. The document diff confirms or demotes that primitive. A move that is not one of these rules has to be `explore`.
 
+## Smoke, 2026-10-31 2:21 PM CT
+
+Not a score run. Three games, two actions each, solvers off, `MONAD2_COORDINATE=1`, code `e880261`. Mean step 28.8 s. Solver hits 0. Static scan clean. The saved 6-action sample in `COORD_SAMPLE.md` was not overwritten.
+
+`ls20`, first step. The observation proposed `approach` bound to avatar,goal and `route` bound to avatar,wall. Qwen A' proposed `approach` / avatar,goal / left, effect "avatar translates toward". Qwen B' challenged with `hold_gradient` / avatar,goal / left. Mistral inhibited and took `hold_gradient`, expecting "avatar does not reverse". The frame changed. That matched the expected change, so the check confirmed and confidence moved from 1.0 to 1.25. The canvas sentence "avatar does not reverse" did not parse as a document predicate.
+
+`lp85` and `vc33` had no role precondition, so the only listed rule was labeled `explore`. Both Qwen calls still named a primitive, and neither action was legal, so the executive took the labeled explore click. On `vc33` the frame changed and the document diff matched; confidence 1.25.
+
+The second action of each game was chosen and not scored. The action cap returns before that step's diff.
+
 ## What each old solver became
 
 | Old solver | Primitive | Dropped as game-specific |

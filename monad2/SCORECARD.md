@@ -21,6 +21,8 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 7 | 2026-10-31 8:59 AM | 4576a1e | goal discovery in the 10-factor screen, 300s | 0, 1, 2 | 0/25 | 11, 12, 18 | 37703, 38171, 41675 | 0.292, 0.314, 0.432 | no |
 | 8 | 2026-10-31 11:24 AM | c80088b | watch-only goal discovery, 300s | 0, 1, 2 | 0/25 | 19, 19, 19 | 42729, 42729, 42729 | 0.445, 0.445, 0.445 | yes |
 | 9 | 2026-10-31 12:09 PM | af41cb0 | stall restore on the factorial, seed 0, 300s | 0 | 0/25 | 17/183 | 58524 | 0.290 | no |
+| 10 | 2026-10-31 1:49 PM | cdd1719 | coordination test, not a score run | 0 | 0/3 | 1 | 18 | — | yes |
+| 11 | 2026-10-31 2:21 PM | e880261 | motor-primitive smoke, not a score run | 0 | 0/3 | 0 | 6 | — | yes |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -123,3 +125,9 @@ Code is `cdd1719`. This is not a 25-game score. `MONAD2_COORDINATE=1`, game solv
 | vc33 | 0 | 6 | 291.05 | NOT_FINISHED |
 
 0/3 wins, 1 level, 18 actions, 835 s. Not comparable to the 19/183 baseline. Mean model step 46.2 s, max 67.4 s. The executive was most of that (about 32–55 s). Expectation matched the frame on 11/14 steps. The document diff matched the stated canvas change on 0/12. The executive inhibited 5 times and changed the action 4 of those. Qwen changed the action 4 times. Per-game solver hits 0. Static game-name scan clean. Stored schema S0 had roles wall, avatar, goal and relations containment, contact, with no game id, color, or coordinate. A recolored, quarter-turned frame matched that structure: receptor and goal bound to hollow_rect geom 2,4,6, wall to line geom 3,1,58, avatar to line geom 3,1,6. Live steps of this 6-action run did not show a cross-game binding because the episode key was the reused object id. That key is now an attribute on the agent. A 2-action follow-up at 2:02 PM CT, same three games, mean step 30.5 s, put the `ls20` schema into the `lp85` stream: wall rebound from geom 1,4,52 to line geom 3,1,64, avatar rebound from ellipse geom 4,1,1 to line geom 3,1,4. Generation caps are 48/48/64 tokens. The plan cache did not skip a model call on that follow-up. No flag turns on.
+
+### Entry 11 — motor primitives, not a score run
+
+Code is `e880261` (the primitive list is `1e7d2ff`). This is not a 25-game score. Same three games, two actions each, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`. Mean step 28.8 s, max 32.6 s. 0/3 wins, 0 levels, 6 actions, 176 s.
+
+`ls20` proposed `approach` (avatar,goal) and `route` (avatar,wall). Qwen A' named `approach`. Qwen B' challenged with `hold_gradient`. The executive inhibited and kept `hold_gradient`, expecting "avatar does not reverse". The frame changed, the check confirmed, confidence 1.25. `lp85` and `vc33` had no role precondition, so the listed rule was labeled `explore`. Their Qwen actions were not legal, and the executive took that labeled click. `vc33` confirmed it against the document diff. Per-game solver hits 0. Static scan clean. The mapping of the 27 old methods is `monad2/PRIMITIVES.md`. No flag turns on.
