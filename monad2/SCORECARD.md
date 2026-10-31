@@ -8,7 +8,7 @@ Every entry records America/Chicago time, commit, flags, seeds, per-game time li
 
 `PYTHONHASHSEED` is fixed per seed. Game order is the harness default (sorted prefixes) unless the entry names a permutation. The per-game limit is `--max-game-seconds` (300 unless an entry says otherwise).
 
-Gaps 1–9 are independent flags and default off. `MONAD2_FACTORIAL=1` assigns a row of the 32-run design in `monad2/factorial.py` to each level. Discovery analysis ignores the pre-registered holdout prefixes `cd82`, `ft09`, `m0r0`, `tn36`, `tr87`. A factor is turned on only after a fixed-flag replay of that combo on the holdout beats this baseline. `monad2/DATAFLOW.md` is the influence-path rule: a one-module zero is not grounds to delete a module.
+Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISCOVERY` as a tenth column of the same 32-run design (the AB interaction in `monad2/factorial.py`). `MONAD2_FACTORIAL=1` assigns one row to each level. Discovery analysis ignores the pre-registered holdout prefixes `cd82`, `ft09`, `m0r0`, `tn36`, `tr87`. A factor is turned on only after a fixed-flag replay of that combo on the holdout beats this baseline. `monad2/DATAFLOW.md` is the influence-path rule: a one-module zero is not grounds to delete a module.
 
 | # | When (CT) | Commit | What | Seeds | Wins | Levels | Actions | Levels/1k | Passed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -18,6 +18,7 @@ Gaps 1–9 are independent flags and default off. `MONAD2_FACTORIAL=1` assigns a
 | 4 | 2026-10-30 9:05 PM | 236b81c | gap 1: SCP next-frame test, 4×4 role map | — | — | — | — | — | yes |
 | 5 | 2026-10-30 9:53 PM | 236b81c | 3-seed balanced factorial, stall breaker on, 300s | 0, 1, 2 | 0/25 | 21, 15, 19 | 42044, 39629, 41582 | 0.499, 0.379, 0.457 | no |
 | 6 | 2026-10-30 10:02 PM | 236b81c | holdout replay of row 13, stall breaker off, 300s | 0 | 0/5 | 2 | 8313 | 0.241 | no |
+| 7 | 2026-10-31 8:59 AM | 4576a1e | goal discovery in the 10-factor screen, 300s | 0, 1, 2 | 0/25 | 11, 12, 18 | 37703, 38171, 41675 | 0.292, 0.314, 0.432 | no |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -58,3 +59,18 @@ PLL lock loss still precedes a failed plan: 51/140 = 0.364 versus a 3-step chanc
 ### Entry 6 — holdout confirmation
 
 Row 13 replayed on `cd82, ft09, m0r0, tn36, tr87` with `PYTHONHASHSEED=0`, those five flags on, the others off, and `MONAD2_STALL_N=0` so the breaker could not hand the game back to baseline. Result: 0/5 wins, 2 levels, 8313 actions. The same five games in the baseline are 2 levels and 8309 actions (cd82 1/2201, ft09 0/1509, m0r0 1/1565, tn36 0/1523, tr87 0/1511). This replay was cd82 1/2201, ft09 0/1512, m0r0 1/1565, tn36 0/1524, tr87 0/1511. It does not beat the baseline. Nothing is turned on by default.
+
+### Entry 7 — goal discovery
+
+Code is `4576a1e`. Early in a level, while `MONAD2_GOAL_DISCOVERY` is on, the agent spends up to 6 probe actions and ranks REACH, PLACE, and MATCH from what the frame actually changed (a controllable shift, a shared shift or a containment/contact gain, a panel-mismatch drop). The leading vote adds 3 to that goal type when the action set already allows it. A later outcome label, from non-probe transitions, is stored in the episode field by affordance features. Holdout prefixes do not write that store. The world-model canvas plans toward the hypothesis. The callosum may override only when the one-step prediction gains more of that goal than the current move. The D-ladder still checks the probe and the override. A PLL lock loss demotes the vote and clears the plan. The tenth factorial column is this group. `monad2/DATAFLOW.md` records the path.
+
+| Seed | Levels | Actions | Levels/1k | Elapsed | sc25 | tu93 | ka59 | bp35 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 11 | 37703 | 0.2918 | 794.83s | 0 | 1 | 0 | 0 |
+| 1 | 12 | 38171 | 0.3144 | 812.44s | 0 | 1 | 0 | 1 |
+| 2 | 18 | 41675 | 0.4319 | 898.25s | 3 | 3 | 1 | 1 |
+| baseline | 19 | 42729 | 0.4447 | — | 3 | 4 | 1 | 1 |
+
+Mean of the three seeds is 13.7 levels and 39183 actions, below the 19-level baseline. Wins stay 0/25. The drops against the baseline are bp35 and ka59 on seed 0, ka59 on seed 1, sc25 on seeds 0 and 1 (3→0), and tu93 on every seed (4→1, 4→1, 4→3). Every one of those missed baseline clears except sc25 on seed 1 had goal discovery on, then the stall breaker fired, and the level still did not clear. sc25 on seed 1 missed with discovery off (row 15) and a stall fallback, so the drop is not discovery alone. On discovery levels the baseline already clears, plays that did not fall back cleared 33/33. Goal discovery was 13/13 on and 20/20 off. The other nine factors are tied the same way. There is no extra clear of a level the baseline never reached, so there is no candidate and no holdout replay. No flag turns on. No module is removed.
+
+Goal-hypothesis accuracy against the later outcome label is 3/3. Those three level-episodes are the only ones that closed with both a frozen probe hypothesis and a separate later-outcome label: cd82 level 0, ls20 level 0, and sp80 level 0, all on seed 2. cd82 is a holdout prefix, so that label was not written into the episode store. Seeds 0 and 1 closed zero such levels. Probes across the screen: 72, 38, 54. Corpus relabel, from described changes rather than goal-type words, added 1 REACH label. 87 records already carried an explicit REACH, PLACE, or MATCH label. 381 records stay unlabeled. Callosum overrides on this screen were 260 of 29,405 seen actions, with 13,066 proposals blocked. Stall fallbacks fired 72 times. PLL demotions were 235.
