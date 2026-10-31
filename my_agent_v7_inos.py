@@ -17587,7 +17587,9 @@ class MyAgent(Agent):
         if arr0.shape != arr1.shape:
             self.fx_pending = None
             return
-        if self.fx_enabled:
+        # Callosum reads this model. Record effects when it is on without also
+        # turning on the rehearsal probes that fx_enabled controls.
+        if self.fx_enabled or os.getenv("MONAD2_CALLOSUM", "0") == "1":
             self._fx_learn(arr0, arr1, self.prev_action)
         pending = self.fx_pending
         self.fx_pending = None
@@ -24823,7 +24825,12 @@ class MyAgent(Agent):
                 )
             except Exception:
                 pass
-        if self.fx_enabled or self.wins_teach or self.rehearse_enabled:
+        if (
+            self.fx_enabled
+            or self.wins_teach
+            or self.rehearse_enabled
+            or os.getenv("MONAD2_CALLOSUM", "0") == "1"
+        ):
             try:
                 self._fx_on_transition(
                     grid, h_curr, is_blackout or was_blackout_last_step
