@@ -88,6 +88,57 @@ def main() -> int:
     os.environ.pop("MONAD2_DLADDER", None)
     os.environ.pop("MONAD2_CALLOSUM", None)
     assert rt.maybe_replace_key(agent, ("SIMPLE", 4)) == ("SIMPLE", 4)
+
+    # A whole-level delta still labels, and watch mode does not replace the key.
+    noisy = _grid()
+    for r in range(16, 32):
+        for c in range(16):
+            noisy[r][c] = 9
+    for r in range(4, 8):
+        for c in range(4, 8):
+            noisy[r][c] = 0
+        for c in range(6, 10):
+            noisy[r][c] = 3
+    assert score_change(before, noisy, allow_large=True)["REACH"] >= 2
+
+    os.environ["MONAD2_GOAL_WATCH"] = "1"
+    agent.m2_goal_hypothesis = None
+    agent.m2_watch_log = []
+    agent.prev_grid = before
+    agent._m2_grid = after
+    agent.prev_action = ("SIMPLE", 4)
+    agent.steps_in_level = 2
+    agent.current_level = 0
+    rt.note_step(agent, True, False)
+    agent.prev_grid = after
+    shifted = _grid()
+    for r in range(4, 8):
+        for c in range(4, 8):
+            shifted[r][c] = 0
+        for c in range(8, 12):
+            shifted[r][c] = 3
+    agent._m2_grid = shifted
+    agent.steps_in_level = 3
+    rt.note_step(agent, True, False)
+    from monad2.discovery import finalize_watch
+
+    finalize_watch(agent)
+    assert agent.m2_goal_hypothesis is None
+    assert rt.maybe_replace_key(agent, ("SIMPLE", 4)) == ("SIMPLE", 4)
+    assert agent.m2["watch_episodes"] == 1
+    assert agent.m2["watch_labeled"] == 1
+    assert agent.m2["watch_hits"] == 1, agent.m2_watch_log
+    from monad2.discovery import EPISODE_FMF as _fmf
+
+    assert _fmf and _fmf[-1][1] == "REACH"
+    os.environ["MONAD2_HOLDOUT_GAME"] = "cd82"
+    from monad2.discovery import reset_store as _reset
+
+    _reset()
+    remember(("aff:avatar",), "REACH", holdout="cd82")
+    assert _fmf == []
+    os.environ.pop("MONAD2_GOAL_WATCH", None)
+    os.environ.pop("MONAD2_HOLDOUT_GAME", None)
     print("DISCOVERY PASS")
     return 0
 

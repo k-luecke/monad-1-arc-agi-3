@@ -139,8 +139,28 @@ def main() -> int:
     assert agent.m2_cross_game == "carry"
     assert agent.m2["stall_fallbacks"] == 1
     assert agent.m2_level_log[-1]["stall_fallback"] == 0
+    assert agent._m2_pending_level_restore is True
     rt.note_step(agent, False, False)
     assert agent.m2["stall_fallbacks"] == 1
+    # Residue captured at level start is what the replay puts back.
+    agent.ggl_pushable_votes = {"box": 3}
+    agent.ggl_confirmed_type = "REACH"
+    agent.control_inversions_detected = 0
+    agent.canonical_to_raw_dpad = {1: 1, 2: 2, 3: 3, 4: 4}
+    agent.raw_to_canonical_dpad = {1: 1, 2: 2, 3: 3, 4: 4}
+    agent.ggl_dir_votes = {}
+    agent.ggl_mover_votes = {}
+    agent.ggl_dynamic_colors = {}
+    agent.ggl_hazard_colors = {}
+    agent.skinner_model = None
+    rt.capture_policy_residue(agent)
+    agent.ggl_pushable_votes = {"box": 9}
+    agent.ggl_confirmed_type = "MATCH"
+    agent.control_inversions_detected = 2
+    rt.apply_policy_residue(agent)
+    assert agent.ggl_pushable_votes["box"] == 3
+    assert agent.ggl_confirmed_type == "REACH"
+    assert agent.control_inversions_detected == 0
 
     os.environ.pop("MONAD2_CALLOSUM", None)
     agent.rehearse_enabled = True

@@ -4523,7 +4523,51 @@ class MyAgent(Agent):
         depth = max(1, min(8, raw))
         return depth, max(1, min(3, (depth + 1) // 2))
 
+    def _m2_restore_baseline_level(self) -> None:
+        """Restart this level under the baseline policy.
+
+        Decision flags are already off. The level-start residue is put back
+        before the world model is rebuilt, so gauge flips and goal votes from
+        the diverged prefix do not steer the replay. One RESET then returns
+        the game to the start of this level.
+        """
+        import os
+
+        from monad2.factorial import FACTORS
+        from monad2.runtime import apply_policy_residue
+
+        self._m2_in_restore = True
+        try:
+            if getattr(self, "planned_queue", None) is not None:
+                self.planned_queue.clear()
+            if getattr(self, "bfs_route_queue", None) is not None:
+                self.bfs_route_queue.clear()
+            self.active_macro_family = None
+            apply_policy_residue(self)
+            self._reset_level_world_model()
+        finally:
+            self._m2_in_restore = False
+        self._m2_stall_fallback = True
+        for name in FACTORS:
+            os.environ[name] = "0"
+        self.m2_cross_game = "carry"
+        os.environ["MONAD2_CROSS_GAME"] = "carry"
+        if os.getenv("MONAD1_CANVAS_REHEARSAL", "0") != "1":
+            self.rehearse_enabled = False
+        if os.getenv("MONAD1_EFFECT_MODEL", "0") != "1":
+            self.fx_enabled = False
+        stats = getattr(self, "m2", None)
+        if isinstance(stats, dict):
+            stats["level_restores"] = stats.get("level_restores", 0) + 1
+
     def _reset_level_world_model(self) -> None:
+        if not getattr(self, "_m2_in_restore", False):
+            try:
+                from monad2.runtime import capture_policy_residue
+
+                capture_policy_residue(self)
+            except Exception:
+                pass
         self._m2_assign_level()
         self.state_grids: dict[int, list[list[int]]] = {}
         self.state_actions: dict[int, list[ActionKey]] = {}
@@ -24783,6 +24827,15 @@ class MyAgent(Agent):
                 _m2_rt.note_step(self, h_curr != self.prev_hash, bool(getattr(self, "_m2_plan_active", False)))
             except Exception:
                 pass
+        if getattr(self, "_m2_pending_level_restore", False):
+            self._m2_pending_level_restore = False
+            try:
+                self._m2_restore_baseline_level()
+            except Exception:
+                pass
+            self._pending_action_data = {}
+            self._pending_action_reasoning = {"text": "monad2-stall-restore-reset"}
+            return GameAction.RESET
         if len(self.state_grids) < 256 or h_curr in self.state_grids:
             self.state_grids[h_curr] = grid
 

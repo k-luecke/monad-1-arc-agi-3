@@ -108,15 +108,61 @@ def _contact_gain(before_objs, after_objs) -> bool:
     return pairs(after_objs) > pairs(before_objs)
 
 
-def score_change(before, after) -> Counter[str]:
-    """Votes from one observed transition. A no-op or a jump votes for nothing."""
+def _color_centroids(grid: list[list[int]]) -> dict[int, tuple[float, float, int]]:
+    counts: Counter[int] = Counter(v for row in grid for v in row)
+    if not counts:
+        return {}
+    bg = counts.most_common(1)[0][0]
+    acc: dict[int, list[int]] = {}
+    for r, row in enumerate(grid):
+        for c, value in enumerate(row):
+            if value == bg:
+                continue
+            bucket = acc.setdefault(int(value), [0, 0, 0])
+            bucket[0] += r
+            bucket[1] += c
+            bucket[2] += 1
+    return {color: (sr / n, sc / n, n) for color, (sr, sc, n) in acc.items() if n}
+
+
+def _color_votes(before: list[list[int]], after: list[list[int]], scores: Counter[str]) -> None:
+    """Shift votes keyed by color, so a role-rank change does not hide the motion."""
+    left = _color_centroids(before)
+    right = _color_centroids(after)
+    shifts: list[tuple[int, int]] = []
+    small = 0
+    for color, (r, c, n) in left.items():
+        other = right.get(color)
+        if other is None:
+            continue
+        if abs(other[2] - n) / max(n, other[2]) > 0.5:
+            continue
+        dr = int(round(other[0] - r))
+        dc = int(round(other[1] - c))
+        if dr or dc:
+            shifts.append((dr, dc))
+            if n <= 36:
+                small = max(small, abs(dr) + abs(dc))
+    if len(shifts) >= 2 and len(set(shifts)) == 1:
+        scores["PLACE"] += 2
+    if small >= 1 and len(shifts) <= 1:
+        scores["REACH"] += 2
+
+
+def score_change(before, after, *, allow_large: bool = False) -> Counter[str]:
+    """Votes from one observed transition. A no-op votes for nothing.
+
+    A jump above 400 cells votes for nothing unless ``allow_large`` is set.
+    The start-versus-end label sets it, because a whole level can move more
+    than one step does. Goal-type words are not read.
+    """
     scores: Counter[str] = Counter()
     b = _copy(before)
     a = _copy(after)
     if b is None or a is None:
         return scores
     changed = _changed_cells(b, a)
-    if changed <= 0 or changed > 400:
+    if changed <= 0 or (changed > 400 and not allow_large):
         return scores
     pb = project(b)
     pa = project(a)
@@ -130,6 +176,7 @@ def score_change(before, after) -> Counter[str]:
         scores["PLACE"] += 1
     if ctrl >= 1 and movers <= 1 and mismatch_drop <= 0:
         scores["REACH"] += 2
+    _color_votes(b, a, scores)
     return scores
 
 
@@ -364,3 +411,224 @@ def demote(agent, goal: str) -> None:
         best, margin = leader(disc.probe_scores)
         disc.frozen = best if best is not None and margin >= 1 else None
         agent.m2_goal_hypothesis = disc.frozen
+
+
+def watch_on() -> bool:
+    return os.getenv("MONAD2_GOAL_WATCH", "0") == "1"
+
+
+class WatchEpisode:
+    """Start hypothesis and endpoint label for one level segment.
+
+    Nothing on this object is read by action selection. The hypothesis freezes
+    from the natural action stream and from effects already observed for other
+    legal actions. The outcome is the start frame against the last in-level frame.
+    """
+
+    def __init__(self, level: int) -> None:
+        self.level = int(level)
+        self.start = None
+        self.last = None
+        self.scores: Counter[str] = Counter()
+        self.frozen: str | None = None
+        self.frozen_step: int | None = None
+        self.changes = 0
+        self.steps = 0
+        self.closed = False
+        self.hypotheticals: set[int] = set()
+        self.seen: set[int] = set()
+
+    def note_last(self, grid) -> None:
+        copied = _copy(grid)
+        if copied is not None:
+            self.last = copied
+
+
+def _effect_table(agent) -> dict[int, Counter[str]]:
+    table = getattr(agent, "m2_watch_effects", None)
+    if not isinstance(table, dict):
+        table = {}
+        agent.m2_watch_effects = table
+    return table
+
+
+def _apply_hypotheticals(agent, ep: WatchEpisode, legal: list[int]) -> None:
+    """Add votes for actions the effect model has already seen and this segment has not taken."""
+    if ep.frozen_step is not None:
+        return
+    used = ep.hypotheticals if isinstance(ep.hypotheticals, set) else set()
+    ep.hypotheticals = used
+    table = _effect_table(agent)
+    for aid in legal:
+        if aid in ep.seen or aid in used or aid not in table:
+            continue
+        ep.scores.update(table[aid])
+        used.add(aid)
+    predict = getattr(agent, "_fx_predict", None)
+    grid = ep.last if ep.last is not None else ep.start
+    if not callable(predict) or grid is None:
+        return
+    for aid in legal:
+        if aid in ep.seen or aid in used:
+            continue
+        key = ("CLICK", 32, 32) if aid == 6 else ("SIMPLE", aid)
+        try:
+            nxt = predict(grid, key)
+        except Exception:
+            nxt = None
+        if nxt is None:
+            used.add(aid)
+            continue
+        ep.scores.update(score_change(grid, nxt))
+        used.add(aid)
+
+
+def _maybe_freeze(agent, ep: WatchEpisode) -> None:
+    if ep.frozen is not None or ep.frozen_step is not None:
+        return
+    steps = int(getattr(agent, "steps_in_level", 0) or 0)
+    best, margin = leader(ep.scores)
+    ready = (ep.changes >= 2 and best is not None and margin >= 1) or steps >= 12
+    if not ready:
+        return
+    ep.frozen = best
+    ep.frozen_step = steps
+
+
+def watch_close(agent, reason: str = "game") -> None:
+    ep = getattr(agent, "m2_watch", None)
+    if not isinstance(ep, WatchEpisode) or ep.closed:
+        return
+    ep.closed = True
+    if ep.frozen_step is None:
+        best, _margin = leader(ep.scores)
+        ep.frozen = best
+        ep.frozen_step = int(getattr(agent, "steps_in_level", 0) or 0)
+    outcome: str | None = None
+    if ep.start is not None and ep.last is not None:
+        votes = score_change(ep.start, ep.last, allow_large=True)
+        outcome, _margin = leader(votes)
+        if outcome is None and _changed_cells(ep.start, ep.last) > 0:
+            outcome = "OTHER"
+    hyp = ep.frozen if ep.frozen in GOAL_TYPES else None
+    confirmed = outcome if outcome in GOAL_TYPES else None
+    stats = getattr(agent, "m2", None)
+    if isinstance(stats, dict):
+        stats["watch_episodes"] = stats.get("watch_episodes", 0) + 1
+        if confirmed is not None:
+            stats["watch_labeled"] = stats.get("watch_labeled", 0) + 1
+        if confirmed is not None and hyp is not None:
+            stats["watch_scored"] = stats.get("watch_scored", 0) + 1
+            if confirmed == hyp:
+                stats["watch_hits"] = stats.get("watch_hits", 0) + 1
+    feats: tuple[str, ...] = ()
+    stored = False
+    if ep.start is not None:
+        try:
+            feats = grid_features(project(ep.start), [])
+        except Exception:
+            feats = ()
+    holdout = os.getenv("MONAD2_HOLDOUT_GAME", "")
+    if confirmed is not None and feats:
+        before = len(EPISODE_FMF)
+        remember(feats, confirmed, holdout=holdout)
+        stored = len(EPISODE_FMF) > before
+    log = getattr(agent, "m2_watch_log", None)
+    if not isinstance(log, list):
+        log = []
+        agent.m2_watch_log = log
+    log.append(
+        {
+            "level": ep.level,
+            "reason": reason,
+            "hypothesis": hyp,
+            "outcome": outcome,
+            "frozen_step": ep.frozen_step,
+            "changes": ep.changes,
+            "steps": ep.steps,
+            "features": list(feats),
+            "stored": stored,
+        }
+    )
+
+
+def _open_watch(agent, level: int, *, boundary: bool, before, after) -> WatchEpisode:
+    ep = WatchEpisode(level)
+    agent.m2_watch = ep
+    if boundary:
+        ep.start = _copy(after)
+        ep.last = ep.start
+        return ep
+    ep.start = _copy(before) or _copy(after)
+    ep.last = _copy(after) or ep.start
+    return ep
+
+
+def watch_step(agent, changed: bool) -> None:
+    """Update the open segment from the transition the baseline policy just made."""
+    if not watch_on():
+        return
+    level = int(getattr(agent, "current_level", 0) or 0)
+    before = getattr(agent, "prev_grid", None)
+    after = getattr(agent, "_m2_grid", None)
+    ep = getattr(agent, "m2_watch", None)
+    boundary = isinstance(ep, WatchEpisode) and not ep.closed and ep.level != level
+    if boundary:
+        if before is not None and after is not None:
+            b = _copy(before)
+            a = _copy(after)
+            if b is not None and a is not None and _changed_cells(b, a) <= 400:
+                ep.note_last(after)
+            elif ep.last is None:
+                ep.note_last(before)
+        elif before is not None:
+            ep.note_last(before)
+        watch_close(agent, reason="level")
+        ep = None
+    if not isinstance(ep, WatchEpisode) or ep.closed:
+        ep = _open_watch(agent, level, boundary=boundary, before=before, after=after)
+        if boundary:
+            return
+    ep.steps += 1
+    if ep.frozen_step is not None:
+        if changed and before is not None and after is not None:
+            b = _copy(before)
+            a = _copy(after)
+            if b is not None and a is not None and 0 < _changed_cells(b, a) <= 400:
+                ep.note_last(after)
+                ep.changes += 1
+        return
+    if changed and before is not None and after is not None:
+        b = _copy(before)
+        a = _copy(after)
+        if b is not None and a is not None:
+            changed_n = _changed_cells(b, a)
+            if 0 < changed_n <= 400:
+                ep.note_last(after)
+                ep.changes += 1
+                votes = score_change(b, a)
+                ep.scores.update(votes)
+                key = getattr(agent, "prev_action", None)
+                aid = -1
+                if key and key[0] == "SIMPLE":
+                    try:
+                        aid = int(key[1])
+                    except (TypeError, ValueError, IndexError):
+                        aid = -1
+                elif key and key[0] == "CLICK":
+                    aid = 6
+                if aid >= 0 and votes:
+                    ep.seen.add(aid)
+                    table = _effect_table(agent)
+                    bucket = table.get(aid)
+                    if bucket is None:
+                        bucket = Counter()
+                        table[aid] = bucket
+                    bucket.update(votes)
+    legal = [int(a) for a in (getattr(agent, "_m2_avail", None) or []) if int(a) != 0]
+    _apply_hypotheticals(agent, ep, legal)
+    _maybe_freeze(agent, ep)
+
+
+def finalize_watch(agent) -> None:
+    watch_close(agent, reason="game")

@@ -299,7 +299,7 @@ def play_single_game(
     env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
     os.environ["MONAD2_HOLDOUT_GAME"] = gid.split("-")[0]
-    if os.getenv("MONAD2_FACTORIAL", "0") == "1":
+    if os.getenv("MONAD2_FACTORIAL", "0") == "1" and os.getenv("MONAD2_GAME_SLOT_LOCK", "0") != "1":
         os.environ["MONAD2_GAME_SLOT"] = str(max(0, int(idx) - 1))
     goal_report = None
     win_records = None
@@ -329,6 +329,12 @@ def play_single_game(
             win_records = None
         monad2_report = None
         try:
+            from monad2.discovery import finalize_watch
+
+            finalize_watch(agent)
+        except Exception:
+            pass
+        try:
             stats = getattr(agent, "m2", None)
             if isinstance(stats, dict) and stats:
                 monad2_report = dict(stats)
@@ -350,6 +356,12 @@ def play_single_game(
                         stamped.append(item)
                     monad2_report["level_log"] = stamped
                     monad2_report["factorial_seed"] = stamped[0].get("seed")
+                watch_log = getattr(agent, "m2_watch_log", None)
+                if isinstance(watch_log, list) and watch_log:
+                    monad2_report["watch_log"] = list(watch_log)
+                action_log = getattr(agent, "m2_action_log", None)
+                if isinstance(action_log, list) and action_log:
+                    monad2_report["action_log"] = list(action_log)
         except Exception:
             monad2_report = None
         if blind_id:

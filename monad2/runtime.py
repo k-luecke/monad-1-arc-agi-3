@@ -25,6 +25,11 @@ COUNTERS = (
     "discovery_probes",
     "discovery_scored",
     "discovery_hits",
+    "watch_episodes",
+    "watch_labeled",
+    "watch_scored",
+    "watch_hits",
+    "level_restores",
 )
 
 
@@ -37,10 +42,124 @@ def on(name: str) -> bool:
     return os.getenv(name, "0") == "1"
 
 
+def _action_token(action) -> str:
+    raw = getattr(action, "value", None)
+    if isinstance(raw, tuple):
+        raw = raw[0]
+    try:
+        aid = int(raw)
+    except (TypeError, ValueError):
+        aid = str(getattr(action, "name", action))
+    data = getattr(action, "data", None)
+    if isinstance(data, dict) and ("x" in data or "y" in data):
+        return f"{aid}:{int(data.get('x', -1))},{int(data.get('y', -1))}"
+    return str(aid)
+
+
+def _install_action_log(agent) -> None:
+    """Record the action stream after it is chosen. Off unless MONAD2_LOG_ACTIONS=1."""
+    if os.getenv("MONAD2_LOG_ACTIONS", "0") != "1":
+        return
+    if getattr(agent, "_m2_log_installed", False):
+        return
+    agent._m2_log_installed = True
+    agent.m2_action_log = []
+    orig = agent.choose_action
+
+    def wrapped(frames, latest, _orig=orig):
+        action = _orig(frames, latest)
+        try:
+            agent.m2_action_log.append(_action_token(action))
+        except Exception:
+            pass
+        return action
+
+    agent.choose_action = wrapped
+
+
+def _copy_counter_map(value):
+    if value is None:
+        return None
+    try:
+        return {key: dict(votes) for key, votes in value.items()}
+    except Exception:
+        return None
+
+
+def capture_policy_residue(agent) -> None:
+    """Level-start copy of the state a later stall restore puts back.
+
+    The copy is not read by action selection. Restoring it is what makes the
+    post-stall replay the baseline policy instead of the diverged one.
+    """
+    import copy
+
+    residue: dict = {
+        "inversions": int(getattr(agent, "control_inversions_detected", 0) or 0),
+        "canon": dict(getattr(agent, "canonical_to_raw_dpad", {}) or {}),
+        "raw": dict(getattr(agent, "raw_to_canonical_dpad", {}) or {}),
+        "confirmed": getattr(agent, "ggl_confirmed_type", None),
+        "confirm_level": getattr(agent, "ggl_confirm_level", None),
+        "dir_votes": _copy_counter_map(getattr(agent, "ggl_dir_votes", None)),
+        "mover_votes": dict(getattr(agent, "ggl_mover_votes", {}) or {}),
+        "dynamic_colors": dict(getattr(agent, "ggl_dynamic_colors", {}) or {}),
+        "pushable": dict(getattr(agent, "ggl_pushable_votes", {}) or {}),
+        "hazards": dict(getattr(agent, "ggl_hazard_colors", {}) or {}),
+    }
+    skinner = getattr(agent, "skinner_model", None)
+    try:
+        residue["skinner"] = copy.deepcopy(skinner) if skinner is not None else None
+    except Exception:
+        residue["skinner"] = None
+    agent._m2_policy_residue = residue
+
+
+def apply_policy_residue(agent) -> None:
+    residue = getattr(agent, "_m2_policy_residue", None)
+    if not isinstance(residue, dict):
+        return
+    agent.control_inversions_detected = int(residue.get("inversions", 0) or 0)
+    if residue.get("canon"):
+        agent.canonical_to_raw_dpad = dict(residue["canon"])
+    if residue.get("raw"):
+        agent.raw_to_canonical_dpad = dict(residue["raw"])
+    agent.ggl_confirmed_type = residue.get("confirmed")
+    agent.ggl_confirm_level = residue.get("confirm_level")
+    dir_votes = residue.get("dir_votes")
+    current_dirs = getattr(agent, "ggl_dir_votes", None)
+    if isinstance(dir_votes, dict) and current_dirs is not None and hasattr(current_dirs, "clear"):
+        current_dirs.clear()
+        for item_key, votes in dir_votes.items():
+            bucket = current_dirs[item_key]
+            if hasattr(bucket, "update") and isinstance(votes, dict):
+                bucket.update(votes)
+    for name, key in (
+        ("ggl_mover_votes", "mover_votes"),
+        ("ggl_dynamic_colors", "dynamic_colors"),
+        ("ggl_pushable_votes", "pushable"),
+        ("ggl_hazard_colors", "hazards"),
+    ):
+        raw = residue.get(key)
+        current = getattr(agent, name, None)
+        if isinstance(raw, dict) and current is not None and hasattr(current, "clear"):
+            current.clear()
+            current.update(raw)
+    if residue.get("skinner") is not None:
+        import copy
+
+        try:
+            agent.skinner_model = copy.deepcopy(residue["skinner"])
+        except Exception:
+            pass
+
+
 def init_agent(agent) -> None:
     agent.m2_cross_game = cross_game_mode()
     agent.m2 = {key: 0 for key in COUNTERS}
     agent.m2_rehearsal_log = []
+    agent.m2_watch_log = []
+    agent._m2_pending_level_restore = False
+    _install_action_log(agent)
     if agent.m2_cross_game == "reset":
         agent.reset_cross_puzzle_archive()
     # Snapshot is the cross-game residue. Increments after this belong to the episode.
@@ -95,12 +214,19 @@ def _decision_flags_on() -> bool:
 
 
 def _fallback_to_baseline(agent) -> None:
-    """Drop Monad(2) decision flags for the rest of this level."""
+    """Drop Monad(2) decision flags and ask for a level restart.
+
+    Zeroing the flags mid-trajectory left the world model and the game state
+    on the diverged path, so sc25, tu93, bp35, and ka59 never got the baseline
+    policy that clears them. The pending restore emits one RESET and rebuilds
+    the level world model from the residue captured at level start.
+    """
     if getattr(agent, "_m2_stall_fallback", False):
         return
     from monad2.factorial import FACTORS
 
     agent._m2_stall_fallback = True
+    agent._m2_pending_level_restore = True
     stats = getattr(agent, "m2", None)
     if isinstance(stats, dict):
         stats["stall_fallbacks"] = stats.get("stall_fallbacks", 0) + 1
@@ -115,6 +241,12 @@ def _fallback_to_baseline(agent) -> None:
     log = getattr(agent, "m2_level_log", None)
     if isinstance(log, list) and log:
         log[-1]["stall_fallback"] = int(getattr(agent, "action_counter", 0) or 0)
+    try:
+        from monad2.discovery import watch_close
+
+        watch_close(agent, reason="stall")
+    except Exception:
+        pass
 
 
 def note_step(agent, changed: bool, plan_active: bool) -> None:
@@ -126,6 +258,15 @@ def note_step(agent, changed: bool, plan_active: bool) -> None:
         stats["wasted_noop"] += 1
     if plan_active:
         stats["plan_steps"] += 1
+    # Watch mode records hypotheses and endpoint labels. It is not a decision
+    # flag, and it does not write anything the policy reads.
+    if on("MONAD2_GOAL_WATCH"):
+        try:
+            from monad2.discovery import watch_step
+
+            watch_step(agent, changed)
+        except Exception:
+            pass
     # Flags-off is a no-op. A bad combo that freezes the frame, or that is
     # about to hit the 600-step reset loop / the 1500-step level cap, hands
     # the rest of the level back to baseline.

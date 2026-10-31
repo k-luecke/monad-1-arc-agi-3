@@ -18,17 +18,19 @@ Kyle's rule for gaps 4, 7, 8, and 9: do not drop a module because turning that m
 | `MONAD2_REHEARSAL` | `_fx_pick_rehearsed` | which of the goal plans is committed |
 | `MONAD2_SCP` | goal-type order, and the callosum when that flag is also on | type priority from the compact projection |
 | `MONAD2_GOAL_MEMORY` | goal-type order | retrieval reads `monad2/fmf_corpus/records.jsonl` unless `MONAD2_RECORDS` is set, excludes the held-out game, and can relabel a record from a described change |
-| `MONAD2_GOAL_DISCOVERY` | `maybe_replace_key`, then goal-type order | up to 6 early probes; the leading outcome vote adds 3 to that goal; a later outcome label is stored by affordance features. Holdout games do not write the store |
+| `MONAD2_GOAL_DISCOVERY` | `maybe_replace_key`, then goal-type order | up to 6 early probes; the leading outcome vote adds 3 to that goal; a later outcome label is stored by affordance features. Holdout games do not write the store. Default off. Watch mode is the separate flag below and does not do this |
 | `MONAD2_CALLOSUM` | `maybe_replace_key` | with a hypothesis, replaces the key only when the world model predicts more progress toward that goal; otherwise only when the alternative changes the frame and A's choice does not |
 | `MONAD2_DLADDER` | `maybe_replace_key` | vetoes a predicted no-op, illegal, or hazard and re-picks, including a probe |
 | `MONAD2_PLL_SURPRISE` | plan queue, `ggl_active`, `EpisodeLTP`, discovery votes | on a lock loss while a plan is active, clears the plan and demotes that goal hypothesis |
-| stall fallback | the nine decision flags | after 48 unchanged frames, a reset loop near the 600-step exit, or step 900 of a flagged level, those flags go off for the rest of the level |
+| stall fallback | the decision flags, then one level RESET | after 48 unchanged frames, a reset loop near the 600-step exit, or step 900 of a flagged level, those flags go off, the level-start policy residue is restored, the level world model is rebuilt, and one RESET restarts the level so the rest of it is the baseline policy |
 | `MONAD2_TONIC` | goal BFS depth and rehearsal breadth | reads `inos_depth_budget` (default 4) |
 | `MONAD2_SKIP_DEAD_ORGANS` | master loop | skips PLL, Gohst, observer, Qwen, tonic, joints |
 
 ## Wired, but the consumer is a sink today
 
 These edges exist. Their outputs do not currently select the action unless a flag above is on.
+
+- `MONAD2_GOAL_WATCH` reads each natural transition and the action-effect table built from those transitions. It freezes a start-of-level hypothesis and, at level clear, reset, or game end, labels the segment from the start frame versus the last in-level frame. Confirmed REACH/PLACE/MATCH labels are stored by affordance features. Holdout prefixes do not write the store. The flag is not a factorial column and does not change `maybe_replace_key`, the goal-type prior, or `m2_goal_hypothesis`.
 
 - PLL report → observer standing wave, Merkle prune, Qwen packet. With surprise mode off, the probe is the live signature, so the lock is not a comparison to a prediction.
 - Gohst coupling → PLL sharpness, Qwen's decoupled-exploration verdict, tonic's `coupling_coherence_r`. The decoupled verdict string is not the invert command the gauge branch checks.
@@ -39,7 +41,7 @@ These edges exist. Their outputs do not currently select the action unless a fla
 
 ## Oscillator, observer, INOS
 
-- Goal group: discovery probes write a hypothesis; goal memory and the episode store write the same prior; SCP adjusts it from the projection; rehearsal scores plans by predicted progress toward the goal object; callosum reads that hypothesis; PLL demotes it. The tenth factorial column is this group.
+- Goal group: discovery probes write a hypothesis; goal memory and the episode store write the same prior; SCP adjusts it from the projection; rehearsal scores plans by predicted progress toward the goal object; callosum reads that hypothesis; PLL demotes it. The tenth factorial column is this group. Watch mode records the same kind of hypothesis and does not write the prior.
 - Guard group: D-ladder and PLL. The ladder vetoes before callosum. PLL demotes after the step.
 - Oscillator group: PLL, Gohst, tonic. Gohst writes PLL sharpness and tonic's coupling term. Tonic does not read PLL directly; the standing wave does.
 - Observer-field group: field update, standing wave, dark-matter callback into Gohst.
