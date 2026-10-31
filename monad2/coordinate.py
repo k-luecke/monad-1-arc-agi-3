@@ -867,6 +867,9 @@ def _maybe_script(agent, legal, entries, heuristic, reason, stream, backend):
     state["plan_roles"] = state.get("role_line") or ""
     state["stall_steps"] = 0
     state["blocked_here"] = []
+    state["route_blocks"] = []
+    state["route_quantum"] = 0
+    state["route_prev"] = None
     state["mode"] = "execute"
     action, ref = expand_action(steps[0], legal, state, entries.get("menu_items") or [])
     if action is None or not _ladder_ok(agent, action, legal)[0]:

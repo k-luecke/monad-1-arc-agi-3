@@ -137,6 +137,184 @@ def _dir_order(dx: int, dy: int) -> list[int]:
     return [aid for _score, aid in scored]
 
 
+def _quantum_of(state) -> int:
+    try:
+        value = int((state or {}).get("route_quantum") or 0)
+    except (TypeError, ValueError):
+        return 0
+    if value < 1:
+        return 0
+    return value
+
+
+def _block_set(state) -> set:
+    found = set()
+    for item in (state or {}).get("route_blocks") or []:
+        if not isinstance(item, (list, tuple)) or len(item) < 3:
+            continue
+        try:
+            found.add((int(item[0]), int(item[1]), int(item[2])))
+        except (TypeError, ValueError):
+            continue
+    return found
+
+
+def _blocked_at(blocks: set, box) -> set:
+    ox, oy = int(box[0]), int(box[1])
+    return {aid for x, y, aid in blocks if x == ox and y == oy}
+
+
+def _shift(aid: int, quantum: int):
+    back = _neg()
+    if aid == 1:
+        return (0, back * quantum)
+    if aid == 2:
+        return (0, quantum)
+    if aid == 3:
+        return (back * quantum, 0)
+    if aid == 4:
+        return (quantum, 0)
+    return None
+
+
+def _snap(value: int, origin: int, quantum: int) -> int:
+    if quantum < 1:
+        return value
+    delta = int(value) - int(origin)
+    steps = int(round(delta / quantum))
+    return int(origin) + steps * quantum
+
+
+def _around(mover, target, quantum: int, blocks: set, legal: list[int], walls: list):
+    """First step of a path that treats known blocked edges as walls."""
+    sx, sy = int(mover[0]), int(mover[1])
+    gx = _snap(int(target[0]), sx, quantum)
+    gy = _snap(int(target[1]), sy, quantum)
+    if (sx, sy) == (gx, gy):
+        return None
+    options = set(_dpad(legal))
+    order = _dir_order(gx - sx, gy - sy)
+    start = (sx, sy)
+    came = {start: None}
+    queue = [start]
+    found = None
+    limit = 6 * 6 * 6
+    head = 0
+    while head < len(queue) and len(came) < limit:
+        x, y = queue[head]
+        head = head + 1
+        if (x, y) == (gx, gy):
+            found = (x, y)
+            break
+        ranked = []
+        for aid in order:
+            if aid not in options:
+                continue
+            if (x, y, aid) in blocks:
+                continue
+            shift = _shift(aid, quantum)
+            if shift is None:
+                continue
+            nxt = (x + shift[0], y + shift[1])
+            probe = _ahead((x, y, int(mover[2]), int(mover[3])), aid)
+            if probe is not None and any(_overlap(probe, wall) for wall in walls):
+                continue
+            ranked.append((abs(nxt[0] - gx) + abs(nxt[1] - gy), aid, nxt))
+        ranked.sort()
+        for _dist, aid, nxt in ranked:
+            if nxt in came:
+                continue
+            came[nxt] = (x, y, aid)
+            queue.append(nxt)
+    if found is None:
+        return None
+    node = found
+    first = None
+    while node != start:
+        parent = came.get(node)
+        if parent is None:
+            return None
+        _px, _py, aid = parent
+        first = aid
+        node = (_px, _py)
+    return first
+
+
+def _mover_box(state, records):
+    obs = (state or {}).get("schema_obs") or {}
+    role = str((state or {}).get("step_role") or "")
+    if not role or role == "none":
+        role = "avatar"
+    boxes = _boxes_for(records, _role_geom(obs, role))
+    if len(boxes) != 1:
+        return None
+    return boxes[0]
+
+
+def blocked_dirs(state) -> set:
+    """Directions already blocked at the current mover. Ephemeral; not a schema."""
+    box = _mover_box(state, (state or {}).get("frame_records") or [])
+    found = set()
+    if box is not None:
+        found.update(_blocked_at(_block_set(state), box))
+    for item in (state or {}).get("blocked_here") or []:
+        try:
+            found.add(int(item))
+        except (TypeError, ValueError):
+            continue
+    return found
+
+
+def _seal(state, box) -> None:
+    quantum = _quantum_of(state)
+    if quantum < 1:
+        return
+    here = _blocked_at(_block_set(state), box)
+    if len(here) < 3:
+        return
+    prev = (state or {}).get("route_prev")
+    if not isinstance(prev, (list, tuple)) or len(prev) < 3:
+        return
+    try:
+        px, py, aid = int(prev[0]), int(prev[1]), int(prev[2])
+    except (TypeError, ValueError):
+        return
+    shift = _shift(aid, quantum)
+    if shift is None:
+        return
+    if (px + shift[0], py + shift[1]) != (int(box[0]), int(box[1])):
+        return
+    entry = [px, py, aid]
+    store = state.setdefault("route_blocks", [])
+    if entry not in store:
+        store.append(entry)
+
+
+def note_route(state, before, after, aid: int, moved: bool) -> None:
+    """A failed step stays blocked at that cell. A move teaches the step size."""
+    if not isinstance(state, dict):
+        return
+    origin = _mover_box(state, before)
+    if origin is None:
+        return
+    if not moved:
+        entry = [int(origin[0]), int(origin[1]), int(aid)]
+        store = state.setdefault("route_blocks", [])
+        if entry not in store:
+            store.append(entry)
+        _seal(state, origin)
+        return
+    landed = _mover_box(state, after)
+    if landed is None:
+        return
+    dx = int(landed[0]) - int(origin[0])
+    dy = int(landed[1]) - int(origin[1])
+    dist = abs(dx) if abs(dx) >= abs(dy) else abs(dy)
+    if dist > 0 and not _quantum_of(state):
+        state["route_quantum"] = dist
+    state["route_prev"] = [int(origin[0]), int(origin[1]), int(aid)]
+
+
 def step_toward(name: str, legal: list[int], state: dict):
     """One d-pad step toward the bound target. None when that target has no unique box."""
     if name not in ("approach", "convey", "route"):
@@ -160,17 +338,17 @@ def step_toward(name: str, legal: list[int], state: dict):
     mover = mover_boxes[0]
     target = target_boxes[0]
     walls = _boxes_for(records, _role_geom(obs, "wall"))
-    blocked = set()
-    for item in (state or {}).get("blocked_here") or []:
-        try:
-            blocked.add(int(item))
-        except (TypeError, ValueError):
-            continue
+    blocked = blocked_dirs(state)
+    options = _dpad(legal)
+    quantum = _quantum_of(state)
+    if quantum:
+        aimed = _around(mover, target, quantum, _block_set(state), options, walls)
+        if aimed is not None and aimed not in blocked and aimed in options:
+            return aimed
     cx = mover[0] + mover[2] // 2
     cy = mover[1] + mover[3] // 2
     gx = target[0] + target[2] // 2
     gy = target[1] + target[3] // 2
-    options = _dpad(legal)
     for aid in _dir_order(gx - cx, gy - cy):
         if aid not in options or aid in blocked:
             continue

@@ -199,6 +199,67 @@ def main() -> int:
     note_result(state, False, action, "continue", [], [])
     assert state.get("surprise_pending") is None
     assert  action[1] in state.get("blocked_here")
+    route = {
+        "mode": "execute",
+        "script": [
+            {
+                "primitive": "approach",
+                "binding": "avatar,goal",
+                "kind": "translate",
+                "role": "avatar",
+                "role_b": "goal",
+                "repeat": 6,
+                "tries": 0,
+                "tried": [],
+                "walked": 0,
+                "fails": 0,
+                "anchor_i": 0,
+                "fail_budget": 4,
+                "labeled": False,
+            }
+        ],
+        "script_i": 0,
+        "stall_steps": 0,
+        "blocked_here": [],
+        "schema_obs": {
+            "roles": [
+                {"role": "avatar", "geom": [1, 2, 2]},
+                {"role": "goal", "geom": [2, 2, 2]},
+            ]
+        },
+        "frame_records": [
+            {"geom": (1, 2, 2), "xy": (8, 8), "wh": (2, 2), "sig": (1, 4, 2, 2)},
+            {"geom": (2, 2, 2), "xy": (8, 0), "wh": (2, 2), "sig": (2, 1, 2, 2)},
+        ],
+        "plan_predicate": {
+            "kind": "translate",
+            "role": "avatar",
+            "role_b": "goal",
+            "dir": "up",
+            "axis": "none",
+            "geom": [1, 2, 2],
+            "geom_b": [2, 2, 2],
+        },
+        "step_role": "avatar",
+        "step_target": "goal",
+    }
+    parked = [{"geom": (1, 2, 2), "xy": (8, 8), "wh": (2, 2), "sig": (1, 4, 2, 2)}]
+    note_result(route, False, ("SIMPLE", 1), "continue", parked, parked)
+    assert [8, 8, 1] in route["route_blocks"], route["route_blocks"]
+    route["route_quantum"] = 2
+    around = step_toward("approach", [1, 2, 3, 4], route)
+    assert around in (3, 4), around
+    shifted = [{"geom": (1, 2, 2), "xy": (6, 8), "wh": (2, 2), "sig": (1, 4, 2, 2)}]
+    route["plan_predicate"]["dir"] = "left"
+    route["frame_records"] = shifted + [
+        {"geom": (2, 2, 2), "xy": (8, 0), "wh": (2, 2), "sig": (2, 1, 2, 2)}
+    ]
+    note_result(route, True, ("SIMPLE", 3), "continue", parked, shifted)
+    assert [8, 8, 1] in route["route_blocks"], route["route_blocks"]
+    assert route["route_quantum"] == 2
+    assert route.get("script_i") == 0
+    later = step_toward("approach", [1, 2, 3, 4], route)
+    assert later == 1, later
     steps[0]["fail_budget"] = 1
     steps[0]["fails"] = 0
     note_result(state, False, action, "continue", [], [])

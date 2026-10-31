@@ -175,7 +175,9 @@ def expand_action(step: dict, legal: list[int], state: dict, items: list[dict]):
         if preferred is not None and action_legal(preferred, legal):
             return preferred, _ref_for(preferred, menu) or _bare_ref(preferred)
         if name in _WALK:
-            blocked = {int(item) for item in (state.get("blocked_here") or []) if str(item).isdigit()}
+            from monad2.primitives import blocked_dirs
+
+            blocked = blocked_dirs(state)
             for aid in legal:
                 number = int(aid)
                 if number in (1, 2, 3, 4) and number not in blocked:
@@ -225,6 +227,9 @@ def _wrong_way(pred: dict | None, before, after) -> bool:
 def _advance(state: dict) -> None:
     state["stall_steps"] = 0
     state["blocked_here"] = []
+    state["route_blocks"] = []
+    state["route_quantum"] = 0
+    state["route_prev"] = None
     state["script_i"] = int(state.get("script_i") or 0) + 1
     if current_step(state) is None:
         state["script"] = []
@@ -324,7 +329,17 @@ def note_result(state: dict, pred_hit, action, outcome: str, before=None, after=
 
 
 def _note_walk(state: dict, step: dict, pred_hit, action, before, after) -> None:
+    from monad2.primitives import note_route
+
+    aid = None
+    if action and action[0] == "SIMPLE":
+        try:
+            aid = int(action[1])
+        except (TypeError, ValueError, IndexError):
+            aid = None
     if pred_hit is True and not _wrong_way(state.get("plan_predicate"), before, after):
+        if aid in (1, 2, 3, 4):
+            note_route(state, before, after, aid, True)
         step["walked"] = int(step.get("walked") or 0) + 1
         step["fails"] = 0
         state["blocked_here"] = []
@@ -332,12 +347,8 @@ def _note_walk(state: dict, step: dict, pred_hit, action, before, after) -> None
         if step["walked"] >= int(step["repeat"]) or _touching(step, after, state):
             _advance(state)
         return
-    aid = None
-    if action and action[0] == "SIMPLE":
-        try:
-            aid = int(action[1])
-        except (TypeError, ValueError, IndexError):
-            aid = None
+    if aid in (1, 2, 3, 4) and pred_hit is False:
+        note_route(state, before, after, aid, False)
     blocked = state.setdefault("blocked_here", [])
     if aid in (1, 2, 3, 4) and aid not in blocked:
         blocked.append(aid)
