@@ -153,14 +153,25 @@ def main() -> int:
     agent.ggl_dynamic_colors = {}
     agent.ggl_hazard_colors = {}
     agent.skinner_model = None
+    agent.hud_rows = {1}
+    agent.hud_cols = set()
+    agent.hud_coords = {(1, 2)}
+    agent.mutable_object_sigs = set()
+    agent.responsive_sigs = {}
+    agent.responsive_geom_sigs = {}
+    agent.avatar_sig = None
     rt.capture_policy_residue(agent)
     agent.ggl_pushable_votes = {"box": 9}
     agent.ggl_confirmed_type = "MATCH"
     agent.control_inversions_detected = 2
+    agent.hud_rows.add(9)
+    agent.hud_coords.add((4, 4))
     rt.apply_policy_residue(agent)
     assert agent.ggl_pushable_votes["box"] == 3
     assert agent.ggl_confirmed_type == "REACH"
     assert agent.control_inversions_detected == 0
+    assert agent.hud_rows == {1}
+    assert agent.hud_coords == {(1, 2)}
 
     os.environ.pop("MONAD2_CALLOSUM", None)
     agent.rehearse_enabled = True

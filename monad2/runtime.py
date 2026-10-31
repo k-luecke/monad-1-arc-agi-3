@@ -94,6 +94,12 @@ def capture_policy_residue(agent) -> None:
     """
     import copy
 
+    def _set_copy(name: str):
+        value = getattr(agent, name, None)
+        if isinstance(value, set):
+            return set(value)
+        return None
+
     residue: dict = {
         "inversions": int(getattr(agent, "control_inversions_detected", 0) or 0),
         "canon": dict(getattr(agent, "canonical_to_raw_dpad", {}) or {}),
@@ -105,6 +111,13 @@ def capture_policy_residue(agent) -> None:
         "dynamic_colors": dict(getattr(agent, "ggl_dynamic_colors", {}) or {}),
         "pushable": dict(getattr(agent, "ggl_pushable_votes", {}) or {}),
         "hazards": dict(getattr(agent, "ggl_hazard_colors", {}) or {}),
+        "hud_rows": _set_copy("hud_rows"),
+        "hud_cols": _set_copy("hud_cols"),
+        "hud_coords": _set_copy("hud_coords"),
+        "mutable_sigs": _set_copy("mutable_object_sigs"),
+        "responsive": dict(getattr(agent, "responsive_sigs", {}) or {}),
+        "responsive_geom": dict(getattr(agent, "responsive_geom_sigs", {}) or {}),
+        "avatar_sig": getattr(agent, "avatar_sig", None),
     }
     skinner = getattr(agent, "skinner_model", None)
     try:
@@ -151,6 +164,28 @@ def apply_policy_residue(agent) -> None:
             agent.skinner_model = copy.deepcopy(residue["skinner"])
         except Exception:
             pass
+    for name, key in (
+        ("hud_rows", "hud_rows"),
+        ("hud_cols", "hud_cols"),
+        ("hud_coords", "hud_coords"),
+        ("mutable_object_sigs", "mutable_sigs"),
+    ):
+        saved = residue.get(key)
+        current = getattr(agent, name, None)
+        if isinstance(saved, set) and isinstance(current, set):
+            current.clear()
+            current.update(saved)
+    for name, key in (
+        ("responsive_sigs", "responsive"),
+        ("responsive_geom_sigs", "responsive_geom"),
+    ):
+        saved = residue.get(key)
+        current = getattr(agent, name, None)
+        if isinstance(saved, dict) and current is not None and hasattr(current, "clear"):
+            current.clear()
+            current.update(saved)
+    if "avatar_sig" in residue:
+        agent.avatar_sig = residue.get("avatar_sig")
 
 
 def init_agent(agent) -> None:
