@@ -90,8 +90,9 @@ def main() -> int:
     assert row["primitive"] == "hold_gradient"
     assert "[primitives]" in row["stream"]
     observe(agent, False)
-    assert row.get("primitive_check") == "demoted"
-    assert agent._m2_coord["primitive_confidence"]["hold_gradient"] < 1.0
+    assert row.get("primitive_check") == "confirmed"
+    assert str(row.get("predicate") or "").startswith("no_reverse(")
+    assert row.get("predicate_hit") is True
 
     explore = (
         '{"decision":"explore","action":"SIMPLE 3","primitive":"explore","binding":"",'
@@ -103,7 +104,7 @@ def main() -> int:
     chosen = decide(agent, ("SIMPLE", 1), "heuristic", backend=Backend(explore))
     assert chosen == ("SIMPLE", 3)
     assert agent.m2_thought_log[-1]["primitive"] == "explore"
-    assert "explor" in agent.m2_thought_log[-1]["expectation"]
+    assert agent.m2_thought_log[-1]["expectation"].startswith("changed(")
     print("PRIMITIVES PASS")
     return 0
 

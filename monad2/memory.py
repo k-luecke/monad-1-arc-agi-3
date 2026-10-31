@@ -210,6 +210,7 @@ class EpisodeLTP:
 
     def __init__(self) -> None:
         self.confirms: Counter[str] = Counter()
+        self.surprises: list[str] = []
 
     def confirm(self, goal: str) -> bool:
         self.confirms[goal] += 1

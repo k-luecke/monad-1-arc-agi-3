@@ -61,9 +61,13 @@ root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" w
     "executive": _STRING
     + r'''
 prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
+predkind ::= "\"translate\"" | "\"no_reverse\"" | "\"contact\"" | "\"match\"" | "\"changed\"" | "\"unchanged\""
+direction ::= "\"up\"" | "\"down\"" | "\"left\"" | "\"right\"" | "\"none\""
+axis ::= "\"x\"" | "\"y\"" | "\"none\""
+role ::= "\"avatar\"" | "\"movable\"" | "\"goal\"" | "\"receptor\"" | "\"switch\"" | "\"hazard\"" | "\"wall\"" | "\"clickable\"" | "\"reference\"" | "\"none\""
 step ::= action
 plan ::= "[" ws (step (ws "," ws step){0,2})? ws "]"
-root ::= "{" ws "\"decision\"" ws ":" ws decision ws "," ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"plan\"" ws ":" ws plan ws "," ws "\"expect_change\"" ws ":" ws bool ws "," ws "\"expectation\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"theory\"" ws ":" ws string ws "," ws "\"goal\"" ws ":" ws goal ws "," ws "\"used\"" ws ":" ws "[" ws items ws "]" ws "}"
+root ::= "{" ws "\"decision\"" ws ":" ws decision ws "," ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"predicate\"" ws ":" ws predkind ws "," ws "\"role\"" ws ":" ws role ws "," ws "\"role_b\"" ws ":" ws role ws "," ws "\"dir\"" ws ":" ws direction ws "," ws "\"axis\"" ws ":" ws axis ws "," ws "\"plan\"" ws ":" ws plan ws "," ws "\"expect_change\"" ws ":" ws bool ws "," ws "\"expectation\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"theory\"" ws ":" ws string ws "," ws "\"goal\"" ws ":" ws goal ws "," ws "\"used\"" ws ":" ws "[" ws items ws "]" ws "}"
 ''',
 }
 

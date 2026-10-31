@@ -273,7 +273,7 @@ def scene_brief(agent, diff: dict | None = None) -> dict:
     except Exception:
         doc = None
     if doc is not None:
-        records = [shape_record(s) for s in list(doc.shapes)[:8]]
+        records = [shape_record(s) for s in list(doc.shapes)]
     hud_r = len(_sets(agent, "hud_rows"))
     hud_c = len(_sets(agent, "hud_cols"))
     bg = getattr(doc, "bg_color", None) if doc is not None else None

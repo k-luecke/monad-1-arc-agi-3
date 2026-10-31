@@ -53,6 +53,8 @@ ACTIVE_MODULES = (
     "llm.py",
     "discovery.py",
     "primitives.py",
+    "roles.py",
+    "predicates.py",
 )
 
 HITS: list[str] = []

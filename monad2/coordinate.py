@@ -62,16 +62,18 @@ _E_SYSTEM = (
     "proposal that fits the canvas and the retrieved concept. "
     "Explore only when you set decision to explore, and say why. "
     "Pick one primitive from the [primitives] line, or inhibit it. "
-    "expectation is that primitive's effect: 'avatar translates toward the goal', "
-    "'avatar does not reverse', or 'frame changes under labeled exploration'. "
+    "predicate is that primitive's template: translate, no_reverse, contact, match, changed, or unchanged. "
+    "Fill role, role_b, dir, and axis from the binding and the action. "
+    "expectation is only a comment. "
     "A move that is not a primitive must be primitive explore. "
     "If a [schema] line names a role binding, reason in that frame: which object plays "
     "the avatar, the goal, or the receptor, and what was substituted. "
     "If the stream contains MISMATCH, change your theory. "
     "plan is up to two further actions to run only if this expectation matches. Use [] when unsure. "
     'Reply with JSON only: {"decision":"inhibit","action":"SIMPLE 3","primitive":"hold_gradient",'
-    '"binding":"avatar,goal","plan":[],"expect_change":true,'
-    '"expectation":"avatar does not reverse","reason":"...","theory":"...","goal":"REACH",'
+    '"binding":"avatar,goal","predicate":"no_reverse","role":"avatar","role_b":"none",'
+    '"dir":"left","axis":"x","plan":[],"expect_change":true,'
+    '"expectation":"comment only","reason":"...","theory":"...","goal":"REACH",'
     '"used":["qwen_b","schema"]}. '
     "goal is REACH, PLACE, or MATCH."
 )
@@ -158,6 +160,11 @@ _JSON_STRING_KEYS = (
     "expectation",
     "effect",
     "reason",
+    "predicate",
+    "role",
+    "role_b",
+    "dir",
+    "axis",
     "theory",
     "verdict",
     "goal",
@@ -417,9 +424,9 @@ def _pll_line(state: dict) -> str:
     if not mismatch:
         return "no surprise yet"
     doc = mismatch.get("doc") or ""
+    pred = mismatch.get("predicate") or mismatch.get("expectation") or ""
     return (
-        f"MISMATCH expected {mismatch.get('expectation')} "
-        f"({mismatch.get('expect_change')}) but the frame was {mismatch.get('observed')}"
+        f"MISMATCH predicate {pred} failed; frame was {mismatch.get('observed')}"
         + (f" document {doc}" if doc else "")
     )
 
@@ -481,6 +488,12 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
     prim_line, prim_items = proposals_for(state.get("schema_obs") or {}, state, legal)
     entries["primitives"] = prim_line
     entries["primitive_list"] = prim_items
+    entries["roles"] = state.get("role_line") or "none"
+    names = {1: "SIMPLE 1", 2: "SIMPLE 2", 3: "SIMPLE 3", 4: "SIMPLE 4", 5: "SIMPLE 5"}
+    legal_bits = [names[aid] for aid in legal if aid in names]
+    if 6 in legal:
+        legal_bits.append("CLICK")
+    entries["legal"] = ", ".join(legal_bits) or "none"
     lines = [
         f"[scp] {_clip(entries['scp'], 220)}",
         f"[canvas_doc] {_clip(scene['shapes'], 280)}",
@@ -503,6 +516,8 @@ def _stream(agent, heuristic, reason: str, legal: list[int]) -> tuple[str, dict]
         f"[heuristic] {entries['heuristic']}",
         f"[theory] {entries['theory_goal'] or 'none'}: {_clip(entries['theory'], 160)}",
         f"[schema] {_clip(entries['schema'], 360)}",
+        f"[roles] {_clip(entries.get('roles') or 'none', 220)}",
+        f"[legal] {entries.get('legal') or 'none'}",
         f"[primitives] {_clip(entries['primitives'], 320)}",
     ]
     return "\n".join(lines), entries
@@ -612,7 +627,7 @@ def _for_model(text: str) -> str:
     Primitive and schema lines stay at the front so the 1400-character clip
     cannot drop the motion rules the models are asked to bind.
     """
-    first = ("[primitives]", "[schema]", "[avatar]", "[diff]", "[solver]")
+    first = ("[roles]", "[legal]", "[primitives]", "[schema]", "[avatar]", "[diff]", "[solver]")
     head = []
     rest = []
     for line in text.splitlines():
@@ -721,25 +736,40 @@ def decide(agent, key, reason: str = "", backend=None):
             "primitives": entries.get("primitives") or "",
             "stream": stream,
         "features": list(entries["features"]),
+        "roles": entries.get("roles") or "",
     }
+    a_fixed = False
+    b_fixed = False
     try:
+        from monad2.primitives import repair_action
+
         a_user = (
             _for_model(stream)
+            + f"\nLegal actions: {entries.get('legal') or 'none'}."
             + "\nPropose one primitive from the [primitives] line and the role binding it uses."
+            + " The action must be one of the legal actions."
         )
         a_text, a_ms = _backend_complete(backend, "a", _A_SYSTEM, a_user)
         a_obj = _json_obj(a_text) or {}
         a_key = _parse_action(a_obj.get("action") or a_text, legal)
+        a_key, a_fixed = repair_action(a_key, legal, str(a_obj.get("primitive") or ""), _state(agent))
+        if a_fixed:
+            _bump(agent, "qwen_repaired")
         b_user = (
             _for_model(stream)
+            + f"\nLegal actions: {entries.get('legal') or 'none'}."
             + f"\n[qwen_a] {_fmt(a_key)} primitive={a_obj.get('primitive') or 'none'} "
             + f"binding={_clip(str(a_obj.get('binding') or ''), 40)} "
             + f"effect={_clip(a_obj.get('effect') or '', 80)} "
             + f"reason={_clip(a_obj.get('reason') or a_text, 80)}"
+            + (" repaired" if a_fixed else "")
         )
         b_text, b_ms = _backend_complete(backend, "b", _B_SYSTEM, b_user)
         b_obj = _json_obj(b_text) or {}
         b_key = _parse_action(b_obj.get("action") or b_text, legal)
+        b_key, b_fixed = repair_action(b_key, legal, str(b_obj.get("primitive") or "explore"), _state(agent))
+        if b_fixed:
+            _bump(agent, "qwen_repaired")
         e_user = (
             _for_model(stream)
             + f"\n[qwen_a] {_fmt(a_key)} primitive={a_obj.get('primitive') or 'none'} "
@@ -751,6 +781,7 @@ def decide(agent, key, reason: str = "", backend=None):
             + f"verdict={b_obj.get('verdict') or ''} "
             + f"effect={_clip(b_obj.get('effect') or '', 80)} "
             + f"reason={_clip(b_obj.get('reason') or '', 80)}"
+            + (" repaired" if b_fixed else "")
         )
         e_text, e_ms = _backend_complete(backend, "executive", _E_SYSTEM, e_user)
         e_obj = _json_obj(e_text) or {}
@@ -823,11 +854,15 @@ def decide(agent, key, reason: str = "", backend=None):
     expect_change = e_obj.get("expect_change")
     if not isinstance(expect_change, bool):
         expect_change = not _known_noop(agent, chosen)
-    expectation = _clip(str(e_obj.get("expectation") or e_obj.get("effect") or ""), 160)
-    if not expectation:
-        expectation = effect_of(prim) or ("frame changes" if expect_change else "frame stays")
-    if prim == "explore" and "explor" not in expectation.lower():
-        expectation = effect_of("explore")
+    comment = _clip(str(e_obj.get("expectation") or e_obj.get("effect") or ""), 80)
+    predicate = None
+    if prim:
+        from monad2.predicates import bind_predicate, render
+
+        predicate = bind_predicate(prim, chosen, _state(agent).get("schema_obs") or {}, e_obj)
+        expectation = render(predicate) or comment or effect_of(prim)
+    else:
+        expectation = comment or effect_of(prim) or ("frame changes" if expect_change else "frame stays")
     theory = _clip(str(e_obj.get("theory") or ""), 180)
     goal = str(e_obj.get("goal") or "").upper()
     if goal not in GOAL_TYPES:
@@ -847,6 +882,7 @@ def decide(agent, key, reason: str = "", backend=None):
     state["plan_expect_change"] = bool(expect_change)
     state["plan_goal"] = goal
     state["plan_primitive"] = prim
+    state["plan_predicate"] = predicate
     if decision == "inhibit":
         _bump(agent, "coord_inhibit")
         if chosen != heuristic:
@@ -870,7 +906,9 @@ def decide(agent, key, reason: str = "", backend=None):
         "features": entries["features"],
         "theory": theory,
         "shapes": list((entries.get("scene") or {}).get("records") or []),
-        "primitive": prim,
+            "primitive": prim,
+        "predicate": predicate,
+        "comment": comment,
     }
     row.update(
         {
@@ -883,6 +921,11 @@ def decide(agent, key, reason: str = "", backend=None):
             "goal": goal,
             "theory": theory,
             "primitive": prim,
+            "predicate": expectation if predicate else "",
+            "comment": comment,
+            "roles": entries.get("roles") or "",
+            "qwen_a_repaired": bool(a_fixed),
+            "qwen_b_repaired": bool(b_fixed),
             "binding": _clip(str(e_obj.get("binding") or b_obj.get("binding") or a_obj.get("binding") or ""), 80),
             "qwen_a_primitive": str(a_obj.get("primitive") or ""),
             "qwen_a_binding": _clip(str(a_obj.get("binding") or ""), 80),
@@ -918,6 +961,7 @@ def observe(agent, changed: bool) -> None:
     state["pending"] = None
     observed = "changed" if changed else "unchanged"
     hit = bool(pending.get("expect_change")) == bool(changed)
+    pred_hit = None
     _bump(agent, "expect_scored")
     if hit:
         _bump(agent, "expect_hits")
@@ -929,7 +973,7 @@ def observe(agent, changed: bool) -> None:
         from monad2.canvas_stream import document_result
 
         doc_text, doc_hit, doc_diff = document_result(
-            agent, list(before), str(pending.get("expectation") or "")
+            agent, list(before), str(pending.get("comment") or pending.get("expectation") or "")
         )
         state["last_diff"] = doc_diff
         try:
@@ -942,26 +986,87 @@ def observe(agent, changed: bool) -> None:
             _bump(agent, "schema_revisions")
             if log:
                 log[-1]["schema_revision"] = revision
+        pred_hit = None
+        predicate = pending.get("predicate")
+        after = []
+        if predicate:
+            from monad2.canvas_stream import current_document, shape_record
+            from monad2.predicates import evaluate
+
+            try:
+                doc = current_document(agent)
+                after = [shape_record(s) for s in list(getattr(doc, "shapes", []) or [])]
+            except Exception:
+                after = []
+            pred_hit = evaluate(predicate, list(before), after)
+            _bump(agent, "predicate_checks")
+            if pred_hit:
+                _bump(agent, "predicate_hits")
+        try:
+            from monad2.roles import note_effect
+
+            state["role_evidence"] = note_effect(
+                state.get("role_evidence") or {},
+                list(before),
+                after or list(before),
+                pending.get("action"),
+                _outcome(agent, state),
+            )
+        except Exception:
+            pass
         prim_name = str(pending.get("primitive") or "")
         if prim_name:
             from monad2.primitives import credit
 
-            conf, note = credit(state, prim_name, doc_hit if doc_hit is not None else hit, pending.get("action"))
+            # A structured predicate is the only confidence signal. Frame change is not.
+            scored = pred_hit if predicate else (doc_hit if doc_hit is not None else hit)
+            conf, note = credit(state, prim_name, scored, pending.get("action"))
             if log:
                 log[-1]["primitive_confidence"] = conf
                 log[-1]["primitive_check"] = note
+                log[-1]["predicate_hit"] = pred_hit
         if doc_hit is not None:
             _bump(agent, "expect_doc_scored")
             if doc_hit:
                 _bump(agent, "expect_doc_hits")
+        if predicate and pred_hit is False:
+            from monad2.predicates import render
+
+            text = render(predicate)
+            surprises = state.setdefault("surprises", [])
+            surprises.append(text)
+            del surprises[:-6]
+            _bump(agent, "predicate_surprises")
+            ltp = getattr(agent, "m2_ltp", None)
+            if not isinstance(ltp, EpisodeLTP):
+                ltp = EpisodeLTP()
+                agent.m2_ltp = ltp
+            bag = getattr(ltp, "surprises", None)
+            if bag is None:
+                ltp.surprises = []
+                bag = ltp.surprises
+            bag.append(text)
+            state["mismatch"] = {
+                "expectation": text,
+                "predicate": text,
+                "expect_change": True,
+                "observed": observed,
+                "action": pending.get("action"),
+                "doc": doc_text,
+            }
+            if log:
+                log[-1]["surprise"] = text
     if log:
         log[-1]["result"] = observed
-        log[-1]["expectation_hit"] = hit
+        log[-1]["expectation_hit"] = pred_hit if pending.get("predicate") else hit
         log[-1]["doc_diff"] = doc_text
         log[-1]["doc_hit"] = doc_hit
     goal = pending.get("goal")
     features = tuple(pending.get("features") or ())
-    if not hit or doc_hit is False:
+    if pending.get("predicate"):
+        if pred_hit is not True:
+            return
+    elif not hit or doc_hit is False:
         state["mismatch"] = {
             "expectation": pending.get("expectation"),
             "expect_change": pending.get("expect_change"),
@@ -969,8 +1074,7 @@ def observe(agent, changed: bool) -> None:
             "action": pending.get("action"),
             "doc": doc_text,
         }
-        if not hit or doc_hit is False:
-            return
+        return
     if goal not in GOAL_TYPES or not features:
         return
     ltp = getattr(agent, "m2_ltp", None)
@@ -989,6 +1093,22 @@ def observe(agent, changed: bool) -> None:
         note = pending.get("theory") or pending.get("expectation") or goal
         CARRIED.append({"features": list(features), "goal": goal, "note": note})
         _bump(agent, "carried_theories")
+
+
+def _outcome(agent, state: dict) -> str:
+    """Level completion correlates with the goal. A reset or a game-over correlates with a hazard."""
+    level = int(getattr(agent, "current_level", 0) or 0)
+    resets = int(getattr(agent, "_consecutive_game_over_resets", 0) or 0)
+    prev_level = state.get("seen_level")
+    prev_resets = state.get("seen_resets")
+    outcome = "continue"
+    if prev_level is not None and level > int(prev_level):
+        outcome = "completed"
+    elif prev_resets is not None and resets > int(prev_resets):
+        outcome = "reset"
+    state["seen_level"] = level
+    state["seen_resets"] = resets
+    return outcome
 
 
 def format_sample(rows: list[dict], limit: int = 6) -> str:
@@ -1013,10 +1133,12 @@ def format_sample(rows: list[dict], limit: int = 6) -> str:
                 [
                     f"Scene: {row.get('scene') or 'no canvas document'}.",
                     f"Solver proposal {row.get('solver') or row.get('heuristic')} ({row.get('heuristic_reason') or 'unspecified'}).",
+                    f"Roles: {row.get('roles') or 'none'}.",
                     f"Schema: {row.get('schema') or 'none'}.",
                     f"Proposed: {row.get('primitives') or 'none'}.",
                     f"Qwen A' primitive {row.get('qwen_a_primitive') or 'none'} "
-                    f"binds {row.get('qwen_a_binding') or 'none'}, action {row.get('qwen_a')}: "
+                    f"binds {row.get('qwen_a_binding') or 'none'}, action {row.get('qwen_a')}"
+                    f"{' repaired' if row.get('qwen_a_repaired') else ''}: "
                     f"{row.get('qwen_a_reason') or ''} Effect: {row.get('qwen_a_effect') or ''}.",
                     f"Qwen B' primitive {row.get('qwen_b_primitive') or 'none'} "
                     f"binds {row.get('qwen_b_binding') or 'none'}, "
@@ -1025,9 +1147,12 @@ def format_sample(rows: list[dict], limit: int = 6) -> str:
                     f"Executive {row.get('decision')} -> {row.get('action')} "
                     f"via {row.get('primitive') or 'none'} binds {row.get('binding') or 'none'}. "
                     f"Reason: {row.get('reason')}",
-                    f"Expectation: {row.get('expectation')}.{result_bit}{doc_bit}",
+                    f"Predicate: {row.get('predicate') or row.get('expectation') or 'none'}."
+                    f"{result_bit}{doc_bit}",
+                    f"Comment: {row.get('comment') or ''}.",
                     f"Check: {row.get('primitive_check') or 'pending'} "
-                    f"(confidence {row.get('primitive_confidence')}).",
+                    f"(confidence {row.get('primitive_confidence')})"
+                    f"{' surprise ' + row.get('surprise') if row.get('surprise') else ''}.",
                     f"Latency: A' {latency.get('a')} ms, B' {latency.get('b')} ms, "
                     f"executive {latency.get('executive')} ms, step {step_ms} ms.",
                 ]

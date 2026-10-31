@@ -67,6 +67,10 @@ COUNTERS = (
     "infl_schema",
     "schema_revisions",
     "schema_in_stream",
+    "predicate_checks",
+    "predicate_hits",
+    "predicate_surprises",
+    "qwen_repaired",
 )
 
 

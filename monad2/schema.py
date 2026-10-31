@@ -28,6 +28,8 @@ ROLES = (
     "hazard",
     "trail_floor",
     "counter_hud",
+    "clickable",
+    "reference",
 )
 
 _SHAPE = {
@@ -506,7 +508,29 @@ def hypothesis_line(agent, scene: dict, diff: dict | None) -> str:
     records = list(scene.get("records") or [])
     obs = induce(records, diff, str(scene.get("meta") or ""), str(scene.get("playfield") or ""))
     episode = episode_of(agent)
-    state["schema_obs"] = obs
+    legal = []
+    for item in getattr(agent, "_m2_avail", None) or []:
+        try:
+            legal.append(int(item))
+        except (TypeError, ValueError):
+            continue
+    grid = getattr(agent, "_m2_grid", None)
+    span = 0
+    if isinstance(grid, list) and grid and isinstance(grid[0], list):
+        span = max(len(grid), len(grid[0]))
+    try:
+        from monad2.roles import infer_roles
+
+        live = infer_roles(records, state.get("role_evidence") or {}, legal, span or None)
+    except Exception:
+        live = None
+    if live and live.get("roles"):
+        state["schema_obs"] = {"roles": live["roles"], "relations": live["relations"]}
+        state["affordances"] = live.get("affordances") or {}
+        state["role_line"] = live.get("line") or ""
+    else:
+        state["schema_obs"] = obs
+        state["role_line"] = ", ".join(slot.get("role", "") for slot in obs.get("roles") or [])
     rejected = set(state.get("schema_rejected") or [])
     override = state.get("schema_rebind") or {}
     hit = match(obs, episode, rejected)

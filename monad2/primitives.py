@@ -79,17 +79,23 @@ def precondition(name: str, obs: dict, state: dict) -> bool:
     if name == "convey":
         return "movable" in roles and ("goal" in roles or "receptor" in roles)
     if name == "align":
-        return "receptor" in roles or "shape_match" in rels
+        return "receptor" in roles or "reference" in roles or "shape_match" in rels
     if name == "toggle":
-        return "switch" in roles or "toggle" in rels
+        return "switch" in roles or "clickable" in roles or "toggle" in rels
     if name == "avoid":
-        return "hazard" in roles and "avatar" in roles
+        return "hazard" in roles and ("avatar" in roles or "clickable" in roles)
     if name == "cycle_select":
-        return "switch" in roles and ("goal" in roles or "receptor" in roles)
+        return ("switch" in roles or "clickable" in roles) and (
+            "goal" in roles or "receptor" in roles or "reference" in roles
+        )
     if name == "route":
         return "avatar" in roles and ("wall" in roles or "containment" in rels)
     if name == "assemble":
-        return "movable" in roles or ("receptor" in roles and "avatar" in roles)
+        return (
+            "movable" in roles
+            or ("receptor" in roles and "avatar" in roles)
+            or ("clickable" in roles and ("reference" in roles or "receptor" in roles))
+        )
     if name == "explore":
         return True
     return False
@@ -97,6 +103,50 @@ def precondition(name: str, obs: dict, state: dict) -> bool:
 
 def _dpad(legal: list[int]) -> list[int]:
     return [aid for aid in legal if aid in _REVERSE]
+
+
+def _click_at(state: dict, *roles: str):
+    """A click anchor from the live affordance map. Not stored on the primitive."""
+    aff = (state or {}).get("affordances") or {}
+    for role in roles:
+        points = aff.get(role) or []
+        if isinstance(points, (list, tuple)) and points:
+            point = points[0]
+            if isinstance(point, (list, tuple)) and len(point) == 2:
+                return ("CLICK", int(point[0]), int(point[1]))
+    return None
+
+
+def action_legal(key, legal: list[int]) -> bool:
+    if not key:
+        return False
+    if key[0] == "CLICK":
+        return 6 in legal
+    if key[0] == "SIMPLE":
+        try:
+            return int(key[1]) in legal
+        except (TypeError, ValueError, IndexError):
+            return False
+    return False
+
+
+def repair_action(key, legal: list[int], primitive: str, state: dict):
+    """Keep a proposal only when it is legal. Otherwise substitute a legal pattern."""
+    if action_legal(key, legal):
+        return key, False
+    for name in (primitive, "explore"):
+        if name not in NAMES and name != "explore":
+            continue
+        alt = suggest_action(name if name in NAMES else "explore", legal, state)
+        if action_legal(alt, legal):
+            return alt, True
+    for aid in legal:
+        if aid in _REVERSE or aid == 5:
+            return ("SIMPLE", int(aid)), True
+    click = _click_at(state, "clickable", "switch", "reference", "receptor")
+    if click is not None and 6 in legal:
+        return click, True
+    return None, True
 
 
 def suggest_action(name: str, legal: list[int], state: dict):
@@ -110,30 +160,36 @@ def suggest_action(name: str, legal: list[int], state: dict):
         for aid in options:
             if aid != reverse:
                 return ("SIMPLE", int(aid))
-        return ("SIMPLE", int(options[0])) if options else None
+        if options:
+            return ("SIMPLE", int(options[0]))
+        return _click_at(state, "clickable", "switch", "reference")
     if name == "avoid":
         blocked = state.get("hazard_axis")
         for aid in options:
             if aid != blocked and aid != reverse:
                 return ("SIMPLE", int(aid))
-        return ("SIMPLE", int(options[0])) if options else None
+        if options:
+            return ("SIMPLE", int(options[0]))
+        return _click_at(state, "avatar", "clickable")
     if name in ("toggle", "cycle_select"):
         if 5 in legal:
             return ("SIMPLE", 5)
-        return None
+        return _click_at(state, "switch", "clickable", "reference")
     if name in ("align", "assemble"):
         if progress in options:
             return ("SIMPLE", int(progress))
         if 5 in legal:
             return ("SIMPLE", 5)
-        return ("SIMPLE", int(options[0])) if options else None
+        if options:
+            return ("SIMPLE", int(options[0]))
+        return _click_at(state, "clickable", "switch", "movable", "reference")
     if name == "explore":
         for aid in options:
             if aid != progress:
                 return ("SIMPLE", int(aid))
         if 5 in legal:
             return ("SIMPLE", 5)
-        return None
+        return _click_at(state, "clickable", "switch", "reference", "avatar")
     return None
 
 
@@ -160,11 +216,15 @@ def applicable(obs: dict, state: dict, legal: list[int]) -> list[dict]:
         action = suggest_action(name, legal, state)
         if action is None:
             continue
+        from monad2.predicates import bind_predicate, render
+
+        pred = bind_predicate(name, action, obs, None)
         found.append(
             {
                 "id": name,
-                "binding": ",".join(_BINDING[name]),
+                "binding": _binding_text(name, obs),
                 "effect": _EFFECT[name],
+                "predicate": render(pred),
                 "action": action,
                 "confidence": _confidence(state, name),
             }
@@ -183,6 +243,23 @@ def applicable(obs: dict, state: dict, legal: list[int]) -> list[dict]:
     return found
 
 
+def _binding_text(name: str, obs: dict) -> str:
+    have = _roles(obs)
+    picked = []
+    for role in _BINDING.get(name, ()):
+        if role in have:
+            picked.append(role)
+        elif role == "receptor" and "reference" in have:
+            picked.append("reference")
+        elif role == "avatar" and "clickable" in have and name in ("align", "toggle", "assemble"):
+            picked.append("clickable")
+        elif role == "goal" and "reference" in have:
+            picked.append("reference")
+    if name in ("toggle", "cycle_select", "align") and "clickable" in have and "clickable" not in picked:
+        picked.insert(0, "clickable")
+    return ",".join(picked or _BINDING.get(name, ()))
+
+
 def line(items: list[dict]) -> str:
     parts = []
     for item in items:
@@ -190,7 +267,7 @@ def line(items: list[dict]) -> str:
             continue
         parts.append(
             f"{item['id']} binds {item['binding'] or 'none'} "
-            f"effect {item['effect']} conf {item['confidence']:.1f}"
+            f"{item.get('predicate') or item['effect']} conf {item['confidence']:.1f}"
         )
     if not parts:
         return "no motion primitive yet; explore is the labeled fallback"
