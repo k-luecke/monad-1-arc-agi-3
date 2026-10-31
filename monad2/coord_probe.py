@@ -18,11 +18,14 @@ def _quiet_flags() -> None:
     from monad2.factorial import FACTORS
 
     cap = os.environ.get("MONAD2_COORD_MAX_ACTIONS", "6")
+    sample = os.environ.get("MONAD2_COORD_SAMPLE", "")
     for name in list(os.environ):
         if name.startswith("MONAD2_") or name.startswith("MONAD1_"):
             os.environ.pop(name, None)
     os.environ["MONAD2_COORDINATE"] = "1"
     os.environ["MONAD2_COORD_MAX_ACTIONS"] = cap
+    if sample:
+        os.environ["MONAD2_COORD_SAMPLE"] = sample
     os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
     # FACTORS stays off. Importing it above only documents the set we refuse to enable.
     for name in FACTORS:

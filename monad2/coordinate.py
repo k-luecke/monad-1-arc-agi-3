@@ -567,14 +567,24 @@ def _influence(agent, used: list[str], chosen, entries: dict, qwen: dict, reason
 
 
 def _for_model(text: str) -> str:
-    """Shorter prompt for prefill. The logged stream stays complete."""
-    kept = []
+    """Shorter prompt for prefill. The logged stream stays complete.
+
+    Primitive and schema lines stay at the front so the 1400-character clip
+    cannot drop the motion rules the models are asked to bind.
+    """
+    first = ("[primitives]", "[schema]", "[avatar]", "[diff]", "[solver]")
+    head = []
+    rest = []
     for line in text.splitlines():
         if line.startswith("[canvas_doc]") or line.startswith("[playfield]") or line.startswith("[meta]"):
-            kept.append(line[:160])
+            clipped = line[:160]
         else:
-            kept.append(line[:220])
-    return "\n".join(kept)[:1400]
+            clipped = line[:220]
+        if line.startswith(first):
+            head.append(clipped)
+        else:
+            rest.append(clipped)
+    return "\n".join(head + rest)[:1400]
 
 
 def _follow_plan(agent, legal: list[int]):
@@ -643,6 +653,8 @@ def decide(agent, key, reason: str = "", backend=None):
                 "solver": (entries.get("scene") or {}).get("solver"),
                 "scene": _clip((entries.get("scene") or {}).get("shapes") or "", 280),
                 "schema": entries.get("schema") or "",
+                "primitives": entries.get("primitives") or "",
+                "primitive": state.get("plan_primitive") or "",
                 "stream": stream,
                 "decision": "plan",
                 "action": _fmt(followed),
@@ -666,17 +678,23 @@ def decide(agent, key, reason: str = "", backend=None):
             "solver": (entries.get("scene") or {}).get("solver"),
             "scene": _clip((entries.get("scene") or {}).get("shapes") or "", 280),
             "schema": entries.get("schema") or "",
+            "primitives": entries.get("primitives") or "",
             "stream": stream,
         "features": list(entries["features"]),
     }
     try:
-        a_user = _for_model(stream) + "\nPropose your own move from the projection and the canvas."
+        a_user = (
+            _for_model(stream)
+            + "\nPropose one primitive from the [primitives] line and the role binding it uses."
+        )
         a_text, a_ms = _backend_complete(backend, "a", _A_SYSTEM, a_user)
         a_obj = _json_obj(a_text) or {}
         a_key = _parse_action(a_obj.get("action") or a_text, legal)
         b_user = (
             _for_model(stream)
-            + f"\n[qwen_a] {_fmt(a_key)} effect={_clip(a_obj.get('effect') or '', 80)} "
+            + f"\n[qwen_a] {_fmt(a_key)} primitive={a_obj.get('primitive') or 'none'} "
+            + f"binding={_clip(str(a_obj.get('binding') or ''), 40)} "
+            + f"effect={_clip(a_obj.get('effect') or '', 80)} "
             + f"reason={_clip(a_obj.get('reason') or a_text, 80)}"
         )
         b_text, b_ms = _backend_complete(backend, "b", _B_SYSTEM, b_user)
@@ -684,11 +702,15 @@ def decide(agent, key, reason: str = "", backend=None):
         b_key = _parse_action(b_obj.get("action") or b_text, legal)
         e_user = (
             _for_model(stream)
-            + f"\n[qwen_a] {_fmt(a_key)} effect={_clip(a_obj.get('effect') or '', 100)} "
-            + f"reason={_clip(a_obj.get('reason') or '', 120)}"
-            + f"\n[qwen_b] {_fmt(b_key)} verdict={b_obj.get('verdict') or ''} "
-            + f"effect={_clip(b_obj.get('effect') or '', 100)} "
-            + f"reason={_clip(b_obj.get('reason') or '', 120)}"
+            + f"\n[qwen_a] {_fmt(a_key)} primitive={a_obj.get('primitive') or 'none'} "
+            + f"binding={_clip(str(a_obj.get('binding') or ''), 40)} "
+            + f"effect={_clip(a_obj.get('effect') or '', 80)} "
+            + f"reason={_clip(a_obj.get('reason') or '', 80)}"
+            + f"\n[qwen_b] {_fmt(b_key)} primitive={b_obj.get('primitive') or 'none'} "
+            + f"binding={_clip(str(b_obj.get('binding') or ''), 40)} "
+            + f"verdict={b_obj.get('verdict') or ''} "
+            + f"effect={_clip(b_obj.get('effect') or '', 80)} "
+            + f"reason={_clip(b_obj.get('reason') or '', 80)}"
         )
         e_text, e_ms = _backend_complete(backend, "executive", _E_SYSTEM, e_user)
         e_obj = _json_obj(e_text) or {}
@@ -821,7 +843,11 @@ def decide(agent, key, reason: str = "", backend=None):
             "goal": goal,
             "theory": theory,
             "primitive": prim,
-            "binding": _clip(str(e_obj.get("binding") or ""), 80),
+            "binding": _clip(str(e_obj.get("binding") or b_obj.get("binding") or a_obj.get("binding") or ""), 80),
+            "qwen_a_primitive": str(a_obj.get("primitive") or ""),
+            "qwen_a_binding": _clip(str(a_obj.get("binding") or ""), 80),
+            "qwen_b_primitive": str(b_obj.get("primitive") or ""),
+            "qwen_b_binding": _clip(str(b_obj.get("binding") or ""), 80),
             "qwen_a": _fmt(a_key),
             "qwen_a_reason": _clip(str(a_obj.get("reason") or ""), 160),
             "qwen_a_effect": _clip(str(a_obj.get("effect") or ""), 120),
@@ -948,14 +974,20 @@ def format_sample(rows: list[dict], limit: int = 6) -> str:
                     f"Scene: {row.get('scene') or 'no canvas document'}.",
                     f"Solver proposal {row.get('solver') or row.get('heuristic')} ({row.get('heuristic_reason') or 'unspecified'}).",
                     f"Schema: {row.get('schema') or 'none'}.",
-                    f"Primitive: {row.get('primitive') or 'none'} binds {row.get('binding') or 'none'}.",
-                    f"Qwen A' proposed {row.get('qwen_a')}: {row.get('qwen_a_reason') or ''} "
-                    f"Effect: {row.get('qwen_a_effect') or ''}.",
-                    f"Qwen B' {row.get('qwen_b_verdict') or 'replied'} {row.get('qwen_b')}: "
+                    f"Proposed: {row.get('primitives') or 'none'}.",
+                    f"Qwen A' primitive {row.get('qwen_a_primitive') or 'none'} "
+                    f"binds {row.get('qwen_a_binding') or 'none'}, action {row.get('qwen_a')}: "
+                    f"{row.get('qwen_a_reason') or ''} Effect: {row.get('qwen_a_effect') or ''}.",
+                    f"Qwen B' primitive {row.get('qwen_b_primitive') or 'none'} "
+                    f"binds {row.get('qwen_b_binding') or 'none'}, "
+                    f"{row.get('qwen_b_verdict') or 'replied'} {row.get('qwen_b')}: "
                     f"{row.get('qwen_b_reason') or ''}",
-                    f"Executive {row.get('decision')} -> {row.get('action')}. "
+                    f"Executive {row.get('decision')} -> {row.get('action')} "
+                    f"via {row.get('primitive') or 'none'} binds {row.get('binding') or 'none'}. "
                     f"Reason: {row.get('reason')}",
                     f"Expectation: {row.get('expectation')}.{result_bit}{doc_bit}",
+                    f"Check: {row.get('primitive_check') or 'pending'} "
+                    f"(confidence {row.get('primitive_confidence')}).",
                     f"Latency: A' {latency.get('a')} ms, B' {latency.get('b')} ms, "
                     f"executive {latency.get('executive')} ms, step {step_ms} ms.",
                 ]
