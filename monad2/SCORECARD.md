@@ -25,7 +25,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 11 | 2026-10-31 2:21 PM | e880261 | motor-primitive smoke, not a score run | 0 | 0/3 | 0 | 6 | — | yes |
 | 12 | 2026-10-31 3:02 PM | 4cc3ef7 | role binding and predicate smoke, not a score run | 0 | 0/3 | 0 | 9 | — | yes |
 | 13 | 2026-10-31 3:36 PM | f910fbb | legal menu and plan-once smoke, not a score run | 0 | 0/3 | 0 | 30 | — | yes |
-| 14 | 2026-10-31 5:17 PM | 9707b51 | coordination benchmark, in progress 10/25 | 0 | 0/25 | 0/183 | 98 | 0.0000 | — |
+| 14 | 2026-10-31 5:19 PM | 9707b51 | ABORTED coordination benchmark, 10/25 games, 0 levels | 0 | 0/10 | 0/183 | 98 | 0.0000 | no |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -174,13 +174,17 @@ The executive grammar only admits a menu index or a role reference. Code turns `
 `vc33` level 0. Roles: receptor, reference, wall, clickable, switch, goal. No avatar. Rejected avatar on the S0 line; receptor and goal rebound to hollow_rect geom 2,4,6, wall to line geom 3,1,64. Actions were legal clicks (CLICK 38 29, CLICK 61 25, CLICK 61 33, CLICK 51 29). One plan, `assemble(receptor,reference)`, confirmed `contact(roleA=receptor, roleB=reference)`. A later replan did not parse, so that step stayed in discover. No level completed.
 
 <!-- entry-14-begin -->
-### Entry 14 — coordination benchmark, in progress 10/25
+### Entry 14 — ABORTED coordination benchmark
 
-Recorded 2026-10-31 5:17 PM CT. Code is `9707b51`. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, `--offline --blind-id --no-game-solvers`, 300s per game. The harness action cap stays at 6000. No `MONAD2_COORD_MAX_ACTIONS`. This is a score run. Models load once before the first game clock (warmup 5.36s, not charged to a game).
+Stopped 2026-10-31 5:19 PM CT on instruction. The benchmark process, the resume wrapper, and the ledger watcher were killed. The run was not restarted. Code is `9707b51`. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, `--offline --blind-id --no-game-solvers`, 300s per game, harness action cap 6000, no `MONAD2_COORD_MAX_ACTIONS`. Models had been loaded once before the first game clock (warmup 5.36s, not charged to a game).
 
-So far: 0/25 wins, 0/183 levels, 98 actions, play time 3252.28s. LLM calls 204 (20.4 mean on 10 touched levels, max 23). Modes discover 55, plan 16, execute 13, replan 14. Predicate hits 36/88 (0.4091). Surprises 52. Plan writes 39, execute steps 13, replans 17. Qwen repairs 20. Solver hits 0. Coordination errors 0.
+10 of 25 games finished. 0 wins. 0 levels. 98 actions. Play time 3252.28s. `ls20` had just been loaded and was killed before it finished, so it is not in these totals. The other 14 games were never started.
 
-Entry 1 is 19/183 levels and 42,729 actions. The optimal count is 6,444 actions. Those comparisons are written when all 25 games have finished. A partial total is not a score.
+An LLM step took about 30–40s. The 300s cap therefore bought about 9 actions per game (98/10 = 9.8; the range on finished games was 7–17). That is not enough to clear a level. Every finished game ended `NOT_FINISHED` at 0 levels. This is an aborted partial, not a score.
+
+Entry 1, the finished blind baseline, is 19/183 levels and 42,729 actions. The optimal count is 6,444 actions. This slice is 0 levels and 98 actions on 10 games. It does not bear on those totals, because the suite was stopped.
+
+LLM calls 204 (20.4 mean on the 10 level-0 rows, max 23). Modes discover 55, plan 16, execute 13, replan 14. Predicate hits 36/88 (0.409). Surprises 52. Plan writes 39, execute steps 13, replans 17. Qwen repairs 20. Solver hits 0. Coordination errors 0. No flag turns on.
 
 | Game | State | Levels | Actions | Seconds | LLM calls | discover | plan | execute | replan | Predicate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -195,6 +199,5 @@ Entry 1 is 19/183 levels and 42,729 actions. The optimal count is 6,444 actions.
 | lf52 | NOT_FINISHED | 0 | 7 | 314.58 | 17 | 4 | 1 | 0 | 2 | 0/6 |
 | lp85 | NOT_FINISHED | 0 | 17 | 331.44 | 19 | 5 | 2 | 8 | 2 | 4/16 |
 
-Per-level LLM counts are in `monad2/benchmark_entry14.json`. No flag turns on from this entry.
-The run is still going. This section is replaced as each game finishes.
+Per-level LLM counts for these 10 games are in `monad2/benchmark_entry14.json`.
 <!-- entry-14-end -->

@@ -295,7 +295,12 @@
     "solver_hits": 0,
     "vs_entry1_levels": -19,
     "vs_entry1_actions": -42631,
-    "vs_optimal_actions": -6346
+    "vs_optimal_actions": -6346,
+    "aborted": true,
+    "passed": false,
+    "stopped_ct": "2026-10-31T17:19:00-05:00",
+    "unscored_after_load": "ls20",
+    "note": "ABORTED at 5:19 PM CT. Not resumed. 10/25 games finished, 0 wins, 0 levels, 98 actions, 3252.28s. LLM steps were about 30-40s, so the 300s cap yielded about 9 actions per game and no level could clear. ls20 was killed after load and is not included. Not a score against entry 1 (19/183, 42729) or the optimal 6444."
   },
   "scorecard": {
     "mode": "offline",
