@@ -24,6 +24,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 10 | 2026-10-31 1:49 PM | cdd1719 | coordination test, not a score run | 0 | 0/3 | 1 | 18 | — | yes |
 | 11 | 2026-10-31 2:21 PM | e880261 | motor-primitive smoke, not a score run | 0 | 0/3 | 0 | 6 | — | yes |
 | 12 | 2026-10-31 3:02 PM | 4cc3ef7 | role binding and predicate smoke, not a score run | 0 | 0/3 | 0 | 9 | — | yes |
+| 13 | 2026-10-31 3:36 PM | f910fbb | legal menu and plan-once smoke, not a score run | 0 | 0/3 | 0 | 30 | — | yes |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -152,3 +153,21 @@ Roles come from the frame and from what the last action did. A shape that transl
 `vc33`. Roles began as receptor, reference, wall, clickable, goal, then added switch after the click. Both Qwen actions were repaired to CLICK 38 29. The taken rule was labeled `explore`, predicate `changed(role=clickable)`. Both scored steps refuted it. Confidence went 1.0 to 0.5 to 0.0. The live stream rebound schema S0 onto this frame: receptor and goal to hollow_rect geom 2,4,6, wall to line geom 3,1,64, avatar to rect geom 1,2,4.
 
 The third action of each game was chosen and not scored. The saved 6-action sample in `COORD_SAMPLE.md` was not overwritten.
+
+### Entry 13 — legal executive menu and plan-once, not a score run
+
+Code is `f910fbb`. This is not a 25-game score. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, games `ls20`, `lp85`, `vc33`, cap 60 actions or 300s. The clock stopped each game. 0/3 wins, 0 levels, 30 actions, 976 s. Mean step 31.3 s, max 36.7 s. The one execute step was 0.0 s. Predicate checks 27, hits 3, surprises 24. LLM calls 58. Plan writes 16, replans 12, execute steps 1. Qwen repairs 22. Solver hits 0. Static scan clean. No context overflow. No flag turns on.
+
+The executive grammar only admits a menu index or a role reference. Code turns `click(clickable#n)` into coordinates that are not stored. A stored avatar binding is dropped when the frame has no directional actions.
+
+| Game | Seconds | Actions | LLM calls | Modes | Predicate hits |
+| --- | --- | --- | --- | --- | --- |
+| ls20 | 319.83 | 10 | 16 | discover, plan, then replan | 0/9 |
+| lp85 | 325.51 | 11 | 18 | discover, plan, replan, execute | 2/10 |
+| vc33 | 330.27 | 9 | 24 | discover, plan | 1/8 |
+
+`ls20` level 0. Roles stayed receptor, reference, wall, avatar, movable, goal. Three discover steps inhibited to a legal SIMPLE. The plan was `approach(avatar,goal) -> convey(avatar,movable) -> align(avatar,receptor)`. The first action was SIMPLE 1, predicate `translate(role=avatar, dir=up)`, false, confidence demoted, surprise logged. The next six steps replanned. Each replan was one executive call. No execute step, because the predicate was false on the first try.
+
+`lp85` level 0. Roles: wall, reference, clickable, goal. No avatar. The schema line rebound wall and goal from S0 and rejected avatar. Actions were legal clicks (CLICK 11 1, CLICK 36 1, CLICK 16 1). Qwen repairs 8. Discover, then plan `align(wall,reference) -> cycle_select(clickable,goal) -> toggle(clickable)`. Several replans. Step 7 replan `assemble(wall,reference)` predicate `contact(roleA=wall, roleB=reference)` was true, confidence confirmed. Step 8 executed the next assemble with no model call, 0.0 s, predicate `contact(roleA=clickable, roleB=reference)` also true. The plan then ended and the next steps returned to discover.
+
+`vc33` level 0. Roles: receptor, reference, wall, clickable, switch, goal. No avatar. Rejected avatar on the S0 line; receptor and goal rebound to hollow_rect geom 2,4,6, wall to line geom 3,1,64. Actions were legal clicks (CLICK 38 29, CLICK 61 25, CLICK 61 33, CLICK 51 29). One plan, `assemble(receptor,reference)`, confirmed `contact(roleA=receptor, roleB=reference)`. A later replan did not parse, so that step stayed in discover. No level completed.

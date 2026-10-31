@@ -41,6 +41,18 @@ Roles are inferred from the frame and from what moved. Click games bind clickabl
 
 The third action of each game was chosen and not scored.
 
+## Smoke, 2026-10-31 3:36 PM CT
+
+Not a score run. Three games, cap 60 actions or 300s, solvers off, code `f910fbb`. The clock stopped each game: `ls20` 10 actions, `lp85` 11, `vc33` 9. Mean step 31.3 s. The execute step was 0.0 s. Predicate hits 3/27. LLM calls 16, 18, and 24 on the three level-0 plays. No level completed. Solver hits 0.
+
+The executive picked from a menu. Click games took legal clicks. S0's avatar binding was rejected on `lp85` and `vc33`.
+
+`ls20`: discover, then plan `approach(avatar,goal) -> convey(avatar,movable) -> align(avatar,receptor)`, then replan after `translate(role=avatar, dir=up)` failed.
+
+`lp85`: discover, plan, replan, then execute. The execute step was `assemble`, predicate `contact(roleA=clickable, roleB=reference)`, confirmed, and it did not call a model.
+
+`vc33`: discover, plan `assemble(receptor,reference)`, predicate `contact(roleA=receptor, roleB=reference)` confirmed. Roles had no avatar.
+
 ## What each old solver became
 
 | Old solver | Primitive | Dropped as game-specific |

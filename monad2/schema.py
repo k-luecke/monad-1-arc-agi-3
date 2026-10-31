@@ -520,7 +520,8 @@ def render(hit: dict) -> str:
         else:
             bits.append(f"the {role} binding is open")
     rels = {rel.get("kind") for rel in (hit.get("schema") or {}).get("relations") or []}
-    if "effect" in rels:
+    bound_roles = {binding.get("role") for binding in hit.get("bindings") or []}
+    if "effect" in rels and "avatar" in bound_roles:
         expectation = "bound avatar moves"
     elif "paint" in rels:
         expectation = "trail floor changes"
