@@ -30,6 +30,43 @@ COUNTERS = (
     "watch_scored",
     "watch_hits",
     "level_restores",
+    "coord_steps",
+    "coord_plan_steps",
+    "coord_inhibit",
+    "coord_inhibit_changed",
+    "coord_accept",
+    "coord_combine",
+    "coord_explore",
+    "coord_errors",
+    "qwen_proposals",
+    "qwen_differ",
+    "qwen_influenced",
+    "fmf_in_stream",
+    "expect_scored",
+    "expect_hits",
+    "expect_doc_scored",
+    "expect_doc_hits",
+    "surprise_revisions",
+    "coord_ladder_vetoes",
+    "carried_theories",
+    "infl_scp",
+    "infl_canvas",
+    "infl_pll",
+    "infl_tonic",
+    "infl_fmf",
+    "infl_effect",
+    "infl_dead",
+    "infl_collapse",
+    "infl_skinner",
+    "infl_heuristic",
+    "infl_qwen_a",
+    "infl_qwen_b",
+    "infl_model_a",
+    "infl_model_b",
+    "infl_solver",
+    "infl_schema",
+    "schema_revisions",
+    "schema_in_stream",
 )
 
 
@@ -193,6 +230,7 @@ def init_agent(agent) -> None:
     agent.m2 = {key: 0 for key in COUNTERS}
     agent.m2_rehearsal_log = []
     agent.m2_watch_log = []
+    agent.m2_thought_log = []
     agent._m2_pending_level_restore = False
     _install_action_log(agent)
     if agent.m2_cross_game == "reset":
@@ -300,6 +338,13 @@ def note_step(agent, changed: bool, plan_active: bool) -> None:
             from monad2.discovery import watch_step
 
             watch_step(agent, changed)
+        except Exception:
+            pass
+    if on("MONAD2_COORDINATE"):
+        try:
+            from monad2.coordinate import observe
+
+            observe(agent, changed)
         except Exception:
             pass
     # Flags-off is a no-op. A bad combo that freezes the frame, or that is
@@ -502,8 +547,16 @@ def _goal_delta(agent, key, goal: str) -> float | None:
     return float(score_change(grid, nxt).get(goal, 0))
 
 
-def maybe_replace_key(agent, key):
-    """Probes, D-ladder, and A'/B' callosum. The original key when every flag is off."""
+def maybe_replace_key(agent, key, reason: str = ""):
+    """Probes, D-ladder, and A'/B' callosum. The original key when every flag is off.
+
+    ``MONAD2_COORDINATE=1`` hands the key to the executive instead. That path
+    is not a factorial column and stays off during score runs.
+    """
+    if on("MONAD2_COORDINATE"):
+        from monad2.coordinate import decide
+
+        return decide(agent, key, reason)
     ladder = on("MONAD2_DLADDER")
     callosum = on("MONAD2_CALLOSUM")
     discovery = on("MONAD2_GOAL_DISCOVERY")

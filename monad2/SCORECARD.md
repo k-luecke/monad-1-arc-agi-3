@@ -111,3 +111,15 @@ Code is `af41cb0`. Seed 0 of the 10-factor screen, with the stall path restoring
 | tu93 | 3 levels, 3317 actions | 4 levels, 1754 actions |
 
 bp35 and sc25 keep the baseline level count. ka59 and tu93 each finish one level short, and the restored games spend the stalled prefix plus the replay, so actions are higher. No holdout replay: the suite is below 19 levels. No flag turns on. No module is removed.
+
+### Entry 10 — coordination, not a score run
+
+Code is the commit that adds the schema matcher. This is not a 25-game score. `MONAD2_COORDINATE=1`, game solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, 6 actions per game, games `ls20`, `lp85`, `vc33`, blinded ids. Qwen2.5-0.5B is A', Qwen2.5-1.5B is B', Mistral-NeMo-Minitron-8B is the executive, all Q4 on CPU llama.cpp, temperature 0, seed 0.
+
+| Game | Levels | Actions | Seconds | State |
+| --- | --- | --- | --- | --- |
+| ls20 | 0 | 6 | 288.62 | NOT_FINISHED |
+| lp85 | 1 | 6 | 255.26 | NOT_FINISHED |
+| vc33 | 0 | 6 | 291.05 | NOT_FINISHED |
+
+0/3 wins, 1 level, 18 actions, 835 s. Not comparable to the 19/183 baseline. Mean model step 46.2 s, max 67.4 s. The executive was most of that (about 32–55 s). Expectation matched the frame on 11/14 steps. The document diff matched the stated canvas change on 0/12. The executive inhibited 5 times and changed the action 4 of those. Qwen changed the action 4 times. Per-game solver hits 0. Static game-name scan clean. Stored schema S0 had roles wall, avatar, goal and relations containment, contact, with no game id, color, or coordinate. A recolored, quarter-turned frame matched that structure: receptor and goal bound to hollow_rect geom 2,4,6, wall to line geom 3,1,58, avatar to line geom 3,1,6. Live steps did not show a cross-game binding because the episode key was the reused object id. That key is now an attribute on the agent. Later actions can follow a two-step plan with no new model call, and generation is capped at 48/48/64 tokens. No flag turns on.

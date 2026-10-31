@@ -362,6 +362,9 @@ def play_single_game(
                 action_log = getattr(agent, "m2_action_log", None)
                 if isinstance(action_log, list) and action_log:
                     monad2_report["action_log"] = list(action_log)
+                thought_log = getattr(agent, "m2_thought_log", None)
+                if isinstance(thought_log, list) and thought_log:
+                    monad2_report["thought_log"] = list(thought_log)
         except Exception:
             monad2_report = None
         if blind_id:

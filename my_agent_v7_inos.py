@@ -4169,6 +4169,10 @@ if HAS_TORCH:
 
             return torch.cat([action_logits, coord_logits], dim=1)
 
+class _GameSolversOff(Exception):
+    """Raised to skip the per-game solver tier without running any of those methods."""
+
+
 class MyAgent(Agent):
     """Monad(1) + INOS Hybrid Structural World-Model & Online GPU ActionModel CNN Agent for ARC-AGI-3."""
     MODEL_NAME = "monad(1P0)"
@@ -5261,9 +5265,14 @@ class MyAgent(Agent):
             )
         )
         session_remaining = self._session_remaining_seconds()
+        _coord_cap = os.getenv("MONAD2_COORD_MAX_ACTIONS", "").strip()
+        _coord_hit = False
+        if _coord_cap.isdigit():
+            _coord_hit = self.action_counter >= int(_coord_cap)
         budget_exhausted = bool(
             elapsed >= self.max_game_seconds
             or self.action_counter >= self.MAX_ACTIONS
+            or _coord_hit
             or (session_remaining is not None and session_remaining <= 0.0)
         )
         if level_stagnated or budget_exhausted:
@@ -16841,6 +16850,10 @@ class MyAgent(Agent):
             setattr(self, name, self._game_solver_stub_none)
         for name in self._GAME_SPECIFIC_SOLVERS_RETURN_EMPTY:
             setattr(self, name, self._game_solver_stub_empty)
+        if os.getenv("MONAD2_COORDINATE") == "1":
+            from monad2.general_guard import arm_solver_guard
+
+            arm_solver_guard(self)
 
     # ================================================================================
     # General Goal Engine (GGL): goal hypothesis -> subgoal -> plan -> verify/revise
@@ -22184,7 +22197,7 @@ class MyAgent(Agent):
         rt = getattr(self, "_m2_runtime", None)
         if rt is not None:
             try:
-                key = rt.maybe_replace_key(self, key)
+                key = rt.maybe_replace_key(self, key, reason)
                 rt.arm_expectation(self, key)
             except Exception:
                 pass
@@ -23339,6 +23352,8 @@ class MyAgent(Agent):
         with counterfactual procedural affordance (`_try_solve_node_graph_sentries`).
         Boards where the gauge unlocks a valid causal trajectory are reinforced via LTP (`0x0900 -> 0xFFFF`);
         boards where the gauge yields zero causal affordance are inhibited via LTD (`0x0080 < 0x0200`)."""
+        if self.game_specific_solvers_disabled:
+            return grid
         if not grid or len(grid) != 64 or len(grid[0]) != 64:                               # Guard non-64x64 frames
             return grid                                                                     # Return unaltered grid
         if getattr(self, "_scp_split_gate_color_map", None) or getattr(self, "_scp_split_gate_locked_map", None):  # Skip if split-panel gauge is already locked
@@ -25476,6 +25491,8 @@ class MyAgent(Agent):
 
         # Tier 1: Multi-App Structural Model-Based Archetype Solvers
         try:
+            if self.game_specific_solvers_disabled:
+                raise _GameSolversOff()
             if has_pointer and not has_dpad and not self.planned_queue:
                 cegis_plan = self._try_monad1_scp_cegis_panel_solver(
                     grid, doc, avail_ids, self.current_level
@@ -25732,6 +25749,8 @@ class MyAgent(Agent):
                 and not is_blackout
             ):
                 self._sync_warehouse_closed_loop(grid)
+        except _GameSolversOff:
+            pass
         except Exception:
             pass
 

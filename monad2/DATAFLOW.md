@@ -52,3 +52,31 @@ Pairwise connections that can interact before an action are the rows in the firs
 ## Influence-path rule
 
 Keep a factor off by default unless confirmation beats the baseline at no more actions. Do not delete PLL, Gohst, the observer, tonic, the joints, or `ControllerState` from the source on the strength of a one-module zero. Deletion would require the factorial contrast (factor on vs off) and the holdout confirmation both to show no path to a clear.
+
+## Coordination path: general or per-puzzle
+
+`MONAD2_COORDINATE=1` is the only path that asks Qwen A', Qwen B', and Mistral for a move. It is off during score runs. The executive may accept, combine, or inhibit the heuristic. Only a GENERAL component may propose. A PER-PUZZLE component is either not called, or its return is discarded by the solver guard.
+
+A schema in `monad2/schema.py` is an abstract role and relation structure learned from play: avatar, goal, receptor, movable, switch, wall, hazard, trail floor, counter/HUD; contact, containment, shape match, paint, toggle, and a translate effect. Slots store `shape_geom_sig` only. `assert_structure` rejects `game_id`, a color, an absolute coordinate, a 4-tuple signature (that tuple carries the fill color), and an action list. `upsert` returns without writing when `MONAD2_HOLDOUT_GAME` is one of `cd82`, `ft09`, `m0r0`, `tn36`, `tr87`. The next episode matches stored schemas from other episodes and writes the binding into the `[schema]` line, including a rebound when the same role has a different geom. A document miss either rebinds the avatar geom or rejects that schema id for the episode.
+
+| Component | Class | Proposes? | Evidence |
+| --- | --- | --- | --- |
+| `monad2/schema.py` role/relation matcher | GENERAL | yes, as a hypothesis the executive can use | no game-id key; geom is `(type, min, max)`; holdout `upsert` is a no-op |
+| `monad2/canvas_stream.py` scene and `solver_name` | GENERAL | yes, as a phrase | phrases are "move the avatar onto the unique shape", "paint the remaining floor", "match the shape to the receptor", "click the unique switch shape"; the raw reason is not copied |
+| `CanvasDocument` / `VectorShape.shape_geom_sig` | GENERAL | yes, as the scene | connected components; geom drops color and orientation |
+| `SecondOrderCognitiveCanvas` meta labels, Model A proposal, Model B audit | GENERAL | yes, as `[meta]`, `[model_a]`, `[model_b]` | counts of repo meta ids; no game dispatch in `canvas_stream.py` |
+| `monad2/scp.py` `project` and `validate_action` | GENERAL | yes, SCP line; D-ladder can reject | role tokens and legal/noop/hazard rungs |
+| `monad2/memory.py` affordance retrieval | GENERAL | yes, as a goal hypothesis | overlap on `aff:*` features; a named game is dropped, not solved |
+| `monad2/discovery.py` `remember` / `recall` | GENERAL | yes, episode FMF | holdout prefixes do not write |
+| learned `fx_dpad` effect table | GENERAL | yes, as `[effect]` | shifts counted on this episode |
+| `dead_actions` | GENERAL | yes, as a veto | per-state no-ops learned here |
+| collapse `get_phi` | GENERAL | read into the stream | one phi for the live state |
+| tonic depth | GENERAL | read into the stream | `inos_depth_budget` or the last tonic report |
+| PLL mismatch line | GENERAL | yes, as `[pll]` | compares the stated expectation with the frame |
+| general goal engine, visited BFS, operant click, kinematic trail | GENERAL | yes, only through the general phrase above | goal engine comment: pixels only, no game ids; `solver_name` will not pass a puzzle plan through |
+| Qwen A' 0.5B, Qwen B' 1.5B, Mistral executive | GENERAL | yes | local GGUF, temperature 0, seed 0; no game table in `llm.py` |
+| 27 `_try_solve_*` / `_step_*` / `_try_plan_hybrid_switch_navigation` methods | PER-PUZZLE | no | `game_specific_solvers_disabled` raises `_GameSolversOff` before that tier; `_scp_canonicalize_node_graph_palette` returns the frame unchanged; `arm_solver_guard` records a call if one still happens |
+
+`monad2/general_guard.py` scans `coordinate.py`, `schema.py`, `canvas_stream.py`, `scp.py`, `memory.py`, `runtime.py`, `llm.py`, and `discovery.py`. A known game prefix as a whole string literal, a compare operand, or a dict key is a violation. A sentence that names a past stall is not a branch. The guard's own denylist is not on that list. The coordination probe asserts the hit list is empty after blinded play.
+
+The episode id is an attribute on the agent (`_m2_schema_ep`). It is not `id(agent)`, which Python reuses after a game object is freed; that reuse made every later game look like the same episode and refuse its own schema. A stored plan of up to two further actions is run without another model call when the previous step matched and the D-ladder accepts the action. A mismatch clears the plan. Model prompts are clipped for prefill; the logged stream is the full one. Generation caps are 48 tokens for A' and B' and 64 for the executive. Thread count is the machine CPU count.
