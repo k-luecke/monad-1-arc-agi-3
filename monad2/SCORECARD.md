@@ -13,5 +13,9 @@ Gaps 1–9 are independent flags and default off. `MONAD2_FACTORIAL=1` assigns a
 | # | When (CT) | Commit | What | Seeds | Wins | Levels | Actions | Levels/1k | Passed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 2026-10-30 8:33 PM | 98227b8 | fresh blind baseline, flags off, 300s | 0, 1, 2 | 0/25 | 19/183 | 42729 | 0.4447 | yes |
+| 2 | 2026-10-30 8:48 PM | a39c069 | per-level 32-run factorial, gaps 1–9, 300s | 0 | 0/25 | 8/183 | 27460 | 0.2913 | no |
+
+Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
+
 
 Seeds 0, 1, and 2 matched on every game (levels, actions, and terminal state). The goal engine is on because game-specific solvers are disabled. Monad(2) flags were unset. Code is the ledger commit `98227b8` (configurable time limit only).
