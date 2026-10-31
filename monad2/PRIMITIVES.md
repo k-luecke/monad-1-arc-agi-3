@@ -27,6 +27,20 @@ Not a score run. Three games, two actions each, solvers off, `MONAD2_COORDINATE=
 
 The second action of each game was chosen and not scored. The action cap returns before that step's diff.
 
+## Smoke, 2026-10-31 3:02 PM CT
+
+Not a score run. Three games, three actions each, solvers off, `MONAD2_COORDINATE=1`, code `4cc3ef7`. Mean step 32.3 s, max 35.9 s. Predicate checks 6, hits 1, surprises 5. Qwen repairs 12. Solver hits 0. Static scan clean. `COORD_SAMPLE.md` was not overwritten.
+
+Roles are inferred from the frame and from what moved. Click games bind clickable and reference, and they do not invent an avatar. The executive's expectation is a predicate the document diff can evaluate. Free text is only the comment. A false predicate demotes confidence and is appended to the surprise list.
+
+`ls20`, step 0. Roles: receptor, reference, wall, avatar, goal. A' and B' were legal (SIMPLE 2 down, SIMPLE 3 left). Executive inhibit, SIMPLE 3, via `approach`. Predicate `translate(role=avatar, dir=left)`. The frame changed and the predicate was false, so the check demoted confidence to 0.5 and logged that predicate as a surprise. Step 1 added movable, the same predicate was true, and confidence confirmed at 0.75.
+
+`lp85`. Roles: wall, reference, clickable, goal. Both Qwen calls were repaired to CLICK 11 1. The executive JSON had no legal action, so the step was labeled `explore` with `changed(role=clickable)`. Both scored steps refuted it. Confidence 1.0, then 0.5, then 0.0.
+
+`vc33`. Roles: receptor, reference, wall, clickable, goal, then switch. Both Qwen calls were repaired to CLICK 38 29. The taken predicate was `changed(role=clickable)`, refuted on both scored steps, confidence 1.0, then 0.5, then 0.0. The stream rebound schema S0: receptor and goal to hollow_rect geom 2,4,6, wall to line geom 3,1,64.
+
+The third action of each game was chosen and not scored.
+
 ## What each old solver became
 
 | Old solver | Primitive | Dropped as game-specific |

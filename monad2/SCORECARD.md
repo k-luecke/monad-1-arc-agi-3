@@ -23,6 +23,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 9 | 2026-10-31 12:09 PM | af41cb0 | stall restore on the factorial, seed 0, 300s | 0 | 0/25 | 17/183 | 58524 | 0.290 | no |
 | 10 | 2026-10-31 1:49 PM | cdd1719 | coordination test, not a score run | 0 | 0/3 | 1 | 18 | — | yes |
 | 11 | 2026-10-31 2:21 PM | e880261 | motor-primitive smoke, not a score run | 0 | 0/3 | 0 | 6 | — | yes |
+| 12 | 2026-10-31 3:02 PM | 4cc3ef7 | role binding and predicate smoke, not a score run | 0 | 0/3 | 0 | 9 | — | yes |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -131,3 +132,23 @@ Code is `cdd1719`. This is not a 25-game score. `MONAD2_COORDINATE=1`, game solv
 Code is `e880261` (the primitive list is `1e7d2ff`). This is not a 25-game score. Same three games, two actions each, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`. Mean step 28.8 s, max 32.6 s. 0/3 wins, 0 levels, 6 actions, 176 s.
 
 `ls20` proposed `approach` (avatar,goal) and `route` (avatar,wall). Qwen A' named `approach`. Qwen B' challenged with `hold_gradient`. The executive inhibited and kept `hold_gradient`, expecting "avatar does not reverse". The frame changed, the check confirmed, confidence 1.25. `lp85` and `vc33` had no role precondition, so the listed rule was labeled `explore`. Their Qwen actions were not legal, and the executive took that labeled click. `vc33` confirmed it against the document diff. Per-game solver hits 0. Static scan clean. The mapping of the 27 old methods is `monad2/PRIMITIVES.md`. No flag turns on.
+
+### Entry 12 — role binding and checkable predicates, not a score run
+
+Code is `4cc3ef7` (role inference landed in `9993145`). This is not a 25-game score. `MONAD2_COORDINATE=1`, game solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, 3 actions per game, games `ls20`, `lp85`, `vc33`, blinded ids. Mean step 32.3 s, max 35.9 s. 0/3 wins, 0 levels, 9 actions, 294 s. The log has no context overflow. Per-game solver hits 0. Static scan clean. Predicate checks 6, predicate hits 1, surprises 5. Qwen repairs 12. No flag turns on.
+
+Roles come from the frame and from what the last action did. A shape that translates under a directional action is the avatar. A second shape that translates while touching it is movable. A shape that changes under a click is a switch. A region tied to a reset is a hazard, a blocked step is a wall, and level completion marks the goal. A shape or fill match with a reference panel is the align relation. Click games get clickable objects and a reference panel, and they do not get a static avatar. Stored slots are geometry only. Click anchors stay on the ephemeral affordance map. A palette permutation plus a quarter turn keeps the same role set and the same geom per role.
+
+| Game | Seconds | Roles on the scored steps | Qwen repaired | Predicate result |
+| --- | --- | --- | --- | --- |
+| ls20 | 103.83 | receptor, reference, wall, avatar, goal; then movable | 0 | translate left failed, then confirmed |
+| lp85 | 95.99 | wall, reference, clickable, goal | 6 | changed(clickable) failed twice |
+| vc33 | 94.53 | receptor, reference, wall, clickable, goal; then switch | 6 | changed(clickable) failed twice |
+
+`ls20` step 0. Roles: receptor, reference, wall, avatar, goal. A' `approach` SIMPLE 2 (down), legal. B' `hold_gradient` SIMPLE 3 (left), legal. Executive inhibited to SIMPLE 3 via `approach`. Predicate `translate(role=avatar, dir=left)`. The frame changed and the predicate was false, so confidence went to 0.5 and the predicate was logged as a surprise. Step 1 added movable. The same predicate was true, so the check confirmed and confidence went to 0.75. Step 2 (not scored) inhibited to `hold_gradient` with `no_reverse(role=avatar, axis=x)`.
+
+`lp85`. Roles: wall, reference, clickable, goal. No avatar. Both Qwen actions were illegal and were repaired to CLICK 11 1 before the executive. The executive JSON had no legal action, so the step was labeled `explore` with `changed(role=clickable)`. Both scored steps refuted that predicate. Confidence went 1.0 to 0.5 to 0.0. Each miss is in the surprise list.
+
+`vc33`. Roles began as receptor, reference, wall, clickable, goal, then added switch after the click. Both Qwen actions were repaired to CLICK 38 29. The taken rule was labeled `explore`, predicate `changed(role=clickable)`. Both scored steps refuted it. Confidence went 1.0 to 0.5 to 0.0. The live stream rebound schema S0 onto this frame: receptor and goal to hollow_rect geom 2,4,6, wall to line geom 3,1,64, avatar to rect geom 1,2,4.
+
+The third action of each game was chosen and not scored. The saved 6-action sample in `COORD_SAMPLE.md` was not overwritten.
