@@ -114,7 +114,7 @@ bp35 and sc25 keep the baseline level count. ka59 and tu93 each finish one level
 
 ### Entry 10 — coordination, not a score run
 
-Code is the commit that adds the schema matcher. This is not a 25-game score. `MONAD2_COORDINATE=1`, game solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, 6 actions per game, games `ls20`, `lp85`, `vc33`, blinded ids. Qwen2.5-0.5B is A', Qwen2.5-1.5B is B', Mistral-NeMo-Minitron-8B is the executive, all Q4 on CPU llama.cpp, temperature 0, seed 0.
+Code is `cdd1719`. This is not a 25-game score. `MONAD2_COORDINATE=1`, game solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, 6 actions per game, games `ls20`, `lp85`, `vc33`, blinded ids. Qwen2.5-0.5B is A', Qwen2.5-1.5B is B', Mistral-NeMo-Minitron-8B is the executive, all Q4 on CPU llama.cpp, temperature 0, seed 0.
 
 | Game | Levels | Actions | Seconds | State |
 | --- | --- | --- | --- | --- |
