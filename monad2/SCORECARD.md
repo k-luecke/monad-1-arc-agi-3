@@ -25,7 +25,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 11 | 2026-10-31 2:21 PM | e880261 | motor-primitive smoke, not a score run | 0 | 0/3 | 0 | 6 | — | yes |
 | 12 | 2026-10-31 3:02 PM | 4cc3ef7 | role binding and predicate smoke, not a score run | 0 | 0/3 | 0 | 9 | — | yes |
 | 13 | 2026-10-31 3:36 PM | f910fbb | legal menu and plan-once smoke, not a score run | 0 | 0/3 | 0 | 30 | — | yes |
-| 14 | 2026-10-31 3:50 PM | 9707b51 | coordination benchmark, in progress 1/25 | 0 | 0/25 | 0/183 | 9 | 0.0000 | — |
+| 14 | 2026-10-31 3:55 PM | 9707b51 | coordination benchmark, in progress 2/25 | 0 | 0/25 | 0/183 | 20 | 0.0000 | — |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -174,17 +174,18 @@ The executive grammar only admits a menu index or a role reference. Code turns `
 `vc33` level 0. Roles: receptor, reference, wall, clickable, switch, goal. No avatar. Rejected avatar on the S0 line; receptor and goal rebound to hollow_rect geom 2,4,6, wall to line geom 3,1,64. Actions were legal clicks (CLICK 38 29, CLICK 61 25, CLICK 61 33, CLICK 51 29). One plan, `assemble(receptor,reference)`, confirmed `contact(roleA=receptor, roleB=reference)`. A later replan did not parse, so that step stayed in discover. No level completed.
 
 <!-- entry-14-begin -->
-### Entry 14 — coordination benchmark, in progress 1/25
+### Entry 14 — coordination benchmark, in progress 2/25
 
-Recorded 2026-10-31 3:50 PM CT. Code is `9707b51`. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, `--offline --blind-id --no-game-solvers`, 300s per game. The harness action cap stays at 6000. No `MONAD2_COORD_MAX_ACTIONS`. This is a score run. Models load once before the first game clock (warmup 5.36s, not charged to a game).
+Recorded 2026-10-31 3:55 PM CT. Code is `9707b51`. `MONAD2_COORDINATE=1`, solvers off, other Monad(2) flags off, `PYTHONHASHSEED=0`, `--offline --blind-id --no-game-solvers`, 300s per game. The harness action cap stays at 6000. No `MONAD2_COORD_MAX_ACTIONS`. This is a score run. Models load once before the first game clock (warmup 5.36s, not charged to a game).
 
-So far: 0/25 wins, 0/183 levels, 9 actions, play time 309.09s. LLM calls 18 (18.0 mean on 1 touched levels, max 18). Modes discover 5, plan 2, execute 1, replan 1. Predicate hits 6/8 (0.75). Surprises 2. Plan writes 3, execute steps 1, replans 1. Qwen repairs 0. Solver hits 0. Coordination errors 0.
+So far: 0/25 wins, 0/183 levels, 20 actions, play time 611.28s. LLM calls 41 (20.5 mean on 2 touched levels, max 23). Modes discover 12, plan 4, execute 3, replan 1. Predicate hits 14/18 (0.7778). Surprises 4. Plan writes 5, execute steps 3, replans 1. Qwen repairs 0. Solver hits 0. Coordination errors 0.
 
-Entry 1 is 19/183 levels and 42,729 actions. This run is -19 levels and -42720 actions against that baseline, and -6435 actions against the optimal 6,444.
+Entry 1 is 19/183 levels and 42,729 actions. The optimal count is 6,444 actions. Those comparisons are written when all 25 games have finished. A partial total is not a score.
 
 | Game | State | Levels | Actions | Seconds | LLM calls | discover | plan | execute | replan | Predicate |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | ar25 | NOT_FINISHED | 0 | 9 | 309.09 | 18 | 5 | 2 | 1 | 1 | 6/8 |
+| bp35 | NOT_FINISHED | 0 | 11 | 302.18 | 23 | 7 | 2 | 2 | 0 | 8/10 |
 
 Per-level LLM counts are in `monad2/benchmark_entry14.json`. No flag turns on from this entry.
 The run is still going. This section is replaced as each game finishes.
