@@ -22,6 +22,9 @@ COUNTERS = (
     "callosum_blocked",
     "stall_fallbacks",
     "goal_demotions",
+    "discovery_probes",
+    "discovery_scored",
+    "discovery_hits",
 )
 
 
@@ -142,6 +145,13 @@ def note_step(agent, changed: bool, plan_active: bool) -> None:
     cap = steps >= 900
     if frozen or loop or cap:
         _fallback_to_baseline(agent)
+    if on("MONAD2_GOAL_DISCOVERY"):
+        try:
+            from monad2.discovery import observe_step
+
+            observe_step(agent, changed)
+        except Exception:
+            pass
 
 
 def _action_id(key) -> int:
@@ -281,8 +291,17 @@ def _callosum_key(agent, key, legal: list[int]):
     # B' rejects a proposal the ladder will not defend.
     if not verdict.ok:
         return None
-    # Override only when the world model says the alternative makes progress
-    # and A's choice does not. No opinion means leave A's choice alone.
+    # Toward a discovered goal, override only when the world model predicts
+    # the alternative gains more on that goal. Otherwise keep the older gate:
+    # the alternative must be predicted to change the frame and A's choice must not.
+    goal = getattr(agent, "m2_goal_hypothesis", None)
+    if goal:
+        alt_delta = _goal_delta(agent, proposal, goal)
+        cur_delta = _goal_delta(agent, key, goal)
+        if alt_delta is None or cur_delta is None or not (alt_delta > cur_delta and alt_delta > 0):
+            agent._m2_callosum_gated = True
+            return None
+        return proposal
     alt_prog = _predicted_progress(agent, proposal)
     cur_prog = _predicted_progress(agent, key)
     if alt_prog is not True or cur_prog is not False:
@@ -291,15 +310,44 @@ def _callosum_key(agent, key, legal: list[int]):
     return proposal
 
 
+def _goal_delta(agent, key, goal: str) -> float | None:
+    predict = getattr(agent, "_fx_predict", None)
+    grid = getattr(agent, "_m2_grid", None)
+    if not callable(predict) or grid is None:
+        return None
+    try:
+        nxt = predict(grid, key)
+    except Exception:
+        return None
+    if nxt is None:
+        return None
+    from monad2.discovery import score_change
+
+    return float(score_change(grid, nxt).get(goal, 0))
+
+
 def maybe_replace_key(agent, key):
-    """D-ladder and A'/B' callosum. Returns the original key when both flags are off."""
+    """Probes, D-ladder, and A'/B' callosum. The original key when every flag is off."""
     ladder = on("MONAD2_DLADDER")
     callosum = on("MONAD2_CALLOSUM")
-    if not ladder and not callosum:
+    discovery = on("MONAD2_GOAL_DISCOVERY")
+    if not ladder and not callosum and not discovery:
         return key
     legal = [int(a) for a in (getattr(agent, "_m2_avail", None) or []) if int(a) != 0]
     if not legal:
         return key
+    probing = False
+    if discovery:
+        try:
+            from monad2.discovery import ensure, next_probe
+
+            probe = next_probe(agent, legal)
+            if probe is not None and _action_id(probe) in legal:
+                key = probe
+                probing = True
+                ensure(agent).note_probe(key)
+        except Exception:
+            probing = False
     stats = agent.m2
     aid = _action_id(key)
     if ladder:
@@ -317,7 +365,7 @@ def maybe_replace_key(agent, key):
                 if verdict.rung == "D0":
                     stats["illegal_blocked"] += 1
                 key = alt
-    if callosum:
+    if callosum and not probing:
         stats["callosum_seen"] += 1
         agent._m2_callosum_gated = False
         alt = _callosum_key(agent, key, legal)
@@ -326,6 +374,13 @@ def maybe_replace_key(agent, key):
         if alt is not None:
             stats["callosum_overrides"] += 1
             key = alt
+    if probing:
+        try:
+            from monad2.discovery import ensure
+
+            ensure(agent).pending = key
+        except Exception:
+            pass
     return key
 
 
@@ -377,6 +432,12 @@ def pll_observation(agent, changed_pixels: int) -> dict | None:
             stats["goal_demotions"] += 1
             if getattr(agent, "ggl_confirmed_type", None) == gtype and left < 2:
                 agent.ggl_confirmed_type = None
+            try:
+                from monad2.discovery import demote
+
+                demote(agent, gtype)
+            except Exception:
+                pass
     hist.append(not locked)
     return {"locked": locked, "expected": expected, "observed": observed}
 

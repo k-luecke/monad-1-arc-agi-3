@@ -1,7 +1,9 @@
-"""Per-level fractional factorial for Monad(2) gaps 1-9.
+"""Per-level fractional factorial for Monad(2).
 
-Every factor defaults off. ``MONAD2_FACTORIAL=1`` assigns one row of a
-2^(9-4) design to each level. The row is a function of the factorial seed,
+Every factor defaults off. ``MONAD2_FACTORIAL=1`` assigns one row of the
+32-run design to each level. Ten columns: the original nine, plus goal
+discovery as the AB interaction, which stays orthogonal to those nine.
+The row is a function of the factorial seed,
 the harness slot, and the level index. The slot is the position in the
 harness order, not a game id, and it is not a retrieval feature.
 
@@ -28,6 +30,7 @@ FACTORS = (
     "MONAD2_TONIC",          # 7 depth budget controls search
     "MONAD2_PLL_SURPRISE",   # 8 predicted-versus-observed lock
     "MONAD2_SKIP_DEAD_ORGANS",  # 9 master-loop organs as one factor
+    "MONAD2_GOAL_DISCOVERY",    # probe budget and outcome-grounded hypothesis
 )
 
 
@@ -52,6 +55,7 @@ def design_row(index: int) -> dict[str, int]:
         a ^ c ^ d,
         b ^ c ^ d,
         a ^ b ^ c ^ d,
+        a ^ b,  # goal discovery; orthogonal to the nine columns above
     )
     return {name: int(bit) for name, bit in zip(FACTORS, bits)}
 

@@ -18836,6 +18836,23 @@ class MyAgent(Agent):
             for hyp in hyps:
                 if prior.get(hyp, 0) > 0:
                     prior[hyp] += 1.5
+        if os.getenv("MONAD2_GOAL_DISCOVERY", "0") == "1":
+            try:
+                from monad2.discovery import ensure, recall
+                from monad2.memory import grid_features
+                from monad2.scp import project as _disc_project
+
+                disc = ensure(self)
+                hyp = disc.hypothesis()
+                self.m2_goal_hypothesis = hyp
+                if hyp is not None and prior.get(hyp, 0) > 0:
+                    prior[hyp] += 3.0
+                proj = _disc_project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                for remembered in recall(grid_features(proj, avail_ids), k=2):
+                    if prior.get(remembered, 0) > 0:
+                        prior[remembered] += 1.0
+            except Exception:
+                pass
         sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
         if getattr(self, "wt_memory", None):
             try:

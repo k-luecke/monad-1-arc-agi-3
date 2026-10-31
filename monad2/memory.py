@@ -99,7 +99,10 @@ def _goal(rec: dict) -> str | None:
             name = str(val).upper()
             if name in GOAL_TYPES:
                 return name
-    return None
+    # No explicit label. A described change can still ground one.
+    from monad2.discovery import outcome_label
+
+    return outcome_label(rec)
 
 
 def _features(rec: dict) -> tuple[str, ...]:
