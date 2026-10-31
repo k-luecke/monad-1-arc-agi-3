@@ -265,6 +265,25 @@ def ensure_local_environments(env_dir: Path) -> list[str]:
     return game_ids
 
 
+def _select_game_ids(game_ids: list[str], game_filter: set[str], game_order: str) -> list[str]:
+    """Filter and optionally reorder games. `--game-order` is a comma-separated prefix list."""
+    order = [part.strip() for part in game_order.split(",") if part.strip()]
+    if order:
+        by_key: dict[str, str] = {}
+        for gid in game_ids:
+            by_key.setdefault(gid, gid)
+            by_key.setdefault(gid.split("-")[0], gid)
+        selected: list[str] = []
+        for key in order:
+            gid = by_key.get(key)
+            if gid and gid not in selected:
+                selected.append(gid)
+        return selected
+    if game_filter:
+        return [g for g in game_ids if g in game_filter or g.split("-")[0] in game_filter]
+    return list(game_ids)
+
+
 def play_single_game(
     worker_arc: Any,
     base_url: str,
@@ -273,6 +292,7 @@ def play_single_game(
     idx: int,
     total: int,
     blind_id: bool = False,
+    max_game_seconds: float = 300.0,
 ) -> dict:
     t0 = time.perf_counter()
     raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
@@ -290,7 +310,7 @@ def play_single_game(
             arc_env=env,
             tags=["monad(1)", "v7-inos", "competition-mode"],
         )
-        agent.max_game_seconds = 300.0
+        agent.max_game_seconds = float(max_game_seconds)
         agent.main()
         try:
             if getattr(agent, "ggl_enabled", False):
@@ -433,7 +453,23 @@ def main(argv: list[str] | None = None) -> int:
         default="scorecards/latest_competition_scorecard.json",
         help="Output JSON path for the verification report",
     )
+    parser.add_argument(
+        "--max-game-seconds",
+        type=float,
+        default=None,
+        help="Per-game wall clock limit. Default 300, or MONAD2_MAX_GAME_SECONDS. Recorded in the output JSON.",
+    )
+    parser.add_argument(
+        "--game-order",
+        type=str,
+        default="",
+        help="Comma-separated game prefixes in the order to play them. Overrides sorted order. Used for cross-game permutation tests.",
+    )
     args, _unknown = parser.parse_known_args(argv)
+    if args.max_game_seconds is not None:
+        max_game_seconds = float(args.max_game_seconds)
+    else:
+        max_game_seconds = float(os.getenv("MONAD2_MAX_GAME_SECONDS", "300") or "300")
 
     if args.no_game_solvers:
         os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
@@ -454,13 +490,12 @@ def main(argv: list[str] | None = None) -> int:
 
     env_dir = Path(args.environments_dir).resolve()
     game_filter = {g.strip() for g in args.games.split(",") if g.strip()}
-    is_full_suite = len(game_filter) == 0
+    is_full_suite = len(game_filter) == 0 and not args.game_order.strip()
 
     if args.offline:
         print(f"[Monad(1) V7] Ensuring official ARC-AGI-3 environments in {env_dir}...")
         game_ids = ensure_local_environments(env_dir)
-        if game_filter:
-            game_ids = [g for g in game_ids if g in game_filter or g.split("-")[0] in game_filter]
+        game_ids = _select_game_ids(game_ids, game_filter, args.game_order)
         offline_arc = Arcade(operation_mode=OperationMode.OFFLINE, environments_dir=str(env_dir))
         t0 = time.perf_counter()
         results = []
@@ -473,6 +508,7 @@ def main(argv: list[str] | None = None) -> int:
                 idx,
                 len(game_ids),
                 blind_id=args.blind_id,
+                max_game_seconds=max_game_seconds,
             )
             results.append(res)
         total_s = round(time.perf_counter() - t0, 2)
@@ -493,7 +529,13 @@ def main(argv: list[str] | None = None) -> int:
                         "mode": "offline",
                         "blind_id_mode": args.blind_id,
                         "game_specific_solvers_disabled": args.no_game_solvers,
+                        "max_game_seconds": max_game_seconds,
+                        "game_order": [g.split("-")[0] for g in game_ids],
                         "elapsed_s": total_s,
+                        "wins": wins,
+                        "levels_completed": lvls,
+                        "actions": acts,
+                        "levels_per_1k_actions": round(lvls / (acts / 1000.0), 4) if acts else 0.0,
                         "per_game_results": results,
                     },
                     indent=2,
@@ -510,6 +552,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  Environments Won: {wins} / {len(game_ids)} ({100.0 * wins / max(1, len(game_ids)):.1f}%)")
         print(f"  Levels Completed: {lvls}")
         print(f"  Total Actions:    {acts}")
+        print(f"  Levels / 1k acts: {lvls / (acts / 1000.0):.3f}" if acts else "  Levels / 1k acts: 0")
+        print(f"  Time limit:       {max_game_seconds:.0f}s per game")
         print(f"  Elapsed Time:     {total_s}s")
         print("=" * 80)
         return 0
@@ -592,6 +636,7 @@ def main(argv: list[str] | None = None) -> int:
                     idx,
                     len(game_ids),
                     blind_id=args.blind_id,
+                    max_game_seconds=max_game_seconds,
                 )
             )
     else:
@@ -603,7 +648,10 @@ def main(argv: list[str] | None = None) -> int:
                 operation_mode=OperationMode.COMPETITION,
                 environments_dir="",
             )
-            return play_single_game(w_arc, base_url, card_id, g, i, len(game_ids), blind_id=args.blind_id)
+            return play_single_game(
+                w_arc, base_url, card_id, g, i, len(game_ids),
+                blind_id=args.blind_id, max_game_seconds=max_game_seconds,
+            )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
             for res in pool.map(_worker, enumerate(game_ids, 1)):
