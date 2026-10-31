@@ -411,6 +411,120 @@ def play_single_game(
     return result
 
 
+def _compact_game(res: dict) -> dict:
+    """Drop thought streams. Keep counters, mode counts, and a short trace."""
+    out = {k: v for k, v in res.items() if k != "monad2"}
+    report = res.get("monad2") if isinstance(res.get("monad2"), dict) else {}
+    thoughts = report.get("thought_log") if isinstance(report.get("thought_log"), list) else []
+    modes: dict[str, int] = {"discover": 0, "plan": 0, "execute": 0, "replan": 0}
+    llm_by_level: dict[str, int] = {}
+    excerpts: list[dict] = []
+    seen_modes: set[str] = set()
+    for row in thoughts:
+        if not isinstance(row, dict):
+            continue
+        mode = str(row.get("mode") or "")
+        if mode:
+            modes[mode] = modes.get(mode, 0) + 1
+        level = str(row.get("level", 0))
+        try:
+            calls = int(row.get("llm_calls_level") or 0)
+        except (TypeError, ValueError):
+            calls = 0
+        llm_by_level[level] = max(llm_by_level.get(level, 0), calls)
+        if len(excerpts) >= 16:
+            continue
+        if mode in seen_modes and len(excerpts) >= 8:
+            continue
+        seen_modes.add(mode)
+        latency = row.get("latency_ms") if isinstance(row.get("latency_ms"), dict) else {}
+        excerpts.append(
+            {
+                "level": row.get("level"),
+                "mode": mode,
+                "action": row.get("action"),
+                "primitive": row.get("primitive"),
+                "predicate": row.get("predicate") or row.get("expectation") or "",
+                "predicate_hit": row.get("predicate_hit"),
+                "decision": row.get("decision"),
+                "reason": str(row.get("reason") or "")[:180],
+                "roles": str(row.get("roles") or "")[:180],
+                "plan": str(row.get("plan") or "")[:240],
+                "llm_calls_level": row.get("llm_calls_level"),
+                "step_ms": latency.get("step"),
+            }
+        )
+    keep = {
+        k: v
+        for k, v in report.items()
+        if k not in ("thought_log", "action_log", "rehearsal_log", "watch_log")
+    }
+    keep["modes"] = modes
+    keep["llm_calls_by_level"] = llm_by_level
+    keep["excerpts"] = excerpts
+    out["monad2"] = keep
+    return out
+
+
+def _scorecard_payload(
+    *,
+    blind_id: bool,
+    no_game_solvers: bool,
+    max_game_seconds: float,
+    game_ids: list[str],
+    results: list[dict],
+    elapsed_s: float,
+    warmup_s: float,
+    complete: bool,
+) -> dict:
+    wins = sum(1 for r in results if r.get("state") == "WIN")
+    lvls = sum(int(r.get("levels_completed") or 0) for r in results)
+    acts = sum(int(r.get("actions") or 0) for r in results)
+    return {
+        "mode": "offline",
+        "blind_id_mode": blind_id,
+        "game_specific_solvers_disabled": no_game_solvers,
+        "max_game_seconds": max_game_seconds,
+        "game_order": [g.split("-")[0] for g in game_ids],
+        "partial": not complete,
+        "games_finished": len(results),
+        "games_expected": len(game_ids),
+        "warmup_s": round(warmup_s, 2),
+        "elapsed_s": round(elapsed_s, 2),
+        "wins": wins,
+        "levels_completed": lvls,
+        "actions": acts,
+        "levels_per_1k_actions": round(lvls / (acts / 1000.0), 4) if acts else 0.0,
+        "per_game_results": results,
+    }
+
+
+def _write_scorecard(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _load_resume(path: Path) -> tuple[list[dict], float, float]:
+    if os.getenv("MONAD2_RESUME", "0") != "1" or not path.is_file():
+        return [], 0.0, 0.0
+    try:
+        prev = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return [], 0.0, 0.0
+    rows = [r for r in (prev.get("per_game_results") or []) if isinstance(r, dict) and r.get("game_id")]
+    try:
+        elapsed = float(prev.get("elapsed_s") or 0.0)
+    except (TypeError, ValueError):
+        elapsed = 0.0
+    try:
+        warmup = float(prev.get("warmup_s") or 0.0)
+    except (TypeError, ValueError):
+        warmup = 0.0
+    return rows, elapsed, warmup
+
+
 def verify_claimed_totals(
     results: list[dict],
     is_full_suite: bool,
@@ -542,10 +656,36 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[Monad(1) V7] Ensuring official ARC-AGI-3 environments in {env_dir}...")
         game_ids = ensure_local_environments(env_dir)
         game_ids = _select_game_ids(game_ids, game_filter, args.game_order)
+        out_path = Path(args.output)
+        results, prior_s, warmup_s = _load_resume(out_path)
+        done = {str(r.get("game_id", "")).split("-")[0] for r in results}
+        if done:
+            print(
+                f"[Monad(1) V7] Resuming: {len(done)} game(s) already in {out_path}",
+                flush=True,
+            )
+        pending = [g for g in game_ids if g.split("-")[0] not in done]
         offline_arc = Arcade(operation_mode=OperationMode.OFFLINE, environments_dir=str(env_dir))
+        if os.getenv("MONAD2_COORDINATE") == "1" and pending:
+            tw = time.perf_counter()
+            try:
+                from monad2.llm import get_backend
+
+                loaded = get_backend().warmup()
+                this_warm = time.perf_counter() - tw
+                warmup_s += this_warm
+                print(
+                    f"[Monad(1) V7] Coordination models loaded in {this_warm:.1f}s: {loaded}",
+                    flush=True,
+                )
+            except Exception as exc:
+                this_warm = time.perf_counter() - tw
+                warmup_s += this_warm
+                print(f"[Monad(1) V7] Coordination model warmup failed after {this_warm:.1f}s: {exc}", flush=True)
+                raise
         t0 = time.perf_counter()
-        results = []
-        for idx, gid in enumerate(game_ids, 1):
+        for gid in pending:
+            idx = len(results) + 1
             res = play_single_game(
                 offline_arc,
                 "http://localhost",
@@ -556,37 +696,47 @@ def main(argv: list[str] | None = None) -> int:
                 blind_id=args.blind_id,
                 max_game_seconds=max_game_seconds,
             )
-            results.append(res)
-        total_s = round(time.perf_counter() - t0, 2)
+            results.append(_compact_game(res))
+            elapsed_s = prior_s + (time.perf_counter() - t0)
+            try:
+                _write_scorecard(
+                    out_path,
+                    _scorecard_payload(
+                        blind_id=args.blind_id,
+                        no_game_solvers=args.no_game_solvers,
+                        max_game_seconds=max_game_seconds,
+                        game_ids=game_ids,
+                        results=results,
+                        elapsed_s=elapsed_s,
+                        warmup_s=warmup_s,
+                        complete=len(results) >= len(game_ids),
+                    ),
+                )
+                print(f"[Monad(1) V7] Flushed {len(results)}/{len(game_ids)} games to {out_path}", flush=True)
+            except Exception as exc:
+                print(f"[Monad(1) V7] Scorecard flush failed: {exc}", flush=True)
+        total_s = round(prior_s + (time.perf_counter() - t0), 2)
         wins = sum(1 for r in results if r["state"] == "WIN")
         lvls = sum(r["levels_completed"] for r in results)
         acts = sum(r["actions"] for r in results)
         verify_claimed_totals(
             results,
-            is_full_suite=is_full_suite,
+            is_full_suite=is_full_suite and len(results) == len(game_ids),
             allow_losses=args.no_game_solvers,
         )
-        out_path = Path(args.output)
         try:
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            out_path.write_text(
-                json.dumps(
-                    {
-                        "mode": "offline",
-                        "blind_id_mode": args.blind_id,
-                        "game_specific_solvers_disabled": args.no_game_solvers,
-                        "max_game_seconds": max_game_seconds,
-                        "game_order": [g.split("-")[0] for g in game_ids],
-                        "elapsed_s": total_s,
-                        "wins": wins,
-                        "levels_completed": lvls,
-                        "actions": acts,
-                        "levels_per_1k_actions": round(lvls / (acts / 1000.0), 4) if acts else 0.0,
-                        "per_game_results": results,
-                    },
-                    indent=2,
+            _write_scorecard(
+                out_path,
+                _scorecard_payload(
+                    blind_id=args.blind_id,
+                    no_game_solvers=args.no_game_solvers,
+                    max_game_seconds=max_game_seconds,
+                    game_ids=game_ids,
+                    results=results,
+                    elapsed_s=total_s,
+                    warmup_s=warmup_s,
+                    complete=len(results) >= len(game_ids),
                 ),
-                encoding="utf-8",
             )
         except Exception:
             pass
