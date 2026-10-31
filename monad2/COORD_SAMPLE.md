@@ -50,3 +50,11 @@ Latency: A' 8061.7 ms, B' 6125.2 ms, executive 41983.0 ms, step 56169.9 ms.
 
 `lp85` also took 6 actions and cleared 1 level (255 s). Its first executive step explored `CLICK 5 32`. `vc33` took 6 actions and cleared 0 levels (291 s). Its first step explored `CLICK 61 25`. Every live step, including those two games, said there was no stored schema from another episode. The episode key was `id(agent)`. Python reused that id after each game object was freed, so the later games were treated as the same episode and would not match the schema they had just stored. The recolored frame above was a new object, so it did match. The episode id now lives on the agent.
 
+## Follow-up, 2 actions each, episode id fixed
+
+Not a score run. Mean step 30.5 s. `lp85` read the schema stored from `ls20`:
+
+Schema: hypothesis this is schema S0 with the wall rebound to line geom 3,1,64 where the schema had geom 1,4,52, the avatar rebound to line geom 3,1,4 where the schema had geom 4,1,1, the goal binding is open.
+
+`vc33` then rebound the avatar from line geom 3,1,4 to rect geom 1,2,4. A recolored quarter-turn of a played frame kept the same shape geoms, and the executive step rebound the avatar from ellipse geom 4,1,1 to rect geom 1,2,4. Colors and positions are not in the schema.
+
