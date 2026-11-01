@@ -265,6 +265,25 @@ def ensure_local_environments(env_dir: Path) -> list[str]:
     return game_ids
 
 
+def _select_game_ids(game_ids: list[str], game_filter: set[str], game_order: str) -> list[str]:
+    """Filter and optionally reorder games. `--game-order` is a comma-separated prefix list."""
+    order = [part.strip() for part in game_order.split(",") if part.strip()]
+    if order:
+        by_key: dict[str, str] = {}
+        for gid in game_ids:
+            by_key.setdefault(gid, gid)
+            by_key.setdefault(gid.split("-")[0], gid)
+        selected: list[str] = []
+        for key in order:
+            gid = by_key.get(key)
+            if gid and gid not in selected:
+                selected.append(gid)
+        return selected
+    if game_filter:
+        return [g for g in game_ids if g in game_filter or g.split("-")[0] in game_filter]
+    return list(game_ids)
+
+
 def play_single_game(
     worker_arc: Any,
     base_url: str,
@@ -273,13 +292,18 @@ def play_single_game(
     idx: int,
     total: int,
     blind_id: bool = False,
+    max_game_seconds: float = 300.0,
 ) -> dict:
     t0 = time.perf_counter()
     raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
     env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
+    os.environ["MONAD2_HOLDOUT_GAME"] = gid.split("-")[0]
+    if os.getenv("MONAD2_FACTORIAL", "0") == "1" and os.getenv("MONAD2_GAME_SLOT_LOCK", "0") != "1":
+        os.environ["MONAD2_GAME_SLOT"] = str(max(0, int(idx) - 1))
     goal_report = None
     win_records = None
+    monad2_report = None
     try:
         agent = MyAgent(
             card_id=card_id,
@@ -290,7 +314,7 @@ def play_single_game(
             arc_env=env,
             tags=["monad(1)", "v7-inos", "competition-mode"],
         )
-        agent.max_game_seconds = 300.0
+        agent.max_game_seconds = float(max_game_seconds)
         agent.main()
         try:
             if getattr(agent, "ggl_enabled", False):
@@ -303,6 +327,46 @@ def play_single_game(
                 win_records = list(records)
         except Exception:
             win_records = None
+        monad2_report = None
+        try:
+            from monad2.discovery import finalize_watch
+
+            finalize_watch(agent)
+        except Exception:
+            pass
+        try:
+            stats = getattr(agent, "m2", None)
+            if isinstance(stats, dict) and stats:
+                monad2_report = dict(stats)
+                monad2_report["rehearsal_log"] = list(getattr(agent, "m2_rehearsal_log", []) or [])
+                monad2_report["cross_game"] = getattr(agent, "m2_cross_game", "carry")
+                level_log = getattr(agent, "m2_level_log", None)
+                if isinstance(level_log, list) and level_log:
+                    prefix = gid.split("-")[0]
+                    done_levels = int(getattr(agent, "levels_completed", 0) or 0)
+                    done_actions = int(getattr(agent, "action_counter", 0) or 0)
+                    ends = [int(row["action_start"]) for row in level_log[1:]] + [done_actions]
+                    stamped = []
+                    for row, end in zip(level_log, ends):
+                        item = dict(row)
+                        item["game"] = prefix
+                        item["actions"] = int(end) - int(row["action_start"])
+                        item["cleared"] = int(row["level"]) < done_levels
+                        item["holdout"] = prefix in ("cd82", "ft09", "m0r0", "tn36", "tr87")
+                        stamped.append(item)
+                    monad2_report["level_log"] = stamped
+                    monad2_report["factorial_seed"] = stamped[0].get("seed")
+                watch_log = getattr(agent, "m2_watch_log", None)
+                if isinstance(watch_log, list) and watch_log:
+                    monad2_report["watch_log"] = list(watch_log)
+                action_log = getattr(agent, "m2_action_log", None)
+                if isinstance(action_log, list) and action_log:
+                    monad2_report["action_log"] = list(action_log)
+                thought_log = getattr(agent, "m2_thought_log", None)
+                if isinstance(thought_log, list) and thought_log:
+                    monad2_report["thought_log"] = list(thought_log)
+        except Exception:
+            monad2_report = None
         if blind_id:
             assert agent.game_id == "blind_unknown_env", f"Agent game_id mutated to {agent.game_id!r}"
             for frame in getattr(agent, "frames", []):
@@ -342,7 +406,123 @@ def play_single_game(
         result["goal_report"] = goal_report
     if win_records:
         result["win_records"] = win_records
+    if monad2_report:
+        result["monad2"] = monad2_report
     return result
+
+
+def _compact_game(res: dict) -> dict:
+    """Drop thought streams. Keep counters, mode counts, and a short trace."""
+    out = {k: v for k, v in res.items() if k != "monad2"}
+    report = res.get("monad2") if isinstance(res.get("monad2"), dict) else {}
+    thoughts = report.get("thought_log") if isinstance(report.get("thought_log"), list) else []
+    modes: dict[str, int] = {"discover": 0, "plan": 0, "execute": 0, "replan": 0}
+    llm_by_level: dict[str, int] = {}
+    excerpts: list[dict] = []
+    seen_modes: set[str] = set()
+    for row in thoughts:
+        if not isinstance(row, dict):
+            continue
+        mode = str(row.get("mode") or "")
+        if mode:
+            modes[mode] = modes.get(mode, 0) + 1
+        level = str(row.get("level", 0))
+        try:
+            calls = int(row.get("llm_calls_level") or 0)
+        except (TypeError, ValueError):
+            calls = 0
+        llm_by_level[level] = max(llm_by_level.get(level, 0), calls)
+        if len(excerpts) >= 16:
+            continue
+        if mode in seen_modes and len(excerpts) >= 8:
+            continue
+        seen_modes.add(mode)
+        latency = row.get("latency_ms") if isinstance(row.get("latency_ms"), dict) else {}
+        excerpts.append(
+            {
+                "level": row.get("level"),
+                "mode": mode,
+                "action": row.get("action"),
+                "primitive": row.get("primitive"),
+                "predicate": row.get("predicate") or row.get("expectation") or "",
+                "predicate_hit": row.get("predicate_hit"),
+                "decision": row.get("decision"),
+                "reason": str(row.get("reason") or "")[:180],
+                "roles": str(row.get("roles") or "")[:180],
+                "plan": str(row.get("plan") or "")[:240],
+                "llm_calls_level": row.get("llm_calls_level"),
+                "step_ms": latency.get("step"),
+            }
+        )
+    keep = {
+        k: v
+        for k, v in report.items()
+        if k not in ("thought_log", "action_log", "rehearsal_log", "watch_log")
+    }
+    keep["modes"] = modes
+    keep["llm_calls_by_level"] = llm_by_level
+    keep["excerpts"] = excerpts
+    out["monad2"] = keep
+    return out
+
+
+def _scorecard_payload(
+    *,
+    blind_id: bool,
+    no_game_solvers: bool,
+    max_game_seconds: float,
+    game_ids: list[str],
+    results: list[dict],
+    elapsed_s: float,
+    warmup_s: float,
+    complete: bool,
+) -> dict:
+    wins = sum(1 for r in results if r.get("state") == "WIN")
+    lvls = sum(int(r.get("levels_completed") or 0) for r in results)
+    acts = sum(int(r.get("actions") or 0) for r in results)
+    return {
+        "mode": "offline",
+        "blind_id_mode": blind_id,
+        "game_specific_solvers_disabled": no_game_solvers,
+        "max_game_seconds": max_game_seconds,
+        "game_order": [g.split("-")[0] for g in game_ids],
+        "partial": not complete,
+        "games_finished": len(results),
+        "games_expected": len(game_ids),
+        "warmup_s": round(warmup_s, 2),
+        "elapsed_s": round(elapsed_s, 2),
+        "wins": wins,
+        "levels_completed": lvls,
+        "actions": acts,
+        "levels_per_1k_actions": round(lvls / (acts / 1000.0), 4) if acts else 0.0,
+        "per_game_results": results,
+    }
+
+
+def _write_scorecard(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _load_resume(path: Path) -> tuple[list[dict], float, float]:
+    if os.getenv("MONAD2_RESUME", "0") != "1" or not path.is_file():
+        return [], 0.0, 0.0
+    try:
+        prev = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return [], 0.0, 0.0
+    rows = [r for r in (prev.get("per_game_results") or []) if isinstance(r, dict) and r.get("game_id")]
+    try:
+        elapsed = float(prev.get("elapsed_s") or 0.0)
+    except (TypeError, ValueError):
+        elapsed = 0.0
+    try:
+        warmup = float(prev.get("warmup_s") or 0.0)
+    except (TypeError, ValueError):
+        warmup = 0.0
+    return rows, elapsed, warmup
 
 
 def verify_claimed_totals(
@@ -433,7 +613,23 @@ def main(argv: list[str] | None = None) -> int:
         default="scorecards/latest_competition_scorecard.json",
         help="Output JSON path for the verification report",
     )
+    parser.add_argument(
+        "--max-game-seconds",
+        type=float,
+        default=None,
+        help="Per-game wall clock limit. Default 300, or MONAD2_MAX_GAME_SECONDS. Recorded in the output JSON.",
+    )
+    parser.add_argument(
+        "--game-order",
+        type=str,
+        default="",
+        help="Comma-separated game prefixes in the order to play them. Overrides sorted order. Used for cross-game permutation tests.",
+    )
     args, _unknown = parser.parse_known_args(argv)
+    if args.max_game_seconds is not None:
+        max_game_seconds = float(args.max_game_seconds)
+    else:
+        max_game_seconds = float(os.getenv("MONAD2_MAX_GAME_SECONDS", "300") or "300")
 
     if args.no_game_solvers:
         os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
@@ -454,17 +650,42 @@ def main(argv: list[str] | None = None) -> int:
 
     env_dir = Path(args.environments_dir).resolve()
     game_filter = {g.strip() for g in args.games.split(",") if g.strip()}
-    is_full_suite = len(game_filter) == 0
+    is_full_suite = len(game_filter) == 0 and not args.game_order.strip()
 
     if args.offline:
         print(f"[Monad(1) V7] Ensuring official ARC-AGI-3 environments in {env_dir}...")
         game_ids = ensure_local_environments(env_dir)
-        if game_filter:
-            game_ids = [g for g in game_ids if g in game_filter or g.split("-")[0] in game_filter]
+        game_ids = _select_game_ids(game_ids, game_filter, args.game_order)
+        out_path = Path(args.output)
+        results, prior_s, warmup_s = _load_resume(out_path)
+        done = {str(r.get("game_id", "")).split("-")[0] for r in results}
+        if done:
+            print(
+                f"[Monad(1) V7] Resuming: {len(done)} game(s) already in {out_path}",
+                flush=True,
+            )
+        pending = [g for g in game_ids if g.split("-")[0] not in done]
         offline_arc = Arcade(operation_mode=OperationMode.OFFLINE, environments_dir=str(env_dir))
+        if os.getenv("MONAD2_COORDINATE") == "1" and pending:
+            tw = time.perf_counter()
+            try:
+                from monad2.llm import get_backend
+
+                loaded = get_backend().warmup()
+                this_warm = time.perf_counter() - tw
+                warmup_s += this_warm
+                print(
+                    f"[Monad(1) V7] Coordination models loaded in {this_warm:.1f}s: {loaded}",
+                    flush=True,
+                )
+            except Exception as exc:
+                this_warm = time.perf_counter() - tw
+                warmup_s += this_warm
+                print(f"[Monad(1) V7] Coordination model warmup failed after {this_warm:.1f}s: {exc}", flush=True)
+                raise
         t0 = time.perf_counter()
-        results = []
-        for idx, gid in enumerate(game_ids, 1):
+        for gid in pending:
+            idx = len(results) + 1
             res = play_single_game(
                 offline_arc,
                 "http://localhost",
@@ -473,32 +694,49 @@ def main(argv: list[str] | None = None) -> int:
                 idx,
                 len(game_ids),
                 blind_id=args.blind_id,
+                max_game_seconds=max_game_seconds,
             )
-            results.append(res)
-        total_s = round(time.perf_counter() - t0, 2)
+            results.append(_compact_game(res))
+            elapsed_s = prior_s + (time.perf_counter() - t0)
+            try:
+                _write_scorecard(
+                    out_path,
+                    _scorecard_payload(
+                        blind_id=args.blind_id,
+                        no_game_solvers=args.no_game_solvers,
+                        max_game_seconds=max_game_seconds,
+                        game_ids=game_ids,
+                        results=results,
+                        elapsed_s=elapsed_s,
+                        warmup_s=warmup_s,
+                        complete=len(results) >= len(game_ids),
+                    ),
+                )
+                print(f"[Monad(1) V7] Flushed {len(results)}/{len(game_ids)} games to {out_path}", flush=True)
+            except Exception as exc:
+                print(f"[Monad(1) V7] Scorecard flush failed: {exc}", flush=True)
+        total_s = round(prior_s + (time.perf_counter() - t0), 2)
         wins = sum(1 for r in results if r["state"] == "WIN")
         lvls = sum(r["levels_completed"] for r in results)
         acts = sum(r["actions"] for r in results)
         verify_claimed_totals(
             results,
-            is_full_suite=is_full_suite,
+            is_full_suite=is_full_suite and len(results) == len(game_ids),
             allow_losses=args.no_game_solvers,
         )
-        out_path = Path(args.output)
         try:
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            out_path.write_text(
-                json.dumps(
-                    {
-                        "mode": "offline",
-                        "blind_id_mode": args.blind_id,
-                        "game_specific_solvers_disabled": args.no_game_solvers,
-                        "elapsed_s": total_s,
-                        "per_game_results": results,
-                    },
-                    indent=2,
+            _write_scorecard(
+                out_path,
+                _scorecard_payload(
+                    blind_id=args.blind_id,
+                    no_game_solvers=args.no_game_solvers,
+                    max_game_seconds=max_game_seconds,
+                    game_ids=game_ids,
+                    results=results,
+                    elapsed_s=total_s,
+                    warmup_s=warmup_s,
+                    complete=len(results) >= len(game_ids),
                 ),
-                encoding="utf-8",
             )
         except Exception:
             pass
@@ -510,6 +748,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  Environments Won: {wins} / {len(game_ids)} ({100.0 * wins / max(1, len(game_ids)):.1f}%)")
         print(f"  Levels Completed: {lvls}")
         print(f"  Total Actions:    {acts}")
+        print(f"  Levels / 1k acts: {lvls / (acts / 1000.0):.3f}" if acts else "  Levels / 1k acts: 0")
+        print(f"  Time limit:       {max_game_seconds:.0f}s per game")
         print(f"  Elapsed Time:     {total_s}s")
         print("=" * 80)
         return 0
@@ -592,6 +832,7 @@ def main(argv: list[str] | None = None) -> int:
                     idx,
                     len(game_ids),
                     blind_id=args.blind_id,
+                    max_game_seconds=max_game_seconds,
                 )
             )
     else:
@@ -603,7 +844,10 @@ def main(argv: list[str] | None = None) -> int:
                 operation_mode=OperationMode.COMPETITION,
                 environments_dir="",
             )
-            return play_single_game(w_arc, base_url, card_id, g, i, len(game_ids), blind_id=args.blind_id)
+            return play_single_game(
+                w_arc, base_url, card_id, g, i, len(game_ids),
+                blind_id=args.blind_id, max_game_seconds=max_game_seconds,
+            )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
             for res in pool.map(_worker, enumerate(game_ids, 1)):

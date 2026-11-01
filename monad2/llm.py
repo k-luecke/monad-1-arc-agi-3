@@ -1,0 +1,251 @@
+"""Local Qwen A'/B' and Mistral executive calls.
+
+The repo's intended runtime is local, not a hosted API key:
+
+- Qwen2.5-0.5B-Instruct as A' (HTTP only if a server is already up)
+- Qwen2.5-1.5B-Instruct as B'
+- Mistral-NeMo-Minitron-8B-Instruct Q4_K_M via llama.cpp as the executive
+
+Nothing here invents a credential. If the GGUF files are absent, load() raises
+with the paths it looked for.
+"""
+from __future__ import annotations
+
+import os
+import time
+from pathlib import Path
+
+DEFAULT_DIR = Path(os.environ.get("INOS_MODEL_DIR", "/home/ubuntu/models"))
+DEFAULTS = {
+    "a": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "b": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+    "executive": "Mistral-NeMo-Minitron-8B-Instruct-Q4_K_M.gguf",
+}
+ENV_PATH = {
+    "a": "INOS_MODEL_A_GGUF",
+    "b": "INOS_MODEL_B_GGUF",
+    "executive": "INOS_MISTRAL_NEMO_GGUF",
+}
+
+
+def model_path(role: str) -> Path:
+    override = os.environ.get(ENV_PATH[role], "").strip()
+    if override:
+        return Path(override)
+    return DEFAULT_DIR / DEFAULTS[role]
+
+
+_STRING = r'''
+ws ::= " "?
+string ::= "\"" ([^"\\\n ] | " "){0,24} "\""
+action ::= "\"SIMPLE 1\"" | "\"SIMPLE 2\"" | "\"SIMPLE 3\"" | "\"SIMPLE 4\"" | "\"SIMPLE 5\"" | ("\"CLICK " [0-9]+ " " [0-9]+ "\"")
+bool ::= "true" | "false"
+goal ::= "\"REACH\"" | "\"PLACE\"" | "\"MATCH\""
+decision ::= "\"accept\"" | "\"combine\"" | "\"inhibit\"" | "\"explore\""
+item ::= "\"scp\"" | "\"canvas\"" | "\"pll\"" | "\"tonic\"" | "\"fmf\"" | "\"effect\"" | "\"dead\"" | "\"collapse\"" | "\"skinner\"" | "\"heuristic\"" | "\"qwen_a\"" | "\"qwen_b\"" | "\"model_a\"" | "\"model_b\"" | "\"solver\"" | "\"schema\""
+items ::= item (ws "," ws item){0,3}
+'''
+
+_GRAMMAR = {
+    "a": _STRING
+    + r'''
+prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
+root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"effect\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "}"
+''',
+    "b": _STRING
+    + r'''
+prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
+verdict ::= "\"agree\"" | "\"challenge\""
+root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"effect\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"verdict\"" ws ":" ws verdict ws "}"
+''',
+    "executive": _STRING
+    + r'''
+prim ::= "\"approach\"" | "\"hold_gradient\"" | "\"convey\"" | "\"align\"" | "\"toggle\"" | "\"avoid\"" | "\"cycle_select\"" | "\"route\"" | "\"assemble\"" | "\"explore\"" | "\"none\""
+predkind ::= "\"translate\"" | "\"no_reverse\"" | "\"contact\"" | "\"match\"" | "\"changed\"" | "\"unchanged\""
+direction ::= "\"up\"" | "\"down\"" | "\"left\"" | "\"right\"" | "\"none\""
+axis ::= "\"x\"" | "\"y\"" | "\"none\""
+role ::= "\"avatar\"" | "\"movable\"" | "\"goal\"" | "\"receptor\"" | "\"switch\"" | "\"hazard\"" | "\"wall\"" | "\"clickable\"" | "\"reference\"" | "\"none\""
+step ::= action
+plan ::= "[" ws (step (ws "," ws step){0,2})? ws "]"
+root ::= "{" ws "\"decision\"" ws ":" ws decision ws "," ws "\"action\"" ws ":" ws action ws "," ws "\"primitive\"" ws ":" ws prim ws "," ws "\"binding\"" ws ":" ws string ws "," ws "\"predicate\"" ws ":" ws predkind ws "," ws "\"role\"" ws ":" ws role ws "," ws "\"role_b\"" ws ":" ws role ws "," ws "\"dir\"" ws ":" ws direction ws "," ws "\"axis\"" ws ":" ws axis ws "," ws "\"plan\"" ws ":" ws plan ws "," ws "\"expect_change\"" ws ":" ws bool ws "," ws "\"expectation\"" ws ":" ws string ws "," ws "\"reason\"" ws ":" ws string ws "," ws "\"theory\"" ws ":" ws string ws "," ws "\"goal\"" ws ":" ws goal ws "," ws "\"used\"" ws ":" ws "[" ws items ws "]" ws "}"
+''',
+}
+
+
+def drop_directional_roles(grammar: str) -> str:
+    """Click-only frames cannot name a d-pad primitive or an avatar."""
+    lines = []
+    for line in grammar.splitlines():
+        if line.startswith("prim ::="):
+            line = line.replace(' | "\\"hold_gradient\\""', "")
+        elif line.startswith("role ::="):
+            line = line.replace('"\\"avatar\\"" | ', "")
+        lines.append(line)
+    text = "\n".join(lines)
+    if grammar.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def grammar_for(role: str, click_only: bool = False) -> str:
+    """The role grammar. A click-only legal set drops SIMPLE, avatar, and hold_gradient."""
+    text = _GRAMMAR[role]
+    if not click_only:
+        return text
+    lines = []
+    for line in text.splitlines():
+        if line.startswith("action ::="):
+            line = 'action ::= ("\\"CLICK " [0-9]+ " " [0-9]+ "\\"")'
+        lines.append(line)
+    return drop_directional_roles("\n".join(lines) + "\n")
+
+
+def _threads() -> int:
+    raw = os.environ.get("INOS_LLM_THREADS", "").strip()
+    if raw:
+        try:
+            return max(1, int(raw))
+        except ValueError:
+            pass
+    return max(1, os.cpu_count() or 1)
+
+
+def _token_cap(role: str) -> int:
+    """Short JSON only. The 8B was spending the whole cap on the reason string."""
+    raw = os.environ.get("INOS_LLM_MAX_TOKENS", "").strip()
+    if raw:
+        try:
+            return max(16, int(raw))
+        except ValueError:
+            pass
+    # The object has to close. 48/64 cut the executive off inside "reason" and the step became explore.
+    return {"a": 72, "b": 80, "executive": 128}.get(role, 72)
+
+
+class LocalLlama:
+    """One GGUF, kept open. CPU llama.cpp, temperature 0, fixed seed."""
+
+    def __init__(self, role: str, path: Path) -> None:
+        from llama_cpp import Llama, LlamaGrammar
+
+        self.role = role
+        self.path = path
+        self.grammar = LlamaGrammar.from_string(_GRAMMAR[role])
+        # 1024 is enough once the prompt is clipped, and a wider cache slowed every token.
+        n_ctx = 1024
+        threads = _threads()
+        self.llm = Llama(
+            model_path=str(path),
+            n_ctx=n_ctx,
+            n_threads=threads,
+            n_threads_batch=threads,
+            n_gpu_layers=0,
+            verbose=False,
+            seed=0,
+            use_mmap=True,
+            use_mlock=False,
+        )
+
+    def complete(
+        self,
+        system: str,
+        user: str,
+        grammar: str | None = None,
+        max_tokens: int | None = None,
+        strict_grammar: bool = False,
+    ) -> tuple[str, float]:
+        """One prefill. The character budget keeps prompt + generation inside n_ctx."""
+        t0 = time.perf_counter()
+        room = 1100 - len(system)
+        if room < 240:
+            room = 240
+        if len(user) > room:
+            user = user[:room]
+        text = self._complete(system, user, grammar, max_tokens, strict_grammar)
+        if text is None and not strict_grammar:
+            text = self._complete(system, user[:240], grammar, max_tokens, strict_grammar) or ""
+        ms = (time.perf_counter() - t0) * 1000.0
+        return text or "", ms
+
+    def _complete(
+        self,
+        system: str,
+        user: str,
+        grammar: str | None = None,
+        max_tokens: int | None = None,
+        strict_grammar: bool = False,
+    ) -> str | None:
+        from llama_cpp import LlamaGrammar
+
+        active = LlamaGrammar.from_string(grammar) if grammar else self.grammar
+        kwargs = dict(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.0,
+            max_tokens=max_tokens or _token_cap(self.role),
+            seed=0,
+            grammar=active,
+        )
+        try:
+            out = self.llm.create_chat_completion(**kwargs)
+        except Exception as exc:
+            if "context" in str(exc).lower() or "token" in str(exc).lower():
+                return None
+            if strict_grammar:
+                return None
+            kwargs.pop("grammar", None)
+            try:
+                out = self.llm.create_chat_completion(**kwargs)
+            except Exception:
+                return None
+        return out["choices"][0]["message"]["content"] or ""
+
+
+class LocalBackend:
+    """A', B', and the executive. Loaded once per process."""
+
+    def __init__(self) -> None:
+        self.models: dict[str, LocalLlama] = {}
+        self.names = {
+            "a": "Qwen2.5-0.5B-Instruct Q4_K_M",
+            "b": "Qwen2.5-1.5B-Instruct Q4_K_M",
+            "executive": "Mistral-NeMo-Minitron-8B-Instruct Q4_K_M",
+        }
+
+    def ensure(self, role: str) -> LocalLlama:
+        got = self.models.get(role)
+        if got is not None:
+            return got
+        path = model_path(role)
+        if not path.is_file() or path.stat().st_size < 1_000_000:
+            raise FileNotFoundError(
+                f"Missing {self.names[role]} GGUF for role {role}: {path}. "
+                "The intended runtime is local llama.cpp "
+                "(Qwen2.5-0.5B on A', Qwen2.5-1.5B on B', "
+                "Mistral-NeMo-Minitron-8B-Instruct Q4_K_M on the executive). "
+                "No API key is configured, and ports 8087/8088 are not assumed to be up."
+            )
+        self.models[role] = LocalLlama(role, path)
+        return self.models[role]
+
+    def warmup(self) -> dict[str, str]:
+        loaded = {}
+        for role in ("a", "b", "executive"):
+            model = self.ensure(role)
+            loaded[role] = f"{self.names[role]} @ {model.path}"
+        return loaded
+
+    def complete(self, role: str, system: str, user: str, **kwargs) -> tuple[str, float]:
+        return self.ensure(role).complete(system, user, **kwargs)
+
+
+_BACKEND: LocalBackend | None = None
+
+
+def get_backend() -> LocalBackend:
+    global _BACKEND
+    if _BACKEND is None:
+        _BACKEND = LocalBackend()
+    return _BACKEND

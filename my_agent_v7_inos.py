@@ -4169,6 +4169,10 @@ if HAS_TORCH:
 
             return torch.cat([action_logits, coord_logits], dim=1)
 
+class _GameSolversOff(Exception):
+    """Raised to skip the per-game solver tier without running any of those methods."""
+
+
 class MyAgent(Agent):
     """Monad(1) + INOS Hybrid Structural World-Model & Online GPU ActionModel CNN Agent for ARC-AGI-3."""
     MODEL_NAME = "monad(1P0)"
@@ -4463,13 +4467,21 @@ class MyAgent(Agent):
         #   MONAD1_CANVAS_REHEARSAL=1  roll candidate plans through that model before acting
         #   MONAD1_WINS_TEACH=1        log general win records and call inos_merkle_log_solved_pattern
         #   MONAD1_RELATION_MEMORY=path  load relation-keyed records (no game ids) and bias goal type
-        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1"
-        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1"
+        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1" or os.getenv("MONAD2_REHEARSAL", "0") == "1"
+        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1" or os.getenv("MONAD2_REHEARSAL", "0") == "1"
         self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "0") == "1"
         self.relation_memory_path = os.getenv("MONAD1_RELATION_MEMORY", "").strip()
         self._fx_init_game_state()
         if self.relation_memory_path:
             self._wt_load_memory(self.relation_memory_path)
+        self._m2_runtime = None
+        self.m2_cross_game = "carry"
+        try:
+            import monad2.runtime as _m2rt
+            self._m2_runtime = _m2rt
+            _m2rt.init_agent(self)
+        except Exception:
+            self.m2_cross_game = "carry"
         if self.game_specific_solvers_disabled:
             self._disable_game_specific_solvers()
 
@@ -4496,7 +4508,71 @@ class MyAgent(Agent):
             self.cnn_optimizer = None
             return False
 
+    def _m2_assign_level(self) -> None:
+        import monad2.factorial as _m2fz
+
+        _m2fz.assign_level(self)
+
+    def _m2_tonic_limits(self) -> tuple[int | None, int]:
+        """Depth cap and rehearsal breadth. Unset flag keeps the fixed search."""
+        if os.getenv("MONAD2_TONIC", "0") != "1":
+            return None, 3
+        raw = 4
+        narr = self.self_narrative if isinstance(getattr(self, "self_narrative", None), dict) else {}
+        if narr.get("inos_depth_budget") is not None:
+            try:
+                raw = int(narr["inos_depth_budget"])
+            except (TypeError, ValueError):
+                raw = 4
+        depth = max(1, min(8, raw))
+        return depth, max(1, min(3, (depth + 1) // 2))
+
+    def _m2_restore_baseline_level(self) -> None:
+        """Restart this level under the baseline policy.
+
+        Decision flags are already off. The level-start residue is put back
+        before the world model is rebuilt, so gauge flips and goal votes from
+        the diverged prefix do not steer the replay. One RESET then returns
+        the game to the start of this level.
+        """
+        import os
+
+        from monad2.factorial import FACTORS
+        from monad2.runtime import apply_policy_residue
+
+        self._m2_in_restore = True
+        try:
+            if getattr(self, "planned_queue", None) is not None:
+                self.planned_queue.clear()
+            if getattr(self, "bfs_route_queue", None) is not None:
+                self.bfs_route_queue.clear()
+            self.active_macro_family = None
+            apply_policy_residue(self)
+            self._reset_level_world_model()
+        finally:
+            self._m2_in_restore = False
+        self._m2_stall_fallback = True
+        for name in FACTORS:
+            os.environ[name] = "0"
+        self.m2_cross_game = "carry"
+        os.environ["MONAD2_CROSS_GAME"] = "carry"
+        if os.getenv("MONAD1_CANVAS_REHEARSAL", "0") != "1":
+            self.rehearse_enabled = False
+        if os.getenv("MONAD1_EFFECT_MODEL", "0") != "1":
+            self.fx_enabled = False
+        stats = getattr(self, "m2", None)
+        if isinstance(stats, dict):
+            stats["level_restores"] = stats.get("level_restores", 0) + 1
+
     def _reset_level_world_model(self) -> None:
+        if not getattr(self, "_m2_in_restore", False):
+            try:
+                from monad2.runtime import capture_policy_residue
+
+                capture_policy_residue(self)
+            except Exception:
+                pass
+        self._m2_assign_level()
         self.state_grids: dict[int, list[list[int]]] = {}
         self.state_actions: dict[int, list[ActionKey]] = {}
         self.state_actions_version: dict[int, tuple[int, int]] = {}
@@ -5189,9 +5265,14 @@ class MyAgent(Agent):
             )
         )
         session_remaining = self._session_remaining_seconds()
+        _coord_cap = os.getenv("MONAD2_COORD_MAX_ACTIONS", "").strip()
+        _coord_hit = False
+        if _coord_cap.isdigit():
+            _coord_hit = self.action_counter >= int(_coord_cap)
         budget_exhausted = bool(
             elapsed >= self.max_game_seconds
             or self.action_counter >= self.MAX_ACTIONS
+            or _coord_hit
             or (session_remaining is not None and session_remaining <= 0.0)
         )
         if level_stagnated or budget_exhausted:
@@ -5238,7 +5319,11 @@ class MyAgent(Agent):
             and not self.responsive_geom_sigs
             and not self.mutable_object_sigs
         ):
-            return self.GLOBAL_SOLVED_GEOM_PRIORS[geom] > 0
+            n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[geom])
+            rt = getattr(self, "_m2_runtime", None)
+            if rt is not None:
+                n = rt.earned_count(self, n, geom, "geom")
+            return n > 0
         return False
 
     def _compute_active_playfield_bbox(
@@ -16479,11 +16564,16 @@ class MyAgent(Agent):
             for s in doc.shapes:
                 if 1 <= s.area <= 64:
                     by_geom[s.shape_geom_sig].append(s)
-            unique_priors = [
-                (self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g], lst[0])
-                for g, lst in by_geom.items()
-                if len(lst) == 1 and self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g] > 0
-            ]
+            unique_priors = []
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            for g, lst in by_geom.items():
+                if len(lst) != 1:
+                    continue
+                n = int(self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g])
+                if _m2_rt is not None:
+                    n = _m2_rt.earned_count(self, n, g, "avatar")
+                if n > 0:
+                    unique_priors.append((n, lst[0]))
             if unique_priors:
                 unique_priors.sort(key=lambda item: -item[0])
                 return unique_priors[0][1]
@@ -16760,6 +16850,10 @@ class MyAgent(Agent):
             setattr(self, name, self._game_solver_stub_none)
         for name in self._GAME_SPECIFIC_SOLVERS_RETURN_EMPTY:
             setattr(self, name, self._game_solver_stub_empty)
+        if os.getenv("MONAD2_COORDINATE") == "1":
+            from monad2.general_guard import arm_solver_guard
+
+            arm_solver_guard(self)
 
     # ================================================================================
     # General Goal Engine (GGL): goal hypothesis -> subgoal -> plan -> verify/revise
@@ -17167,7 +17261,16 @@ class MyAgent(Agent):
             tree = self.associative_merkle_tree
             if credited is not None:
                 self.ggl_type_stats[credited]["level_credits"] += 1
-                if self.ggl_confirmed_type is None:
+                promote = self.ggl_confirmed_type is None
+                if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
+                    from monad2.memory import EpisodeLTP
+
+                    ltp = getattr(self, "m2_ltp", None)
+                    if ltp is None:
+                        ltp = EpisodeLTP()
+                        self.m2_ltp = ltp
+                    promote = promote and bool(ltp.confirm(credited))
+                if promote:
                     self.ggl_confirmed_type = credited
                     self.ggl_confirm_level = int(self.current_level)
                 sig16 = int(goal.get("sig16", 1)) if goal else 1
@@ -17541,7 +17644,9 @@ class MyAgent(Agent):
         if arr0.shape != arr1.shape:
             self.fx_pending = None
             return
-        if self.fx_enabled:
+        # Callosum reads this model. Record effects when it is on without also
+        # turning on the rehearsal probes that fx_enabled controls.
+        if self.fx_enabled or os.getenv("MONAD2_CALLOSUM", "0") == "1":
             self._fx_learn(arr0, arr1, self.prev_action)
         pending = self.fx_pending
         self.fx_pending = None
@@ -18372,6 +18477,8 @@ class MyAgent(Agent):
         start = (int(start_xy[0]), int(start_xy[1]))
         prev: dict[tuple[int, int], tuple[tuple[int, int], int] | None] = {start: None}
         q: collections.deque = collections.deque([start])
+        depth_cap, _breadth = self._m2_tonic_limits()
+        dist: dict[tuple[int, int], int] | None = {start: 0} if depth_cap is not None else None
         while q and len(prev) < max_nodes:
             p = q.popleft()
             if p != start and goal_test(p):
@@ -18381,6 +18488,8 @@ class MyAgent(Agent):
                     node, aid = prev[node]
                     path.append(aid)
                 return path[::-1]
+            if dist is not None and dist[p] >= int(depth_cap or 0):
+                continue
             for aid, (dx, dy) in moves.items():
                 nx, ny = p[0] + dx, p[1] + dy
                 npos = (nx, ny)
@@ -18396,6 +18505,8 @@ class MyAgent(Agent):
                     continue
                 prev[npos] = (p, aid)
                 q.append(npos)
+                if dist is not None:
+                    dist[npos] = dist[p] + 1
         return None
 
     def _ggl_reach_candidates(
@@ -18746,6 +18857,59 @@ class MyAgent(Agent):
         }
         if self.ggl_confirmed_type is not None and prior[self.ggl_confirmed_type] > 0:
             prior[self.ggl_confirmed_type] += 4.0
+        if os.getenv("MONAD2_SCP", "0") == "1":
+            try:
+                from monad2.scp import project
+
+                proj = project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                self.m2_projection_tokens = len(proj.tokens())
+                if proj.panel_mismatch >= 4 and prior.get("MATCH", 0) > 0:
+                    prior["MATCH"] += 1.0
+                if proj.controllable_role is not None and prior.get("REACH", 0) > 0:
+                    prior["REACH"] += 1.0
+                if proj.feedback == "shift" and prior.get("PLACE", 0) > 0:
+                    prior["PLACE"] += 0.5
+            except Exception:
+                pass
+        if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
+            path = os.getenv("MONAD2_RECORDS", "").strip()
+            hyps: list[str] = []
+            try:
+                from monad2.memory import corpus_path, eligible, grid_features, load_records, retrieve
+                from monad2.scp import project as _m2_project
+
+                if not path:
+                    path = str(corpus_path())
+                if os.path.isfile(path):
+                    held = os.getenv("MONAD2_HOLDOUT_GAME", "")
+                    recs = load_records(path)
+                    if held:
+                        recs = eligible(recs, held)
+                    proj = _m2_project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                    hyps = retrieve(grid_features(proj, avail_ids), recs, k=3)
+            except Exception:
+                hyps = []
+            self.m2_goal_hypotheses = hyps
+            for hyp in hyps:
+                if prior.get(hyp, 0) > 0:
+                    prior[hyp] += 1.5
+        if os.getenv("MONAD2_GOAL_DISCOVERY", "0") == "1":
+            try:
+                from monad2.discovery import ensure, recall
+                from monad2.memory import grid_features
+                from monad2.scp import project as _disc_project
+
+                disc = ensure(self)
+                hyp = disc.hypothesis()
+                self.m2_goal_hypothesis = hyp
+                if hyp is not None and prior.get(hyp, 0) > 0:
+                    prior[hyp] += 3.0
+                proj = _disc_project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                for remembered in recall(grid_features(proj, avail_ids), k=2):
+                    if prior.get(remembered, 0) > 0:
+                        prior[remembered] += 1.0
+            except Exception:
+                pass
         sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
         if getattr(self, "wt_memory", None):
             try:
@@ -18849,12 +19013,19 @@ class MyAgent(Agent):
                 # A type tried only because rehearsal wants alternatives must
                 # not change the flag when an earlier plan is committed.
                 self.ggl_match_refuted = refuted_before_type
-                if len(options) >= 3:
+                _depth_cap, _breadth = self._m2_tonic_limits()
+                if len(options) >= _breadth:
                     break
             elif options and self.ggl_match_refuted != refuted_before_type:
                 self.ggl_match_refuted = refuted_before_type
         if rehearse and options:
             _best_i, plan, goal = self._fx_pick_rehearsed(arr, options)
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None:
+                try:
+                    _m2_rt.note_rehearsal(self, _best_i, str(goal.get("type") if goal else ""))
+                except Exception:
+                    pass
             self.ggl_match_refuted = option_refuted[_best_i]
             self.ggl_active = goal
             gtype = str(goal["type"]) if goal is not None else "REACH"
@@ -19135,7 +19306,11 @@ class MyAgent(Agent):
                 2 if s.sig in self.mutable_object_sigs else 0
             )
             resp_geom = -self.responsive_geom_sigs[s.shape_geom_sig]
-            cross_geom = -min(3, self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
+            _m2_geom_n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None:
+                _m2_geom_n = _m2_rt.earned_count(self, _m2_geom_n, s.shape_geom_sig, "geom")
+            cross_geom = -min(3, _m2_geom_n)
             inert_pen = (
                 1
                 if (
@@ -22019,6 +22194,13 @@ class MyAgent(Agent):
         return []
 
     def _materialize_action(self, key: ActionKey, reason: str) -> GameAction:
+        rt = getattr(self, "_m2_runtime", None)
+        if rt is not None:
+            try:
+                key = rt.maybe_replace_key(self, key, reason)
+                rt.arm_expectation(self, key)
+            except Exception:
+                pass
         self.current_level_executed_actions.append(key)
         if self.prev_grid is not None:
             self.prev_logical_avatar_pos = self._extract_logical_avatar_pos(
@@ -23170,6 +23352,8 @@ class MyAgent(Agent):
         with counterfactual procedural affordance (`_try_solve_node_graph_sentries`).
         Boards where the gauge unlocks a valid causal trajectory are reinforced via LTP (`0x0900 -> 0xFFFF`);
         boards where the gauge yields zero causal affordance are inhibited via LTD (`0x0080 < 0x0200`)."""
+        if self.game_specific_solvers_disabled:
+            return grid
         if not grid or len(grid) != 64 or len(grid[0]) != 64:                               # Guard non-64x64 frames
             return grid                                                                     # Return unaltered grid
         if getattr(self, "_scp_split_gate_color_map", None) or getattr(self, "_scp_split_gate_locked_map", None):  # Skip if split-panel gauge is already locked
@@ -23359,6 +23543,11 @@ class MyAgent(Agent):
         """Executes the Bidirectional Bottom-Up -> Small Qwen A & B -> Associative Merkle Sift ->
         Conscious Observer Top-Down Loop on arrival of sensory frame S_t.
         Returns True if the Conscious Observer issued a top-down control gauge recalibration."""
+        if os.getenv("MONAD2_SKIP_DEAD_ORGANS", "0") == "1":
+            stats = getattr(self, "m2", None)
+            if isinstance(stats, dict):
+                stats["dead_skipped"] = int(stats.get("dead_skipped", 0)) + 1
+            return False
         cur_av_info = self._extract_logical_avatar_pos(grid)                                # Execute collaborative step: cur_av_info = self._extract_logical_avatar_pos(grid)
         cur_pos = cur_av_info[1] if cur_av_info is not None else None                       # Execute collaborative step: cur_pos = cur_av_info[1] if cur_av_info is not None 
         open_dirs = self._extract_visibly_open_corridor_dirs(grid, cur_av_info)             # Execute collaborative step: open_dirs = self._extract_visibly_open_corridor_dirs
@@ -23473,8 +23662,18 @@ class MyAgent(Agent):
             0.55 * float(top_down_field_state.top_down_omega_hz) + 0.45 * gohst_omega       # 55% Top-Down Observer Klein-Gordon wave + 45% Gohst MST carrier
         )                                                                                   # Close frequency blend
         gohst_sharpness = 4.0 if gohst_tsp_report.get("coupling_mode") == "COUPLED_SYNCHRONIZED_EXECUTION" else 2.5  # Set PLL resonance sharpness exponent n
+        _m2_surprise = None
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        if _m2_rt is not None:
+            try:
+                _m2_surprise = _m2_rt.pll_observation(self, outcome_delta.actual_changed_pixels)
+            except Exception:
+                _m2_surprise = None
+        # Legacy PLL targets the live signature, so it locks on every step. Surprise mode
+        # compares the pre-action prediction to the observed change and only locks on a match.
+        _pll_target = live_sig32 if _m2_surprise is None or _m2_surprise.get("locked") else (live_sig32 ^ 0x1F)
         self.resonant_pll.inject_resonant_probe(                                            # Radiate Top-Down Observer resonant probe into low-level PLL modulator
-            live_sig32,                                                                     # Target 32-bit fuzzy signature fragment
+            _pll_target,                                                                    # Predicted signature, or the live signature when surprise mode is off
             target_omega_hz=blended_top_down_omega,                                         # Top-down modulated target carrier frequency
             sharpness_exponent=gohst_sharpness,                                             # Resonance sharpness exponent n
             reason=f"top_down_field:{outcome_delta.tension_regime}",                        # Audit tag recording top-down field probe origin
@@ -23484,6 +23683,9 @@ class MyAgent(Agent):
             live_fuzzy_sig32=live_sig32,                                                    # Live 32-bit stream signature
             live_packed_u64=packed_u64,                                                     # Live 64-bit packed Merkle node
         )                                                                                   # Close PLL stream evaluation
+        if _m2_surprise is not None:
+            pll_report["phase_locked"] = bool(_m2_surprise["locked"])
+            pll_report["source_epoch"] = "PREDICTED_VS_OBSERVED"
         observer_field_report = self.observer_field_engine.compute_bidirectional_standing_wave(  # Compute Bidirectional Top-Down <-> Bottom-Up Standing-Wave Interference
             field_state=top_down_field_state,                                               # Top-Down Conscious Observer wave state Psi_TD(t)
             bottom_up_omega_hz=float(pll_report.get("omega_t_hz", blended_top_down_omega)),  # Bottom-Up PLL modulated frequency omega_BU(t)
@@ -24503,6 +24705,8 @@ class MyAgent(Agent):
         grid = self._scp_canonicalize_node_graph_palette(grid)
 
         avail_ids = [a for a in latest_frame.available_actions if a != 0]
+        self._m2_avail = list(avail_ids)
+        self._m2_grid = grid
         has_pointer = 6 in avail_ids
         has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
         is_hybrid = any(a not in (6, 7) for a in avail_ids) and has_pointer
@@ -24631,6 +24835,22 @@ class MyAgent(Agent):
             and self.prev_hash is not None
         ):
             h_curr = self.prev_hash
+        self._m2_state_hash = h_curr
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        if _m2_rt is not None and self.prev_hash is not None:
+            try:
+                _m2_rt.note_step(self, h_curr != self.prev_hash, bool(getattr(self, "_m2_plan_active", False)))
+            except Exception:
+                pass
+        if getattr(self, "_m2_pending_level_restore", False):
+            self._m2_pending_level_restore = False
+            try:
+                self._m2_restore_baseline_level()
+            except Exception:
+                pass
+            self._pending_action_data = {}
+            self._pending_action_reasoning = {"text": "monad2-stall-restore-reset"}
+            return GameAction.RESET
         if len(self.state_grids) < 256 or h_curr in self.state_grids:
             self.state_grids[h_curr] = grid
 
@@ -24690,7 +24910,12 @@ class MyAgent(Agent):
                 )
             except Exception:
                 pass
-        if self.fx_enabled or self.wins_teach or self.rehearse_enabled:
+        if (
+            self.fx_enabled
+            or self.wins_teach
+            or self.rehearse_enabled
+            or os.getenv("MONAD2_CALLOSUM", "0") == "1"
+        ):
             try:
                 self._fx_on_transition(
                     grid, h_curr, is_blackout or was_blackout_last_step
@@ -25266,6 +25491,8 @@ class MyAgent(Agent):
 
         # Tier 1: Multi-App Structural Model-Based Archetype Solvers
         try:
+            if self.game_specific_solvers_disabled:
+                raise _GameSolversOff()
             if has_pointer and not has_dpad and not self.planned_queue:
                 cegis_plan = self._try_monad1_scp_cegis_panel_solver(
                     grid, doc, avail_ids, self.current_level
@@ -25522,6 +25749,8 @@ class MyAgent(Agent):
                 and not is_blackout
             ):
                 self._sync_warehouse_closed_loop(grid)
+        except _GameSolversOff:
+            pass
         except Exception:
             pass
 
