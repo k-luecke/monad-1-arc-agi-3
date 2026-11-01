@@ -27,6 +27,7 @@ Gaps 1–9 are independent flags and default off. Entry 7 adds `MONAD2_GOAL_DISC
 | 13 | 2026-10-31 3:36 PM | f910fbb | legal menu and plan-once smoke, not a score run | 0 | 0/3 | 0 | 30 | — | yes |
 | 14 | 2026-10-31 5:19 PM | 9707b51 | ABORTED coordination benchmark, 10/25 games, 0 levels | 0 | 0/10 | 0/183 | 98 | 0.0000 | no |
 | 15 | 2026-10-31 5:47 PM | 9707b51 | diagnosis, not a score: first break is perception | 0 | 0/2 | 0 | 16 live | — | no |
+| 16 | 2026-10-31 7:01 PM | 9610309 | six-fix check, killed at 0 levels, not a score | 0 | 0/1 | 0 | 59 | — | no |
 
 Entry 2 assigned a different design row to each level (`MONAD2_FACTORIAL=1`, `MONAD2_FACTORIAL_SEED=0`). Discovery games produced 0 clears of a level the baseline missed, so nothing was confirmed and every flag stays off. On the 12 discovery level-rows the baseline can already clear, factor-on vs factor-off clear counts were: SCP 4/8 vs 2/4, goal memory 1/4 vs 5/8, rehearsal 2/7 vs 4/5, callosum 0/5 vs 6/7, D-ladder 3/7 vs 3/5, earned 3/5 vs 3/7, tonic 4/8 vs 2/4, PLL surprise 3/8 vs 3/4, skip-organs 3/6 vs 3/6. Callosum overrode 5,505 of 11,004 actions it saw. The aggregate 8 levels is below the baseline, at fewer actions because games stalled early.
 
@@ -214,3 +215,19 @@ The first stage that breaks is perception. The goal role is a copy of the refere
 
 A correct plan, hand-fed, does not win `ls20` through the executor: 200 actions, all up, level 0. It wins `vc33` only after the click anchor is replaced by hand with the pump; the live first anchor, pressed across 60 actions, does not.
 <!-- entry-15-end -->
+
+<!-- entry-16-begin -->
+### Entry 16 — six fixes checked, then the live run was killed
+
+Written 2026-10-31 7:01 PM CT. Code is `9610309` (`271fca7` is the six fixes, `3c00ed3` remembers blocked edges during a walk, `9610309` binds one controllable when several unique geometries share one motion). This is not a 25-game score. It does not bear on entry 1 (19/183, 42,729 actions) or the optimal 6,444. No flag turns on. `vc33` was not played live.
+
+Hand-fed executor, solvers off. The winning trace was used only to name the binding. It was not given to the agent.
+
+`vc33` passes. `toggle` stays on the pump for repeat 3. The predicate geometry is the unique object that click translates. Three clicks, level 1. The same step walked across the live anchors, one press each, and did not pass (level 0).
+
+`ls20` does not pass. `approach(avatar,goal)` with the translating token and a goal one step past the pre-completion box. The first six actions go straight up. The entry step does not translate. The walk then spends the rest of a repeat of 40 off that line. Level 0.
+
+Live `ls20`, no clock, solvers off, `MONAD2_COORDINATE=1`, other Monad(2) flags off, `PYTHONHASHSEED=0`, action cap 200. Killed at 59 actions, 0 levels, 64 LLM calls. The plans were repeating and the goal was still unbound, which is the stop rule for a run that is not passing levels. Decisions logged: discover 14, execute 43, and 3 before a mode was set. The avatar bound on the first effect, geometry `[1, 3, 5]`, with the co-moving part `[1, 2, 5]` labeled movable. Goal evidence was empty on every decision. The plan at the kill was `hold_gradient(avatar,wall)` then `convey(avatar,movable)`. This is not a healthy run.
+
+The goal role is written only when a completion names an object. Nothing completed, so it stayed empty. Watch does score a hypothesis: a step that changes at most 400 cells and translates votes REACH, and two parts moving together also vote PLACE. That sentence is appended to the executive prompt (`watch REACH unconfirmed; goal role unbound` once REACH leads). It is not used to pick a target. `approach` is offered only when the goal role is already bound. `step_toward` returns no step without a goal geometry. The plan instruction says a hypothesis is not a goal. The menu is align, route, hold_gradient, convey, and assemble against reference, wall, receptor, and the co-moving part. Those cycles do not complete the level, so the completion that would bind the goal never arrives.
+<!-- entry-16-end -->
