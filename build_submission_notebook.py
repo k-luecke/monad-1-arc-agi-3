@@ -18,7 +18,7 @@ import os
 import subprocess
 import sys
 import tempfile
-import zlib
+import lzma
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -240,7 +240,7 @@ import os
 import shutil
 import subprocess
 import sys
-import zlib
+import lzma
 from pathlib import Path
 
 os.environ.setdefault("OMP_NUM_THREADS", "2")
@@ -274,7 +274,7 @@ if Path("/kaggle/input").exists():
                     os.environ.setdefault("INOS_MISTRAL_NEMO_GGUF", _full)
 
 _BUNDLE_B64 = "{bundle_b64}"
-_BUNDLE = json.loads(zlib.decompress(base64.b64decode(_BUNDLE_B64)).decode("utf-8"))
+_BUNDLE = json.loads(lzma.decompress(base64.b64decode(_BUNDLE_B64)).decode("utf-8"))
 _MONAD2_FILES: dict[str, str] = _BUNDLE["monad2_files"]
 _MONAD_DISK_BACKUPS: dict[str, str] = _BUNDLE["disk_backups"]
 _LLAMA_CPP_SHIM: str = _BUNDLE["llama_cpp_shim"]
@@ -337,43 +337,42 @@ print(
 
 
 def build_cell2_source(agent_src: str) -> str:
-    footer = """
+    return """# Cell 2: Materialize & Load Complete `my_agent_v7_inos.py` (`MyAgent`) Implementation
+from __future__ import annotations
 
-# --- Notebook Self-Materialization & Module Registration for `my_agent_v7_inos.py` ---
+import importlib
 import sys as _sys
-import types as _types
 from pathlib import Path as _Path
 
-_agent_disk_src = None
-if "_MONAD_DISK_BACKUPS" in globals() and "my_agent_v7_inos.py" in _MONAD_DISK_BACKUPS:
-    _agent_disk_src = _MONAD_DISK_BACKUPS["my_agent_v7_inos.py"]
-elif "_ih" in globals() and isinstance(globals()["_ih"], list) and globals()["_ih"]:
-    _agent_disk_src = globals()["_ih"][-1]
+assert "_MONAD_DISK_BACKUPS" in globals() and "my_agent_v7_inos.py" in _MONAD_DISK_BACKUPS, (
+    "Run Cell 1 first to initialize _MONAD_DISK_BACKUPS."
+)
+_agent_disk_src = _MONAD_DISK_BACKUPS["my_agent_v7_inos.py"]
 
-if _agent_disk_src:
-    for _r in globals().get("_TARGET_ROOTS", [_Path.cwd()]):
-        _p = _r / "my_agent_v7_inos.py"
-        if not _p.is_file() or _p.read_text(encoding="utf-8") != _agent_disk_src:
-            _p.write_text(_agent_disk_src, encoding="utf-8")
-        if _r != _Path.cwd() or not (_r / ".git").exists():
-            _p_alias = _r / "my_agent.py"
-            if not _p_alias.is_file() or _p_alias.read_text(encoding="utf-8") != _agent_disk_src:
-                _p_alias.write_text(_agent_disk_src, encoding="utf-8")
+for _r in globals().get("_TARGET_ROOTS", [_Path.cwd()]):
+    _p = _r / "my_agent_v7_inos.py"
+    if not _p.is_file() or _p.read_text(encoding="utf-8") != _agent_disk_src:
+        _p.write_text(_agent_disk_src, encoding="utf-8")
+    if _r != _Path.cwd() or not (_r / ".git").exists():
+        _p_alias = _r / "my_agent.py"
+        if not _p_alias.is_file() or _p_alias.read_text(encoding="utf-8") != _agent_disk_src:
+            _p_alias.write_text(_agent_disk_src, encoding="utf-8")
 
-if "my_agent_v7_inos" not in _sys.modules:
-    _mod = _types.ModuleType("my_agent_v7_inos")
-    _mod.__file__ = str((_Path.cwd() / "my_agent_v7_inos.py").resolve())
-    for _k, _v in list(globals().items()):
-        if not _k.startswith("_") or _k in ("_grid_from_frame", "_diff_coords", "_is_border_hud_coord", "_hash_interior", "_hash_playfield", "_solve_linear_mod"):
-            setattr(_mod, _k, _v)
-    _sys.modules["my_agent_v7_inos"] = _mod
-    _sys.modules.setdefault("my_agent", _mod)
+if str(_Path.cwd()) not in _sys.path:
+    _sys.path.insert(0, str(_Path.cwd()))
+
+import my_agent_v7_inos as _agent_mod
+importlib.reload(_agent_mod)
+_sys.modules["my_agent"] = _agent_mod
+
+for _k, _v in vars(_agent_mod).items():
+    if not _k.startswith("__"):
+        globals()[_k] = _v
 
 from monad2.general_guard import solver_catalog_ok as _solver_catalog_ok
 assert _solver_catalog_ok(MyAgent), "MyAgent 27-solver guard catalog mismatch"
 print(f"[MONAD1_V7_AGENT_READY] MyAgent loaded ({_Path('my_agent_v7_inos.py').stat().st_size:,} B on disk) | solver_catalog_ok=True")
 """
-    return agent_src.rstrip() + "\n" + footer.lstrip("\n")
 
 
 def build_cell3_source(eval_src: str) -> str:
@@ -425,7 +424,7 @@ def compile_notebooks() -> tuple[Path, Path]:
         "llama_cpp_shim": LLAMA_CPP_SHIM_SOURCE,
     }
     bundle_bytes = json.dumps(bundle, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    bundle_b64 = base64.b64encode(zlib.compress(bundle_bytes, level=9)).decode("ascii")
+    bundle_b64 = base64.b64encode(lzma.compress(bundle_bytes, preset=9)).decode("ascii")
 
     cell1_src = build_cell1_source(bundle_b64)
     cell2_src = build_cell2_source(agent_src)
@@ -500,6 +499,7 @@ def compile_notebooks() -> tuple[Path, Path]:
 def verify_notebooks(paths: tuple[Path, Path]) -> None:
     for p in paths:
         assert p.is_file(), f"Notebook missing: {p}"
+        assert p.stat().st_size < 1_048_576, f"Notebook {p} exceeds 1 MB Kaggle SaveKernel limit: {p.stat().st_size:,} bytes"
         doc = json.loads(p.read_text(encoding="utf-8"))
         assert doc.get("nbformat") == 4, f"Expected nbformat 4 in {p}"
         cells = doc.get("cells")

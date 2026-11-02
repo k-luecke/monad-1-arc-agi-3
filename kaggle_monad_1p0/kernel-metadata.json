@@ -1,0 +1,21 @@
+{
+  "id": "kyleluecke/monad-1p0",
+  "id_no": 141079557,
+  "title": "monad (1P0)",
+  "code_file": "monad-1p0.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "kyleluecke/monad-1"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [
+    "arc-prize-2026-arc-agi-3"
+  ],
+  "model_sources": []
+}
