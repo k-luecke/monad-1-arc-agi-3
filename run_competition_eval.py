@@ -319,6 +319,19 @@ def _select_game_ids(game_ids: list[str], game_filter: set[str], game_order: str
     return list(game_ids)
 
 
+def _session_remaining_seconds() -> float:
+    raw_start = os.getenv("MONAD_SESSION_START_EPOCH", "").strip()
+    if not raw_start:
+        return float(6 * 3600 - 240)
+    try:
+        start_epoch = float(raw_start)
+        session_limit = float(os.getenv("MONAD_SESSION_SECONDS", str(6 * 3600)))
+        reserve = float(os.getenv("MONAD_FINALIZE_RESERVE_SECONDS", "240"))
+        return (start_epoch + session_limit - reserve) - time.time()
+    except Exception:
+        return float(6 * 3600 - 240)
+
+
 def play_single_game(
     worker_arc: Any,
     base_url: str,
@@ -328,10 +341,12 @@ def play_single_game(
     total: int,
     blind_id: bool = False,
     max_game_seconds: float = 300.0,
+    *,
+    agent_cache: dict[str, tuple[Any, Any, Any]] | None = None,
+    cache_lock: threading.Lock | None = None,
+    round_idx: int = 1,
 ) -> dict:
     t0 = time.perf_counter()
-    raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
-    env = make_blind_env_proxy(raw_env) if blind_id else raw_env
     agent_gid = "blind_unknown_env" if blind_id else gid
     os.environ["MONAD2_HOLDOUT_GAME"] = gid.split("-")[0]
     if os.getenv("MONAD2_FACTORIAL", "0") == "1" and os.getenv("MONAD2_GAME_SLOT_LOCK", "0") != "1":
@@ -341,19 +356,42 @@ def play_single_game(
     goal_report = None
     win_records = None
     monad2_report = None
+    cached_entry = None
+    if round_idx >= 2 and agent_cache is not None:
+        if cache_lock is not None:
+            with cache_lock:
+                cached_entry = agent_cache.get(gid)
+        else:
+            cached_entry = agent_cache.get(gid)
+    if cached_entry is not None:
+        env, agent, _cached_arc = cached_entry
+    else:
+        raw_env = worker_arc.make(gid, scorecard_id=card_id, save_recording=False)
+        env = make_blind_env_proxy(raw_env) if blind_id else raw_env
+        agent = None
     try:
-        agent = MyAgent(
-            card_id=card_id,
-            game_id=agent_gid,
-            agent_name="monad(1)-v7-inos",
-            ROOT_URL=base_url,
-            record=False,
-            arc_env=env,
-            tags=["monad(1)", "v7-inos", "competition-mode"],
-        )
-        agent.max_game_seconds = float(max_game_seconds)
-        agent.m2_game_slot = int(idx)
-        agent.m2_pass_idx = int(os.getenv("MONAD2_PASS", "1") or "1")
+        if agent is None:
+            agent = MyAgent(
+                card_id=card_id,
+                game_id=agent_gid,
+                agent_name="monad(1)-v7-inos",
+                ROOT_URL=base_url,
+                record=False,
+                arc_env=env,
+                tags=["monad(1)", "v7-inos", "competition-mode"],
+            )
+            agent.max_game_seconds = float(max_game_seconds)
+            agent.m2_game_slot = int(idx)
+            agent.m2_round_idx = max(1, int(round_idx))
+            agent.m2_pass_idx = int(os.getenv("MONAD2_PASS", "1") or "1")
+            if agent_cache is not None:
+                if cache_lock is not None:
+                    with cache_lock:
+                        agent_cache[gid] = (env, agent, worker_arc)
+                else:
+                    agent_cache[gid] = (env, agent, worker_arc)
+        else:
+            agent.prepare_for_next_round(round_idx=int(round_idx), slice_seconds=float(max_game_seconds))
         agent.main()
         try:
             if getattr(agent, "ggl_enabled", False):
@@ -377,12 +415,9 @@ def play_single_game(
         try:
             from monad2.synthesizer import SYNTHESIZED_BY_SLOT, synthesize_solver_from_pass1
 
-            if int(getattr(agent, "m2_pass_idx", 1) or 1) == 1:
-                synth_spec = synthesize_solver_from_pass1(agent, slot=int(idx))
-            else:
+            synth_spec = synthesize_solver_from_pass1(agent, slot=int(idx))
+            if synth_spec is None:
                 synth_spec = getattr(agent, "_m2_synthesized_solver", None) or SYNTHESIZED_BY_SLOT.get(int(idx))
-                if synth_spec is None:
-                    synth_spec = synthesize_solver_from_pass1(agent, slot=None)
             synth_dict = synth_spec.to_dict() if synth_spec is not None else None
         except Exception:
             synth_dict = None
@@ -398,7 +433,10 @@ def play_single_game(
                 level_log = getattr(agent, "m2_level_log", None)
                 if isinstance(level_log, list) and level_log:
                     prefix = gid.split("-")[0]
-                    done_levels = int(getattr(agent, "levels_completed", 0) or 0)
+                    done_levels = max(
+                        int(getattr(agent, "levels_completed", 0) or 0),
+                        int(getattr(agent, "_max_levels_completed", 0) or 0),
+                    )
                     done_actions = int(getattr(agent, "action_counter", 0) or 0)
                     ends = [int(row["action_start"]) for row in level_log[1:]] + [done_actions]
                     stamped = []
@@ -424,7 +462,10 @@ def play_single_game(
                 if isinstance(thought_log, list) and thought_log:
                     monad2_report["thought_log"] = list(thought_log)
                     if not level_clear_actions:
-                        done_levels = int(getattr(agent, "levels_completed", 0) or 0)
+                        done_levels = max(
+                            int(getattr(agent, "levels_completed", 0) or 0),
+                            int(getattr(agent, "_max_levels_completed", 0) or 0),
+                        )
                         lvl_counts: dict[int, int] = {}
                         for r_idx, r_item in enumerate(thought_log, start=1):
                             if isinstance(r_item, dict):
@@ -443,13 +484,26 @@ def play_single_game(
                     f"Unscrubbed frame.game_id={getattr(frame, 'game_id', None)!r}"
                 )
     finally:
-        if blind_id:
+        won_check = bool(
+            agent is not None
+            and (
+                (agent.state is not None and agent.state.name == "WIN")
+                or getattr(agent, "_puzzle_win_recorded", False)
+            )
+        )
+        if blind_id and (agent_cache is None or won_check):
             _BLIND_ENV_REGISTRY.pop(id(env), None)
     dt = round(time.perf_counter() - t0, 2)
-    state_name = agent.state.name if agent.state is not None else "NONE"
-    lvls = int(agent.levels_completed)
+    won_any_play = bool(
+        (agent.state is not None and agent.state.name == "WIN")
+        or getattr(agent, "_puzzle_win_recorded", False)
+    )
+    state_name = "WIN" if won_any_play else (agent.state.name if agent.state is not None else "NONE")
+    lvls = max(int(agent.levels_completed), int(getattr(agent, "_max_levels_completed", 0) or 0))
     steps = int(agent.action_counter)
+    opt_replay_acts = int(getattr(agent, "replay_win_actions", 0) or 0)
     blind_tag = f" (blind_proxy={agent_gid})" if blind_id else ""
+    round_tag = f" [R{round_idx}]" if round_idx > 1 else ""
     goal_tag = ""
     if goal_report is not None:
         goal_tag = f" | goal={goal_report.get('confirmed_type') or '-'}"
@@ -458,8 +512,10 @@ def play_single_game(
             goal_tag += f" | pred={pred.get('hits')}/{pred.get('scored')}"
         if goal_report.get("memory_retrievals"):
             goal_tag += f" | mem={goal_report.get('memory_retrievals')}"
+    if opt_replay_acts > 0:
+        goal_tag += f" | opt_replay={opt_replay_acts}a"
     print(
-        f"  [{idx:02d}/{total:02d}] {gid:16s}{blind_tag} | state={state_name:9s} | "
+        f"  [{idx:02d}/{total:02d}]{round_tag} {gid:16s}{blind_tag} | state={state_name:9s} | "
         f"levels={lvls:2d} | actions={steps:4d} | {dt:6.2f}s{goal_tag}",
         flush=True,
     )
@@ -480,9 +536,12 @@ def play_single_game(
         "state": state_name,
         "levels_completed": lvls,
         "actions": steps,
+        "round": int(round_idx),
         "level_clear_actions": clear_acts,
         "elapsed_s": dt,
     }
+    if opt_replay_acts > 0:
+        result["optimal_replay_actions"] = opt_replay_acts
     if goal_report is not None:
         result["goal_report"] = goal_report
     if win_records:
@@ -726,7 +785,35 @@ def main(argv: list[str] | None = None) -> int:
         default="scorecards/synthesized_solvers.json",
         help="Path to save (Pass 1) or load (Pass 2) synthesized solver specifications.",
     )
+    parser.add_argument(
+        "--six-hour-loop",
+        action="store_true",
+        help="Run the 6-hour iterative multi-round loop until all games achieve 100%% solutions or session time expires.",
+    )
+    parser.add_argument(
+        "--no-six-hour-loop",
+        action="store_true",
+        help="Disable the 6-hour multi-round loop after the initial pass.",
+    )
+    parser.add_argument(
+        "--session-seconds",
+        type=float,
+        default=None,
+        help="Total session wall-clock budget in seconds (default: 21600 = 6 hours).",
+    )
     args, _unknown = parser.parse_known_args(argv)
+    os.environ.setdefault("MONAD_SESSION_START_EPOCH", str(time.time()))
+    if args.session_seconds is not None:
+        os.environ["MONAD_SESSION_SECONDS"] = str(float(args.session_seconds))
+    else:
+        os.environ.setdefault("MONAD_SESSION_SECONDS", str(6 * 3600))
+    os.environ.setdefault("MONAD_FINALIZE_RESERVE_SECONDS", "240")
+    six_hour_loop_enabled = bool(args.six_hour_loop) or (
+        not args.no_six_hour_loop
+        and not args.two_pass
+        and os.getenv("MONAD2_TWO_PASS") != "1"
+        and os.getenv("MONAD_SIX_HOUR_LOOP", "1") != "0"
+    )
     if args.max_game_seconds is not None:
         max_game_seconds = float(args.max_game_seconds)
     else:
@@ -734,6 +821,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.no_game_solvers:
         os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
+        for _m2_flag in (
+            "MONAD2_COORDINATE",
+            "MONAD2_GOAL_DISCOVERY",
+            "MONAD2_CALLOSUM",
+            "MONAD2_REHEARSAL",
+            "MONAD2_TONIC",
+            "MONAD2_GRAFT",
+        ):
+            os.environ.setdefault(_m2_flag, "1")
     if args.two_pass or args.pass_num in (1, 2):
         os.environ.setdefault("MONAD2_COORDINATE", "1")
     if args.pass_num in (1, 2):
@@ -809,6 +905,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"[Monad(1) V7] Coordination model warmup failed after {this_warm:.1f}s: {exc}", flush=True)
                 raise
         t0 = time.perf_counter()
+        agent_cache: dict[str, tuple[Any, Any, Any]] = {}
+        cache_lock = threading.Lock()
         for gid in pending:
             idx = len(results) + 1
             res = play_single_game(
@@ -820,6 +918,9 @@ def main(argv: list[str] | None = None) -> int:
                 len(game_ids),
                 blind_id=args.blind_id,
                 max_game_seconds=max_game_seconds,
+                agent_cache=agent_cache if six_hour_loop_enabled else None,
+                cache_lock=cache_lock,
+                round_idx=1,
             )
             results.append(_compact_game(res))
             elapsed_s = prior_s + (time.perf_counter() - t0)
@@ -846,6 +947,7 @@ def main(argv: list[str] | None = None) -> int:
             and (
                 args.two_pass
                 or args.pass_num == 1
+                or six_hour_loop_enabled
                 or os.getenv("MONAD2_TWO_PASS") == "1"
                 or not Path(args.synthesized_solvers_path).exists()
             )
@@ -886,6 +988,9 @@ def main(argv: list[str] | None = None) -> int:
                         len(game_ids),
                         blind_id=args.blind_id,
                         max_game_seconds=max_game_seconds,
+                        agent_cache=agent_cache if six_hour_loop_enabled else None,
+                        cache_lock=cache_lock,
+                        round_idx=1,
                     )
                     c2 = _compact_game(res2)
                     c2["pass"] = 2
@@ -901,6 +1006,81 @@ def main(argv: list[str] | None = None) -> int:
                     os.environ.pop("MONAD2_PASS", None)
                 else:
                     os.environ["MONAD2_PASS"] = prev_pass
+        if six_hour_loop_enabled and len(results) == len(game_ids):
+            unsolved_indices = [i for i, r in enumerate(results) if r.get("state") != "WIN"]
+            if not unsolved_indices:
+                print(
+                    f"[Monad(1) V7 6h-Loop] All {len(results)}/{len(game_ids)} games achieved 100% solutions in Round 1.",
+                    flush=True,
+                )
+            else:
+                if pass1_saved is None:
+                    pass1_saved = [dict(r) for r in results]
+                round_idx = 2
+                while unsolved_indices and _session_remaining_seconds() > 15.0:
+                    rem_s = _session_remaining_seconds()
+                    n_rem = len(unsolved_indices)
+                    round_budget_s = min(
+                        rem_s * 0.55 if rem_s >= 120.0 else rem_s * 0.85,
+                        max_game_seconds * n_rem,
+                    )
+                    slice_s = max(5.0, min(max_game_seconds, round_budget_s / max(1, n_rem), rem_s - 5.0))
+                    print(
+                        f"[Monad(1) V7 6h-Loop] === Round {round_idx} | Unsolved: {n_rem}/{len(game_ids)} | "
+                        f"Remaining Session: {rem_s:.1f}s | Slice/Game: {slice_s:.1f}s ===",
+                        flush=True,
+                    )
+                    for list_pos in list(unsolved_indices):
+                        if _session_remaining_seconds() <= 10.0:
+                            break
+                        gid = game_ids[list_pos]
+                        idx_r = list_pos + 1
+                        res_r = play_single_game(
+                            offline_arc,
+                            "http://localhost",
+                            "offline-card",
+                            gid,
+                            idx_r,
+                            len(game_ids),
+                            blind_id=args.blind_id,
+                            max_game_seconds=slice_s,
+                            agent_cache=agent_cache,
+                            cache_lock=cache_lock,
+                            round_idx=round_idx,
+                        )
+                        prev_row = results[list_pos]
+                        cr = _compact_game(res_r)
+                        cr["round"] = round_idx
+                        cr["elapsed_s"] = round(float(prev_row.get("elapsed_s") or 0.0) + float(cr.get("elapsed_s") or 0.0), 2)
+                        results[list_pos] = cr
+                        if args.synthesized_solvers_path:
+                            try:
+                                from monad2.synthesizer import save_synthesized_store
+
+                                save_synthesized_store(args.synthesized_solvers_path)
+                            except Exception:
+                                pass
+                        try:
+                            _write_scorecard(
+                                out_path,
+                                _scorecard_payload(
+                                    blind_id=args.blind_id,
+                                    no_game_solvers=args.no_game_solvers,
+                                    max_game_seconds=max_game_seconds,
+                                    game_ids=game_ids,
+                                    results=results,
+                                    elapsed_s=prior_s + (time.perf_counter() - t0),
+                                    warmup_s=warmup_s,
+                                    complete=True,
+                                ),
+                            )
+                        except Exception:
+                            pass
+                    unsolved_indices = [i for i, r in enumerate(results) if r.get("state") != "WIN"]
+                    round_idx += 1
+            if args.blind_id:
+                for _e, _a, _arc in agent_cache.values():
+                    _BLIND_ENV_REGISTRY.pop(id(_e), None)
         total_s = round(prior_s + (time.perf_counter() - t0), 2)
         wins = sum(1 for r in results if r["state"] == "WIN")
         lvls = sum(r["levels_completed"] for r in results)
@@ -1019,8 +1199,18 @@ def main(argv: list[str] | None = None) -> int:
     is_kaggle_rerun = bool(os.environ.get("KAGGLE_IS_COMPETITION_RERUN"))
     catch_game_errors = is_kaggle_rerun or os.environ.get("MONAD_CATCH_GAME_ERRORS") == "1"
     scorecard = None
+    comp_agent_cache: dict[str, tuple[Any, Any, Any]] = {}
+    comp_cache_lock = threading.Lock()
 
-    def _safe_play(arc_inst: Any, gid: str, idx: int) -> dict:
+    def _safe_play(
+        arc_inst: Any,
+        gid: str,
+        idx: int,
+        *,
+        round_idx: int = 1,
+        slice_seconds: float | None = None,
+    ) -> dict:
+        limit_s = float(slice_seconds) if slice_seconds is not None else max_game_seconds
         if not catch_game_errors:
             return play_single_game(
                 arc_inst,
@@ -1030,7 +1220,10 @@ def main(argv: list[str] | None = None) -> int:
                 idx,
                 len(game_ids),
                 blind_id=args.blind_id,
-                max_game_seconds=max_game_seconds,
+                max_game_seconds=limit_s,
+                agent_cache=comp_agent_cache if six_hour_loop_enabled else None,
+                cache_lock=comp_cache_lock,
+                round_idx=round_idx,
             )
         try:
             return play_single_game(
@@ -1041,7 +1234,10 @@ def main(argv: list[str] | None = None) -> int:
                 idx,
                 len(game_ids),
                 blind_id=args.blind_id,
-                max_game_seconds=max_game_seconds,
+                max_game_seconds=limit_s,
+                agent_cache=comp_agent_cache if six_hour_loop_enabled else None,
+                cache_lock=comp_cache_lock,
+                round_idx=round_idx,
             )
         except Exception as exc:
             print(f"[Monad(1) V7] Warning: error in game {gid}: {exc}", file=sys.stderr, flush=True)
@@ -1051,6 +1247,7 @@ def main(argv: list[str] | None = None) -> int:
                 "state": "ERROR",
                 "levels_completed": 0,
                 "actions": 0,
+                "round": int(round_idx),
                 "elapsed_s": 0.0,
                 "error": str(exc),
             }
@@ -1058,7 +1255,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.local_gateway or args.workers <= 1:
             for idx, gid in enumerate(game_ids, 1):
-                results.append(_safe_play(client_arc, gid, idx))
+                results.append(_safe_play(client_arc, gid, idx, round_idx=1))
         else:
             def _worker(idx_gid: tuple[int, str]) -> dict:
                 i, g = idx_gid
@@ -1068,12 +1265,68 @@ def main(argv: list[str] | None = None) -> int:
                     operation_mode=OperationMode.COMPETITION,
                     environments_dir="",
                 )
-                return _safe_play(w_arc, g, i)
+                return _safe_play(w_arc, g, i, round_idx=1)
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
                 for res in pool.map(_worker, enumerate(game_ids, 1)):
                     results.append(res)
+
+        if six_hour_loop_enabled and len(results) == len(game_ids):
+            unsolved_indices = [i for i, r in enumerate(results) if r.get("state") != "WIN"]
+            if not unsolved_indices:
+                print(
+                    f"[Monad(1) V7 6h-Loop] All {len(results)}/{len(game_ids)} games achieved 100% solutions in Round 1.",
+                    flush=True,
+                )
+            else:
+                round_idx = 2
+                while unsolved_indices and _session_remaining_seconds() > 15.0:
+                    rem_s = _session_remaining_seconds()
+                    n_rem = len(unsolved_indices)
+                    round_budget_s = min(
+                        rem_s * 0.55 if rem_s >= 120.0 else rem_s * 0.85,
+                        max_game_seconds * n_rem,
+                    )
+                    slice_s = max(5.0, min(max_game_seconds, round_budget_s / max(1, n_rem), rem_s - 5.0))
+                    print(
+                        f"[Monad(1) V7 6h-Loop] === Round {round_idx} | Unsolved: {n_rem}/{len(game_ids)} | "
+                        f"Remaining Session: {rem_s:.1f}s | Slice/Game: {slice_s:.1f}s ===",
+                        flush=True,
+                    )
+                    for list_pos in list(unsolved_indices):
+                        if _session_remaining_seconds() <= 10.0:
+                            break
+                        gid = game_ids[list_pos]
+                        idx_r = list_pos + 1
+                        cached = comp_agent_cache.get(gid)
+                        arc_for_gid = cached[2] if cached is not None else client_arc
+                        res_r = _safe_play(
+                            arc_for_gid,
+                            gid,
+                            idx_r,
+                            round_idx=round_idx,
+                            slice_seconds=slice_s,
+                        )
+                        if res_r.get("state") != "ERROR":
+                            prev_row = results[list_pos]
+                            res_r["elapsed_s"] = round(
+                                float(prev_row.get("elapsed_s") or 0.0) + float(res_r.get("elapsed_s") or 0.0),
+                                2,
+                            )
+                            results[list_pos] = res_r
+                        if args.synthesized_solvers_path:
+                            try:
+                                from monad2.synthesizer import save_synthesized_store
+
+                                save_synthesized_store(args.synthesized_solvers_path)
+                            except Exception:
+                                pass
+                    unsolved_indices = [i for i, r in enumerate(results) if r.get("state") != "WIN"]
+                    round_idx += 1
     finally:
+        if args.blind_id:
+            for _e, _a, _arc in comp_agent_cache.values():
+                _BLIND_ENV_REGISTRY.pop(id(_e), None)
         scorecard = client_arc.close_scorecard(card_id)
 
     total_s = round(time.perf_counter() - t0, 2)

@@ -368,11 +368,14 @@ def note_step(agent, changed: bool, plan_active: bool) -> None:
     resets = int(getattr(agent, "level_resets_in_level", 0) or 0)
     steps = int(getattr(agent, "steps_in_level", 0) or 0)
     frozen = streak >= n
+    r_mult = max(1, int(getattr(agent, "m2_round_idx", 1) or 1))
     # tu93 died at ~600 steps (novel drought plus resets, 33s, not the clock).
     # Hand back before that exit, including when the resets arrive late.
-    loop = (novel >= 240 and resets >= 3 and steps >= 480) or (steps >= 560 and novel >= 280)
+    loop = (
+        novel >= 240 * r_mult and resets >= 3 * r_mult and steps >= 480 * r_mult
+    ) or (steps >= 560 * r_mult and novel >= 280 * r_mult)
     # sc25 died at the 1500-step cap with the frame still changing.
-    cap = steps >= 900
+    cap = steps >= 900 * r_mult
     if frozen or loop or cap:
         _fallback_to_baseline(agent)
     if on("MONAD2_GOAL_DISCOVERY"):

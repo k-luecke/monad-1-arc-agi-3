@@ -4456,7 +4456,7 @@ class MyAgent(Agent):
             super().__init__(*args, **kwargs)
         except TypeError:
             self.game_id = str(kwargs.get("game_id", args[0] if args else "unknown"))
-            self.frames = []
+            self.frames = [FrameData(levels_completed=0)]
         self.bridge = Brg1BridgeClient.get()
         self.rng = random.Random(42)
         self.game_start_time: float | None = None
@@ -5153,7 +5153,29 @@ class MyAgent(Agent):
         return 3 + sum(len(self.learned_level_opt_plans[l]) for l in range(k))
 
     def _should_trigger_optimal_replay(self, is_win: bool) -> bool:
-        return False
+        if not is_win or self.replay_mode or self.replay_play_completed:
+            return False
+        if os.getenv("MONAD_OPTIMAL_WIN_REPLAY", "1") == "0":
+            return False
+        if not (
+            self.game_specific_solvers_disabled
+            or int(getattr(self, "m2_round_idx", 1) or 1) > 1
+            or os.getenv("MONAD_OPTIMAL_WIN_REPLAY", "0") == "1"
+            or bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
+        ):
+            return False
+        k = self._consecutive_learned_levels()
+        if k <= 0 or k < self.current_level:
+            return False
+        opt_sum = sum(len(self.learned_level_opt_plans.get(l, ())) for l in range(k))
+        if opt_sum <= 0:
+            return False
+        if self.action_counter <= opt_sum + 2:
+            return False
+        rem_session = self._session_remaining_seconds()
+        if rem_session is not None and rem_session < 15.0:
+            return False
+        return True
 
     def _activate_optimal_replay(self, target_levels: int) -> None:
         k = min(target_levels, self._consecutive_learned_levels())
@@ -5174,6 +5196,9 @@ class MyAgent(Agent):
 
     def _on_level_or_puzzle_solved(self, latest_frame: FrameData) -> None:
         lvl_done = int(getattr(latest_frame, "levels_completed", 0) or 0)
+        self._max_levels_completed = max(
+            int(getattr(self, "_max_levels_completed", 0) or 0), lvl_done
+        )
         is_win = latest_frame.state is GameState.WIN
         if lvl_done < self.current_level and not self.replay_mode:
             if self.current_level_executed_actions:
@@ -5308,6 +5333,8 @@ class MyAgent(Agent):
             self._reset_level_world_model()
             if self.replay_mode and self.replay_started:
                 if self.current_level >= self.replay_target_levels or is_win:
+                    if is_win:
+                        self.replay_win_actions = int(self.replay_steps_taken)
                     self.replay_play_completed = True
                     self.force_done = True
                 elif self.current_level in self.learned_level_opt_plans:
@@ -5348,11 +5375,98 @@ class MyAgent(Agent):
             return None
         try:
             start_epoch = float(raw_start)
-            session_limit = float(os.getenv("MONAD_SESSION_SECONDS", str(9 * 3600)))
-            reserve = float(os.getenv("MONAD_FINALIZE_RESERVE_SECONDS", "300"))
+            session_limit = float(os.getenv("MONAD_SESSION_SECONDS", str(6 * 3600)))
+            reserve = float(os.getenv("MONAD_FINALIZE_RESERVE_SECONDS", "240"))
         except Exception:
             return None
         return (start_epoch + session_limit - reserve) - time.time()
+
+    def prepare_for_next_round(self, round_idx: int, slice_seconds: float) -> None:
+        """Re-arm an unsolved game agent for Round `round_idx` of the 6-hour 100%-solution loop."""
+        r_idx = max(2, int(round_idx))
+        self.m2_round_idx = r_idx
+        self.m2_pass_idx = 2
+        self.force_done = False
+        self._m2_stall_fallback = False
+        self._m2_pending_level_restore = False
+        self._m2_unchanged_streak = 0
+        self._consecutive_game_over_resets = 0
+        self._last_game_over_grid = None
+        self.game_start_time = time.monotonic()
+        self.timer = time.time()
+        self.max_game_seconds = max(5.0, float(slice_seconds))
+        self.rng.seed(42 + 997 * r_idx)
+
+        extra_actions = max(2500, int(self.max_game_seconds * 45))
+        self.base_action_budget = max(
+            self.base_action_budget, self.action_counter + extra_actions
+        )
+        self.max_exploration_cap = max(
+            self.max_exploration_cap, self.action_counter + extra_actions * 2
+        )
+        self.MAX_MACRO_CAP = max(
+            self.MAX_MACRO_CAP, self.action_counter + extra_actions * 2
+        )
+        self.MAX_ACTIONS = max(self.MAX_ACTIONS, self.action_counter + extra_actions)
+
+        # Re-enable General Goal Engine, effect modeling, canvas rehearsal, and Monad(2) coordination
+        self.ggl_enabled = True
+        self.fx_enabled = True
+        self.rehearse_enabled = True
+        self.wins_teach = True
+        for flag_name in (
+            "MONAD2_COORDINATE",
+            "MONAD2_GOAL_DISCOVERY",
+            "MONAD2_CALLOSUM",
+            "MONAD2_REHEARSAL",
+            "MONAD2_TONIC",
+            "MONAD2_GRAFT",
+            "MONAD2_DLADDER",
+            "MONAD2_PLL_SURPRISE",
+        ):
+            os.environ[flag_name] = "1"
+        os.environ["MONAD2_PASS"] = "2"
+
+        # Clear per-round search exhaustion locks while preserving learned transitions, dead_actions, and level plans
+        self.replanned_state_hashes.clear()
+        self.replan_attempts_in_level = 0
+        self.macro_plan_attempted = False
+        self.online_kinematic_plan_hashes.clear()
+        self.online_kinematic_plan_attempts = 0
+        self.exhausted_frontiers.clear()
+        self.bfs_target_attempts.clear()
+        self.steps_since_novel_atom = 0
+        self.planned_queue.clear()
+        self.bfs_route_queue.clear()
+
+        try:
+            from monad2.synthesizer import synthesize_solver_from_pass1
+
+            slot_id = int(getattr(self, "m2_game_slot", 0) or 0)
+            spec = synthesize_solver_from_pass1(self, slot=slot_id if slot_id > 0 else None)
+            if spec is not None and r_idx >= 3:
+                all_fams = [
+                    "SWITCH_GATE",
+                    "WAYPOINT_TOUR",
+                    "SOKOBAN_PUSH",
+                    "PANEL_ALIGN",
+                    "REACH_BFS",
+                ]
+                rot = (r_idx - 2) % len(all_fams)
+                rotated = all_fams[rot:] + all_fams[:rot]
+                spec.secondary_families = [
+                    f for f in rotated if f != spec.solver_family
+                ]
+                if r_idx % 2 == 1:
+                    spec.switch_first = not bool(spec.switch_first)
+            coord = getattr(self, "_m2_coord", None)
+            if isinstance(coord, dict):
+                coord["corridor_tour_queue"] = []
+                coord["synth_tried_clicks"] = []
+                coord["llm_calls_level"] = 0
+                coord["interventions_level"] = 0
+        except Exception:
+            pass
 
     def is_done(self, frames: list[FrameData], latest_frame: FrameData) -> bool:
         try:
@@ -5397,6 +5511,8 @@ class MyAgent(Agent):
                 latest_frame.state is GameState.WIN
                 or self.current_level >= self.replay_target_levels
             ):
+                if latest_frame.state is GameState.WIN:
+                    self.replay_win_actions = int(self.replay_steps_taken)
                 self.replay_play_completed = True
                 self.force_done = True
                 return True
@@ -5413,20 +5529,21 @@ class MyAgent(Agent):
                 self._activate_optimal_replay(self.current_level)
                 return False
             return True
+        r_mult = max(1, int(getattr(self, "m2_round_idx", 1) or 1))
         level_stagnated = bool(
-            self.steps_in_level >= 1500
+            self.steps_in_level >= 1500 * r_mult
             or (
                 not self._has_active_macro_or_closed_loop()
-                and self.steps_in_level >= 600
-                and self.steps_since_novel_atom >= 300
-                and self.level_resets_in_level >= 4
+                and self.steps_in_level >= 600 * r_mult
+                and self.steps_since_novel_atom >= 300 * r_mult
+                and self.level_resets_in_level >= 4 * r_mult
             )
         )
         session_remaining = self._session_remaining_seconds()
         _coord_cap = os.getenv("MONAD2_COORD_MAX_ACTIONS", "").strip()
         _coord_hit = False
         if _coord_cap.isdigit():
-            _coord_hit = self.action_counter >= int(_coord_cap)
+            _coord_hit = self.action_counter >= int(_coord_cap) * r_mult
         budget_exhausted = bool(
             elapsed >= self.max_game_seconds
             or self.action_counter >= self.MAX_ACTIONS
@@ -22379,14 +22496,13 @@ class MyAgent(Agent):
 
     def _materialize_action(self, key: ActionKey, reason: str) -> GameAction:
         rt = getattr(self, "_m2_runtime", None)
-        if rt is not None:
+        if rt is not None and not self.replay_mode and reason != "monad1-optimal-skill-replay":
             try:
                 key = rt.maybe_replace_key(self, key, reason)
                 rt.arm_expectation(self, key)
             except Exception:
                 pass
-        if self.game_specific_solvers_disabled:
-            self.prev_action = key
+        self.prev_action = key
         self.current_level_executed_actions.append(key)
         if self.prev_grid is not None:
             self.prev_logical_avatar_pos = self._extract_logical_avatar_pos(
@@ -26247,7 +26363,7 @@ class MyAgent(Agent):
                         bfs_shallow, "canvas-vector-id-shallow-bfs"
                     )
                 if (
-                    self.level_resets_in_level < 4
+                    self.level_resets_in_level < 4 * max(1, int(getattr(self, "m2_round_idx", 1) or 1))
                     and h_curr != self.level_start_hash
                 ):
                     start_cands = self.state_actions.get(

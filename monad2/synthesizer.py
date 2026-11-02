@@ -684,10 +684,12 @@ def synthesize_solver_from_pass1(
         state = {}
     lvl = int(level_idx) if level_idx is not None else int(getattr(agent, "current_level", 0) or state.get("level", 0) or 0)
     existing = getattr(agent, "_m2_synthesized_solver", None)
-    if isinstance(existing, SynthesizedSolverSpec) and lvl in existing.levels:
-        spec = existing
-    else:
-        spec = record_level_observation(agent, state, lvl, cleared=False)
+    was_cleared = bool(
+        isinstance(existing, SynthesizedSolverSpec)
+        and lvl in existing.levels
+        and existing.levels[lvl].cleared
+    )
+    spec = record_level_observation(agent, state, lvl, cleared=was_cleared)
 
     # Incorporate empirical fx_dpad step quantum from agent if present (do not overwrite canonical dpad_Vectors)
     fx_dpad = getattr(agent, "fx_dpad", None)

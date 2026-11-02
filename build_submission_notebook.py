@@ -666,7 +666,7 @@ time.sleep(2.0)
 os.environ["KAGGLE_IS_COMPETITION_RERUN"] = "1"
 os.environ["ARC_BASE_URL"] = "http://127.0.0.1:8019"
 os.environ["ARC_API_KEY"] = "kaggle-rerun-test-key"
-os.environ["KAGGLE_RERUN_ARGS"] = "--games ls20 --blind-id --no-game-solvers --max-game-seconds 15"
+os.environ["KAGGLE_RERUN_ARGS"] = "--games ls20 --blind-id --no-game-solvers --max-game-seconds 8 --session-seconds 272"
 rc = run_competition_eval.run_notebook_entrypoint()
 assert rc == 0, f"Expected rc == 0 in KAGGLE_IS_COMPETITION_RERUN gateway test, got {{rc}}"
 print("[KAGGLE_RERUN_GATEWAY_OK] Simulated KAGGLE_IS_COMPETITION_RERUN=1 gateway evaluation passed (rc=0).")
