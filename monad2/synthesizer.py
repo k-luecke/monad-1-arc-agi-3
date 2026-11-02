@@ -383,6 +383,7 @@ def save_synthesized_store(path: str | Path) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "by_slot": {str(k): spec.to_dict() for k, spec in SYNTHESIZED_BY_SLOT.items()},
+        "by_struct": {repr(k): spec.to_dict() for k, spec in SYNTHESIZED_BY_STRUCT.items()},
     }
     tmp = p.with_suffix(p.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -390,7 +391,9 @@ def save_synthesized_store(path: str | Path) -> None:
 
 
 def load_synthesized_store(path: str | Path) -> int:
-    """Load Pass 1 synthesized solvers from disk into SYNTHESIZED_BY_SLOT."""
+    """Load Pass 1 synthesized solvers from disk into SYNTHESIZED_BY_SLOT and SYNTHESIZED_BY_STRUCT."""
+    import ast
+
     p = Path(path)
     if not p.is_file():
         return 0
@@ -409,6 +412,16 @@ def load_synthesized_store(path: str | Path) -> int:
                 loaded += 1
             except Exception:
                 continue
+    by_struct = raw.get("by_struct") if isinstance(raw, dict) else None
+    if isinstance(by_struct, dict):
+        for sk_str, val in by_struct.items():
+            if isinstance(val, dict):
+                try:
+                    skey = ast.literal_eval(sk_str)
+                    if isinstance(skey, tuple):
+                        SYNTHESIZED_BY_STRUCT[skey] = SynthesizedSolverSpec.from_dict(val)
+                except Exception:
+                    continue
     return loaded
 
 
@@ -628,6 +641,16 @@ def _classify_solver_family(agent: Any, state: dict, spec: SynthesizedSolverSpec
 
     is_confirmed_mover = has_dpad and (spec.avatar_geom is not None or bool(state.get("dpad_moved")))
     families: list[str] = []
+    llm_fam = str(state.get("llm_solver_family") or "").strip().upper()
+    if llm_fam in ("PANEL_ALIGN", "SOKOBAN_PUSH", "SWITCH_GATE", "WAYPOINT_TOUR", "REACH_BFS"):
+        if llm_fam == "PANEL_ALIGN" and has_click and (not has_dpad or not is_confirmed_mover):
+            families.append("PANEL_ALIGN")
+        elif llm_fam == "SOKOBAN_PUSH" and has_dpad and spec.movable_geoms:
+            families.append("SOKOBAN_PUSH")
+        elif llm_fam == "SWITCH_GATE" and spec.switch_geoms:
+            families.append("SWITCH_GATE")
+        elif llm_fam == "WAYPOINT_TOUR" and has_dpad and spec.collectible_geoms:
+            families.append("WAYPOINT_TOUR")
     if has_click and (not has_dpad or (spec.has_panel_pair and not is_confirmed_mover)):
         families.append("PANEL_ALIGN")
         spec.goal_type = "MATCH"
@@ -1392,6 +1415,11 @@ def _solve_sokoban_push(
     if target_box is None and state.get("hypothesis_box"):
         hb = state["hypothesis_box"]
         target_box = (int(hb[0]), int(hb[1]), int(hb[2]), int(hb[3]))
+    if target_box is None:
+        for cand_tb in _select_target_boxes(spec, state, av_box):
+            if cand_tb not in mov_boxes:
+                target_box = cand_tb
+                break
     if target_box is None:
         return None
 

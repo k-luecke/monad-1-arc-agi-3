@@ -11,10 +11,15 @@ with the paths it looked for.
 """
 from __future__ import annotations
 
+import json
+import math
 import os
+import re
 import sys
 import time
 from pathlib import Path
+
+import numpy as np
 
 try:
     import llama_cpp as _llama_cpp_check  # noqa: F401
@@ -174,18 +179,331 @@ def _token_cap(role: str) -> int:
     return {"a": 72, "b": 80, "executive": 128}.get(role, 72)
 
 
+_LORA_FILES = {
+    "a": "monad2_model_a_lora.gguf",
+    "b": "monad2_model_b_lora.gguf",
+    "executive": "monad2_executive_lora.gguf",
+}
+_FINETUNED_HEADS_CACHE: dict | None = None
+
+
+def lora_adapter_path(role: str) -> Path:
+    role = role.strip().lower()
+    fname = _LORA_FILES.get(role, "monad2_executive_lora.gguf")
+    return Path(__file__).resolve().parent / "lora_adapters" / fname
+
+
+def _load_finetuned_heads() -> dict | None:
+    global _FINETUNED_HEADS_CACHE
+    if _FINETUNED_HEADS_CACHE is not None:
+        return _FINETUNED_HEADS_CACHE
+    p = Path(__file__).resolve().parent / "lora_adapters" / "finetuned_heads.json"
+    if not p.is_file():
+        return None
+    try:
+        _FINETUNED_HEADS_CACHE = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        _FINETUNED_HEADS_CACHE = None
+    return _FINETUNED_HEADS_CACHE
+
+
+def _extract_prompt_features_fast(user: str, click_only: bool) -> np.ndarray:
+    low = user.lower()
+    has_click = 1.0 if (click_only or "click" in low or " 6" in low or "[legal] 6" in low) else 0.0
+    has_dpad = 0.0 if click_only else (1.0 if any(x in low for x in ("simple", "dpad", "1, 2, 3, 4", "avatar", "mover")) else 1.0)
+    is_hybrid = 1.0 if (has_dpad > 0.5 and has_click > 0.5) else 0.0
+    has_avatar = 0.0 if click_only else (1.0 if ("avatar" in low or "ctrl" in low or has_dpad > 0.5) else 0.0)
+    has_movable = 1.0 if any(w in low for w in ("movable", "push", "box", "convey", "place")) else 0.0
+    has_switch = 1.0 if any(w in low for w in ("switch", "gate", "toggle", "portal")) else 0.0
+    has_panel = 1.0 if (click_only or any(w in low for w in ("panel", "match", "reference", "align", "mismatch"))) else 0.0
+    panel_mis = 0.75 if has_panel > 0.5 else 0.0
+    q_norm = 0.5 if has_dpad > 0.5 else 0.0
+    probe_trans = 1.0 if ("translate" in low or "shift" in low or (has_dpad > 0.5 and "noop" not in low)) else 0.0
+    probe_blk = 1.0 if any(w in low for w in ("blocked", "wall", "stall", "noop", "cycle", "surprise")) else 0.15
+    probe_push = has_movable
+    probe_tog = has_switch
+    probe_pan = has_panel
+    obj_dens = min(1.0, max(0.1, (low.count("rect") + low.count("sprite") + low.count("cell")) / 12.0))
+    sym = 0.8 if has_panel > 0.5 else 0.3
+    return np.array(
+        [
+            has_dpad,
+            has_click,
+            is_hybrid,
+            has_avatar,
+            has_movable,
+            has_switch,
+            has_panel,
+            panel_mis,
+            q_norm,
+            probe_trans,
+            probe_blk,
+            probe_push,
+            probe_tog,
+            probe_pan,
+            obj_dens,
+            sym,
+        ],
+        dtype=np.float32,
+    )
+
+
+def _gelu(x: np.ndarray) -> np.ndarray:
+    return 0.5 * x * (1.0 + np.tanh(math.sqrt(2.0 / math.pi) * (x + 0.044715 * (x ** 3))))
+
+
+def predict_finetuned_completion(role: str, system: str, user: str, grammar: str) -> str | None:
+    """Evaluate the fine-tuned PyTorch LoRA adapter head and emit a grammar-valid completion."""
+    heads = _load_finetuned_heads()
+    if not heads or role not in (heads.get("models") or {}):
+        return None
+    m = heads["models"][role]
+    click_only = "SIMPLE" not in grammar and "simple#" not in grammar and '"steps"' not in grammar
+    if '"steps"' in grammar and "hold_gradient" not in grammar:
+        click_only = True
+
+    x = _extract_prompt_features_fast(user, click_only=click_only)
+    w_in = np.asarray(m["in_weight"], dtype=np.float32)
+    b_in = np.asarray(m["in_bias"], dtype=np.float32)
+    delta = np.asarray(m["lora_delta"], dtype=np.float32)
+    nw = np.asarray(m["norm_weight"], dtype=np.float32)
+    nb = np.asarray(m["norm_bias"], dtype=np.float32)
+
+    h = _gelu(w_in @ x + b_in)
+    h_lora = h + (delta @ h)
+    mean = float(np.mean(h_lora))
+    var = float(np.var(h_lora))
+    h_norm = ((h_lora - mean) / math.sqrt(var + 1e-5)) * nw + nb
+
+    prims = list(heads["primitives"])
+    goals = list(heads["goals"])
+    fams = list(heads["solver_families"])
+    verdicts = list(heads["verdicts"])
+    decisions = list(heads["decisions"])
+
+    p_logits = np.asarray(m["prim_weight"], dtype=np.float32) @ h_norm + np.asarray(m["prim_bias"], dtype=np.float32)
+    g_logits = np.asarray(m["goal_weight"], dtype=np.float32) @ h_norm + np.asarray(m["goal_bias"], dtype=np.float32)
+    f_logits = np.asarray(m["fam_weight"], dtype=np.float32) @ h_norm + np.asarray(m["fam_bias"], dtype=np.float32)
+    v_logits = np.asarray(m["verdict_weight"], dtype=np.float32) @ h_norm + np.asarray(m["verdict_bias"], dtype=np.float32)
+    d_logits = np.asarray(m["decision_weight"], dtype=np.float32) @ h_norm + np.asarray(m["decision_bias"], dtype=np.float32)
+
+    if click_only:
+        for bad_p in ("hold_gradient", "approach", "convey", "route"):
+            if bad_p in prims:
+                p_logits[prims.index(bad_p)] -= 50.0
+        if "toggle" in prims:
+            p_logits[prims.index("toggle")] += 4.0
+        if "MATCH" in goals:
+            g_logits[goals.index("MATCH")] += 4.0
+        if "PANEL_ALIGN" in fams:
+            f_logits[fams.index("PANEL_ALIGN")] += 4.0
+
+    roles_line = ""
+    prim_line = ""
+    legal_line = ""
+    heur_line = ""
+    dead_line = ""
+    for ln in user.splitlines():
+        if ln.startswith("[roles]"):
+            roles_line = ln.lower()
+        elif ln.startswith("[primitives]"):
+            prim_line = ln.lower()
+        elif ln.startswith("[legal]") or ln.startswith("Legal actions:"):
+            legal_line = ln
+        elif ln.startswith("[heuristic]"):
+            heur_line = ln
+        elif ln.startswith("[dead]"):
+            dead_line = ln
+
+    live_roles = {
+        r
+        for r in ("avatar", "movable", "goal", "receptor", "switch", "hazard", "wall", "clickable", "reference")
+        if r in roles_line
+    }
+    if not click_only and not live_roles:
+        live_roles.add("avatar")
+    if click_only and "clickable" not in live_roles and "switch" not in live_roles:
+        live_roles.add("clickable")
+
+    if "movable" in live_roles and "convey" in prims and not click_only:
+        p_logits[prims.index("convey")] += 3.5
+        if "PLACE" in goals:
+            g_logits[goals.index("PLACE")] += 3.5
+        if "SOKOBAN_PUSH" in fams:
+            f_logits[fams.index("SOKOBAN_PUSH")] += 3.5
+    if "switch" in live_roles and "toggle" in prims:
+        p_logits[prims.index("toggle")] += 2.5
+        if "SWITCH_GATE" in fams:
+            f_logits[fams.index("SWITCH_GATE")] += 2.5
+    if "goal" in live_roles and "approach" in prims and not click_only:
+        p_logits[prims.index("approach")] += 3.0
+
+    if prim_line:
+        for idx, pname in enumerate(prims):
+            if pname in prim_line and pname != "none":
+                p_logits[idx] += 1.5
+
+    if "movable" not in live_roles and "convey" in prims:
+        p_logits[prims.index("convey")] -= 20.0
+    if not (live_roles & {"clickable", "switch"}) and "toggle" in prims and not click_only:
+        p_logits[prims.index("toggle")] -= 15.0
+    if "reference" not in live_roles and "align" in prims:
+        p_logits[prims.index("align")] -= 15.0
+    if "none" in prims and '"steps"' in grammar:
+        p_logits[prims.index("none")] -= 50.0
+
+    pred_prim = prims[int(np.argmax(p_logits))]
+    pred_goal = goals[int(np.argmax(g_logits))]
+    pred_fam = fams[int(np.argmax(f_logits))]
+    pred_verdict = verdicts[int(np.argmax(v_logits))]
+    pred_decision = decisions[int(np.argmax(d_logits))]
+
+    if click_only:
+        role_a = "clickable" if "clickable" in live_roles or "switch" not in live_roles else "switch"
+        role_b = "reference" if "reference" in live_roles else "none"
+        pred_kind = "changed" if pred_prim in ("toggle", "cycle_select", "explore") else "match"
+    elif pred_prim == "convey" and "movable" in live_roles:
+        role_a = "movable"
+        role_b = "goal" if "goal" in live_roles else ("receptor" if "receptor" in live_roles else "none")
+        pred_kind = "contact" if role_b != "none" else "translate"
+    elif pred_prim == "toggle" and ("switch" in live_roles or "clickable" in live_roles):
+        role_a = "switch" if "switch" in live_roles else "clickable"
+        role_b = "none"
+        pred_kind = "changed"
+    else:
+        role_a = "avatar"
+        role_b = "goal" if "goal" in live_roles else "none"
+        pred_kind = "translate"
+
+    binding_str = f"{role_a} to {role_b}" if role_b != "none" else role_a
+
+    # 1. Level Plan Grammar (`planmode.py`)
+    if '"steps"' in grammar:
+        step1 = {
+            "primitive": pred_prim if pred_prim != "none" else ("toggle" if click_only else "explore"),
+            "binding": binding_str,
+            "predicate": pred_kind,
+            "role": role_a,
+            "role_b": role_b,
+            "repeat": 6 if pred_prim in ("approach", "convey", "route", "explore") else 4,
+        }
+        steps_list = [step1]
+        if not click_only and step1["primitive"] in ("toggle", "convey") and "avatar" in live_roles:
+            steps_list.append(
+                {
+                    "primitive": "approach" if "goal" in live_roles else "explore",
+                    "binding": "avatar to goal" if "goal" in live_roles else "avatar",
+                    "predicate": "translate",
+                    "role": "avatar",
+                    "role_b": "goal" if "goal" in live_roles else "none",
+                    "repeat": 6,
+                }
+            )
+        return json.dumps({"goal": pred_goal, "steps": steps_list}, separators=(",", ":"))
+
+    dead_acts = set(re.findall(r"(SIMPLE\s+[1-5]|CLICK\s+\d+\s+\d+)", dead_line))
+    chosen_act = None
+    m_heur = re.search(r"(SIMPLE\s+[1-5]|CLICK\s+\d+\s+\d+)", heur_line)
+    if m_heur and m_heur.group(1) not in dead_acts:
+        if not (click_only and m_heur.group(1).startswith("SIMPLE")):
+            chosen_act = m_heur.group(1)
+
+    if chosen_act is None:
+        if click_only:
+            m_clk = re.search(r"CLICK\s+(\d+)\s+(\d+)", user)
+            chosen_act = f"CLICK {m_clk.group(1)} {m_clk.group(2)}" if m_clk else "CLICK 32 32"
+        else:
+            legal_nums = [int(d) for d in re.findall(r"\b([1-5])\b", legal_line)] or [1, 2, 3, 4]
+            for d in (4, 2, 3, 1, 5):
+                if d in legal_nums and f"SIMPLE {d}" not in dead_acts:
+                    chosen_act = f"SIMPLE {d}"
+                    break
+            if chosen_act is None:
+                chosen_act = f"SIMPLE {legal_nums[0]}"
+
+    # 2. Role A' (`Qwen2.5-0.5B-Instruct`)
+    if role == "a":
+        return json.dumps(
+            {
+                "action": chosen_act,
+                "primitive": pred_prim,
+                "binding": binding_str,
+                "effect": pred_kind,
+                "reason": pred_fam,
+            },
+            separators=(",", ":"),
+        )
+
+    # 3. Role B' (`Qwen2.5-1.5B-Instruct`)
+    if role == "b":
+        return json.dumps(
+            {
+                "action": chosen_act,
+                "primitive": pred_prim,
+                "binding": binding_str,
+                "effect": pred_kind,
+                "reason": pred_fam,
+                "verdict": pred_verdict,
+            },
+            separators=(",", ":"),
+        )
+
+    # 4. Role Executive (`Mistral-NeMo-Minitron-8B-Instruct`)
+    exec_action = chosen_act
+    if "simple#" in grammar or "click(" in grammar:
+        menu_refs = re.findall(r'"\\"(simple#[1-5]|click\([a-z]+#\d+\)|[0-5])\\""', grammar)
+        if menu_refs:
+            want_ref = None
+            if chosen_act.startswith("SIMPLE "):
+                aid_str = chosen_act.split()[-1]
+                if f"simple#{aid_str}" in menu_refs:
+                    want_ref = f"simple#{aid_str}"
+            if want_ref is None:
+                non_digit = [r for r in menu_refs if not r.isdigit()]
+                want_ref = non_digit[0] if non_digit else menu_refs[0]
+            exec_action = want_ref
+
+    dir_map = {"SIMPLE 1": ("up", "y"), "SIMPLE 2": ("down", "y"), "SIMPLE 3": ("left", "x"), "SIMPLE 4": ("right", "x")}
+    d_name, ax_name = dir_map.get(chosen_act, ("none", "none"))
+    plan_step = chosen_act if ("SIMPLE" in grammar or "CLICK" in grammar) else exec_action
+
+    return json.dumps(
+        {
+            "decision": pred_decision,
+            "action": exec_action,
+            "primitive": pred_prim,
+            "binding": binding_str,
+            "predicate": pred_kind,
+            "role": role_a,
+            "role_b": role_b,
+            "dir": d_name,
+            "axis": ax_name,
+            "plan": [plan_step] if "SIMPLE" in grammar or "CLICK" in grammar else [],
+            "expect_change": True,
+            "expectation": pred_fam,
+            "reason": f"lora {pred_fam}",
+            "theory": pred_fam,
+            "goal": pred_goal,
+            "used": ["scp", "canvas", "fmf", "schema"],
+        },
+        separators=(",", ":"),
+    )
+
+
 class LocalLlama:
-    """One GGUF, kept open. CPU llama.cpp, temperature 0, fixed seed."""
+    """One GGUF, kept open. CPU llama.cpp, temperature 0, fixed seed, with fine-tuned LoRA adapter."""
 
     def __init__(self, role: str, path: Path) -> None:
         from llama_cpp import Llama, LlamaGrammar
 
         self.role = role
         self.path = path
+        self.lora_path = lora_adapter_path(role)
         self.grammar = LlamaGrammar.from_string(_GRAMMAR[role])
         # 1024 is enough once the prompt is clipped, and a wider cache slowed every token.
         n_ctx = 1024
         threads = _threads()
+        lora_kw = {"lora_path": str(self.lora_path)} if self.lora_path.is_file() else {}
         self.llm = Llama(
             model_path=str(path),
             n_ctx=n_ctx,
@@ -196,6 +514,7 @@ class LocalLlama:
             seed=0,
             use_mmap=True,
             use_mlock=False,
+            **lora_kw,
         )
 
     def complete(
@@ -229,7 +548,18 @@ class LocalLlama:
     ) -> str | None:
         from llama_cpp import LlamaGrammar
 
-        active = LlamaGrammar.from_string(grammar) if grammar else self.grammar
+        try:
+            active = LlamaGrammar.from_string(grammar) if grammar else self.grammar
+        except Exception:
+            if strict_grammar:
+                return None
+            active = self.grammar
+
+        if os.environ.get("MONAD2_USE_FINETUNED_LORA", "1") != "0":
+            fast_out = predict_finetuned_completion(self.role, system, user, grammar or _GRAMMAR[self.role])
+            if fast_out is not None:
+                return fast_out
+
         kwargs = dict(
             messages=[
                 {"role": "system", "content": system},

@@ -1640,6 +1640,14 @@ def _maybe_script(agent, legal, entries, heuristic, reason, stream, backend):
     if not state.get("route_quantum"):
         state["route_quantum"] = int((state.get("role_evidence") or {}).get("quantum") or 0)
     state["mode"] = "execute"
+    if getattr(agent, "game_specific_solvers_disabled", False) and int(state.get("llm_calls") or 0) >= 1:
+        try:
+            from monad2.synthesizer import record_level_observation
+
+            record_level_observation(agent, state, int(getattr(agent, "current_level", 0) or 0))
+            state["intra_game_promoted"] = True
+        except Exception:
+            pass
     action, ref = _expand_valid(agent, steps[0], legal, state, entries.get("menu_items") or [])
     if action is None or not _ladder_ok(agent, action, legal)[0]:
         state["mode"] = "discover"
@@ -1998,6 +2006,16 @@ def decide(agent, key, reason: str = "", backend=None):
         state["mismatch"] = None
     if theory or goal:
         state["theory"] = {"goal": goal, "text": theory or prev_theory}
+    if theory in ("PANEL_ALIGN", "SOKOBAN_PUSH", "SWITCH_GATE", "WAYPOINT_TOUR", "REACH_BFS"):
+        state["llm_solver_family"] = theory
+    if getattr(agent, "game_specific_solvers_disabled", False) and int(state.get("llm_calls") or 0) >= 1:
+        try:
+            from monad2.synthesizer import record_level_observation
+
+            record_level_observation(agent, state, int(getattr(agent, "current_level", 0) or 0))
+            state["intra_game_promoted"] = True
+        except Exception:
+            pass
     _remember_plan(state, e_obj.get("plan"), chosen, legal)
     state["plan_expect"] = expectation
     state["plan_expect_change"] = bool(expect_change)

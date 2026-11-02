@@ -34,6 +34,7 @@ EXPECTED_MONAD2_PY = (
     "eval_fmf_retrieval.py",
     "eval_watch.py",
     "factorial.py",
+    "finetune.py",
     "general_guard.py",
     "llm.py",
     "memory.py",
@@ -416,6 +417,11 @@ def compile_notebooks() -> tuple[Path, Path]:
         sc_path = REPO_ROOT / "scorecards" / sc_fname
         if sc_path.is_file():
             monad2_files[f"scorecards/{sc_fname}"] = sc_path.read_text(encoding="utf-8")
+
+    for lora_fname in ("finetuned_heads.json", "finetune_report.json"):
+        lora_path = monad2_dir / "lora_adapters" / lora_fname
+        if lora_path.is_file():
+            monad2_files[f"monad2/lora_adapters/{lora_fname}"] = lora_path.read_text(encoding="utf-8")
 
     agent_path = REPO_ROOT / "my_agent_v7_inos.py"
     eval_path = REPO_ROOT / "run_competition_eval.py"

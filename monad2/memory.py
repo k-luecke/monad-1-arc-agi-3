@@ -35,6 +35,8 @@ _NEEDLES = (
 )
 
 _CACHE: dict[tuple[str, int], list[dict]] = {}
+_ELIGIBLE_CACHE: dict[tuple[int, int, str], list[dict]] = {}
+_UNHASH_REC_CACHE: dict[int, dict] = {}
 
 
 def corpus_path() -> Path:
@@ -175,6 +177,9 @@ def load_records(path: str | Path) -> list[dict]:
 
 
 def eligible(records: list[dict], heldout_game: str) -> list[dict]:
+    ckey = (id(records), len(records), heldout_game.lower().strip() if heldout_game else "")
+    if ckey in _ELIGIBLE_CACHE and len(records) >= 50:
+        return _ELIGIBLE_CACHE[ckey]
     kept = []
     for rec in records:
         if heldout_game and _names_game(rec, heldout_game):
@@ -184,7 +189,10 @@ def eligible(records: list[dict], heldout_game: str) -> list[dict]:
         kept.append(rec)
     schema = [r for r in kept if _is_schema(r)]
     rest = [r for r in kept if not _is_schema(r)]
-    return schema + rest
+    res = schema + rest
+    if len(records) >= 50:
+        _ELIGIBLE_CACHE[ckey] = res
+    return res
 
 
 def retrieve(query_features: tuple[str, ...], records: list[dict], k: int = 5) -> list[str]:
@@ -208,6 +216,10 @@ def retrieve(query_features: tuple[str, ...], records: list[dict], k: int = 5) -
 def unhash_record(rec: dict) -> dict:
     """Decode an FMF corpus record's structural features and schema text into actionable planning primitives,
     role bindings, and candidate priority without leaking game ids or coordinates."""
+    rid = id(rec)
+    cached = _UNHASH_REC_CACHE.get(rid)
+    if cached is not None and cached.get("_ref") is rec:
+        return cached["val"]
     feats = set(_features(rec))
     text = _text(rec).lower()
     goal = _goal(rec) or "REACH"
@@ -237,7 +249,7 @@ def unhash_record(rec: dict) -> dict:
         role_bindings.append("portal->twin:approach(avatar,portal)")
     if not primitives:
         primitives.append("approach" if "aff:avatar" in feats else ("toggle" if "aff:click" in feats else "explore"))
-    return {
+    val = {
         "goal": goal,
         "features": tuple(sorted(feats)),
         "is_schema": _is_schema(rec),
@@ -246,6 +258,9 @@ def unhash_record(rec: dict) -> dict:
         "candidate_priority": candidate_priority,
         "schema_text": _text(rec).strip(),
     }
+    if len(_UNHASH_REC_CACHE) < 4096:
+        _UNHASH_REC_CACHE[rid] = {"_ref": rec, "val": val}
+    return val
 
 
 def retrieve_unhashed(query_features: tuple[str, ...], records: list[dict], k: int = 5) -> dict:
@@ -269,13 +284,13 @@ def retrieve_unhashed(query_features: tuple[str, ...], records: list[dict], k: i
         }
     scored_rows: list[tuple[int, dict]] = []
     for rec in records:
-        rec_feats = set(_features(rec))
+        decoded = unhash_record(rec)
+        rec_feats = set(decoded["features"])
         overlap = len(q & rec_feats)
         if overlap <= 0:
             continue
-        weight = 2 if _is_schema(rec) else 1
+        weight = 2 if decoded["is_schema"] else 1
         score = overlap * weight
-        decoded = unhash_record(rec)
         scored_rows.append((score, decoded))
         if decoded["goal"] in GOAL_TYPES:
             goal_scores[decoded["goal"]] += score
@@ -383,4 +398,3 @@ def unhash_packed_node(packed_u64: int, tree=None, relational_sig16: int | None 
         "candidate_bias": cand_bias,
         "cold_payload": {},
     }
-

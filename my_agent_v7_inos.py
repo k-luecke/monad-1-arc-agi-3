@@ -24,6 +24,7 @@ from __future__ import annotations
 import collections
 import copy
 import enum
+import functools
 import hashlib
 import heapq
 import itertools
@@ -2041,6 +2042,7 @@ class MonadAssociativeMerkleTree:                                               
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]                         # Execute collaborative step: return hashlib.sha256(raw.encode("utf-8")).hexdigest
 
     @staticmethod                                                                           # Pure functional helper independent of mutable instance state
+    @functools.lru_cache(maxsize=4096)
     def compute_fuzzy_fingerprint(pattern: tuple[str, ...], entropy_level: int = 0) -> tuple[int, int, int, str]:  # Compute 3-Band Biometric Fuzzy Fingerprint (8b Ridge : 16b Minutiae : 32b SimHash)
         joined = "|".join(pattern)                                                          # Execute collaborative step: joined = "|".join(pattern)
         b1 = 0                                                                              # Execute collaborative step: b1 = 0
@@ -25067,11 +25069,26 @@ class MyAgent(Agent):
             self.state_grids[h_curr] = grid
 
         need_doc = True
-        doc = (
-            CanvasDocument(grid, self.hud_rows, self.hud_coords, self.hud_cols)
-            if need_doc
-            else None
-        )
+        doc = None
+        if need_doc and self.game_specific_solvers_disabled:
+            _cached_m2_doc = getattr(self, "_m2_doc_cache", None)
+            if isinstance(_cached_m2_doc, tuple) and len(_cached_m2_doc) == 2 and getattr(_cached_m2_doc[1], "grid", None) == grid:
+                doc = _cached_m2_doc[1]
+        if need_doc and doc is None:
+            doc = CanvasDocument(grid, self.hud_rows, self.hud_coords, self.hud_cols)
+            if self.game_specific_solvers_disabled:
+                try:
+                    self._m2_doc_cache = (
+                        (
+                            tuple(tuple(r) for r in grid),
+                            frozenset(self.hud_rows),
+                            frozenset(self.hud_coords),
+                            frozenset(self.hud_cols),
+                        ),
+                        doc,
+                    )
+                except Exception:
+                    pass
 
         if (
             doc is not None
