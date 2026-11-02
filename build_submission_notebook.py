@@ -316,8 +316,10 @@ except ModuleNotFoundError:
     try:
         import llama_cpp as _llama_cpp_mod  # noqa: F401
     except ModuleNotFoundError:
+        import importlib
         for _root in _TARGET_ROOTS:
             _write_if_changed(_root / "llama_cpp" / "__init__.py", _LLAMA_CPP_SHIM)
+        importlib.invalidate_caches()
         import llama_cpp as _llama_cpp_mod  # noqa: F401
 
 from monad2 import general_guard, primitives
@@ -409,6 +411,11 @@ def compile_notebooks() -> tuple[Path, Path]:
         if not fpath.is_file():
             raise FileNotFoundError(f"Missing required fmf_corpus file: {fpath}")
         monad2_files[f"monad2/fmf_corpus/{fname}"] = fpath.read_text(encoding="utf-8")
+
+    for sc_fname in ("synthesized_solvers.json", "relation_memory_train.json"):
+        sc_path = REPO_ROOT / "scorecards" / sc_fname
+        if sc_path.is_file():
+            monad2_files[f"scorecards/{sc_fname}"] = sc_path.read_text(encoding="utf-8")
 
     agent_path = REPO_ROOT / "my_agent_v7_inos.py"
     eval_path = REPO_ROOT / "run_competition_eval.py"
@@ -534,6 +541,8 @@ assert Path("monad2/__init__.py").is_file(), "monad2/__init__.py not materialize
 assert Path("monad2/synthesizer.py").is_file(), "monad2/synthesizer.py not materialized"
 assert Path("monad2/candidates.py").is_file(), "monad2/candidates.py not materialized"
 assert Path("monad2/fmf_corpus/records.jsonl").is_file(), "fmf_corpus/records.jsonl not materialized"
+assert Path("scorecards/synthesized_solvers.json").is_file(), "scorecards/synthesized_solvers.json not materialized"
+assert Path("scorecards/relation_memory_train.json").is_file(), "scorecards/relation_memory_train.json not materialized"
 assert Path("my_agent_v7_inos.py").is_file(), "my_agent_v7_inos.py not materialized"
 assert Path("my_agent.py").is_file(), "my_agent.py not materialized in clean working directory"
 assert Path("run_competition_eval.py").is_file(), "run_competition_eval.py not materialized"

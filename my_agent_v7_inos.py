@@ -2709,11 +2709,7 @@ class MonadAssociativeMerkleTree:                                               
                 u64_ltd = BitPackedMerkleNodeCodec.pack_u64(c32, pid_ltd, 0x0080)           # Pack depressed 64-bit node with weight 0x0080 (< 0x0200 threshold)
                 if idx >= 0:                                                                # Update existing 64-bit node in-place
                     self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(u64_ltd)           # Write LTD-depressed 64-bit register
-                else:                                                                       # Append depressed procedural node into contiguous array (growing if needed)
-                    if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
-                        grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
-                        grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
-                        self.dynamic_merkle_graph.nodes_u64 = grown
+                elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Append depressed procedural node directly into contiguous array
                     ins_i = self.dynamic_merkle_graph.active_count                          # Next free slot in 64-bit array
                     self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(u64_ltd)         # Store depressed 64-bit procedural node
                     self.dynamic_merkle_graph.active_count += 1                             # Increment active 64-bit node count
@@ -2727,13 +2723,10 @@ class MonadAssociativeMerkleTree:                                               
                 }                                                                           # Close inhibition dict
         if idx < 0:                                                                         # First encounter with this procedure in this fuzzy board neighborhood
             pid_init = self.parent_prim_to_id16.get("PRIM_10_PROCEDURAL_OPERATOR_LTP_CONSOLIDATION", 10)  # Default exploratory procedural parent
-            if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
-                grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
-                grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
-                self.dynamic_merkle_graph.nodes_u64 = grown
-            ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot in 64-bit array
-            self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(BitPackedMerkleNodeCodec.pack_u64(c32, pid_init, 0x0400))  # Write exploratory 64-bit node
-            self.dynamic_merkle_graph.active_count += 1                                     # Increment active 64-bit node count
+            if self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Seed exploratory 64-bit node at weight 0x0400
+                ins_i = self.dynamic_merkle_graph.active_count                              # Next free slot in 64-bit array
+                self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(BitPackedMerkleNodeCodec.pack_u64(c32, pid_init, 0x0400))  # Write exploratory 64-bit node
+                self.dynamic_merkle_graph.active_count += 1                                 # Increment active 64-bit node count
             w16 = 0x0400                                                                    # Initial exploratory weight above 0x0200 threshold
         self.total_procedural_endorsements += 1                                             # Increment procedural endorsement counter
         return {                                                                            # Return exploratory endorsement so agent can test procedure once
@@ -2844,7 +2837,7 @@ class MonadAssociativeMerkleTree:                                               
         packed_u64 = BitPackedMerkleNodeCodec.pack_u64(causal_sig32, new_pid16, new_w16)    # Bit-pack updated 64-bit procedural node
         if idx >= 0:                                                                        # Update existing 64-bit node in contiguous array
             self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(packed_u64)                # Write updated 64-bit node register
-        else:                                                                               # Insert new 64-bit procedural node (growing buffer if needed)
+        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64) or procedure_name.startswith(("GOAL:", "SOLVED:", "PRIM:")):
             if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
                 grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
                 grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
@@ -19558,8 +19551,12 @@ class MyAgent(Agent):
                     else 0,
                     0
                     if (
-                        s.click_y not in self.hud_rows
-                        and (doc.height // 10) <= s.click_y <= (doc.height - 4)
+                        (
+                            s.click_y not in self.hud_rows
+                            and (doc.height // 10) <= s.click_y <= (doc.height - 4)
+                        )
+                        if self.game_specific_solvers_disabled
+                        else (6 <= s.click_y <= 60)
                     )
                     else 1,
                     1
@@ -22386,7 +22383,8 @@ class MyAgent(Agent):
                 rt.arm_expectation(self, key)
             except Exception:
                 pass
-        self.prev_action = key
+        if self.game_specific_solvers_disabled:
+            self.prev_action = key
         self.current_level_executed_actions.append(key)
         if self.prev_grid is not None:
             self.prev_logical_avatar_pos = self._extract_logical_avatar_pos(
@@ -23898,7 +23896,7 @@ class MyAgent(Agent):
             matched_u64, relational_sig16=last_causal_ep.post_board_sig16
         )
         self.last_unhashed_merkle_packet = unhashed_merkle
-        if not merkle_trace.get("recalled") and expanded_payload.get("parent_primitive_id"):  # Control / block header: if not merkle_trace.get("recalled") and expanded_pay
+        if self.game_specific_solvers_disabled and not merkle_trace.get("recalled") and expanded_payload.get("parent_primitive_id"):  # Control / block header: if not merkle_trace.get("recalled") and expanded_pay
             merkle_trace["parent_primitive_id"] = expanded_payload["parent_primitive_id"]   # Execute collaborative step: merkle_trace["parent_primitive_id"] = expanded_paylo
             merkle_trace["top_down_operator"] = expanded_payload.get("top_down_operator", "OBSERVE")  # Execute collaborative step: merkle_trace["top_down_operator"] = expanded_payload
         merkle_trace["unhashed_merkle"] = unhashed_merkle
@@ -23969,9 +23967,7 @@ class MyAgent(Agent):
         ):                                                                                  # Close structured composite expression or container literal
             intended_d = int(self.last_intent_spec.intended_canonical_dir)                  # Execute collaborative step: intended_d = int(self.last_intent_spec.intended_cano
             opp_d = OPPOSITE_DIR[intended_d]                                                # Execute collaborative step: opp_d = OPPOSITE_DIR[intended_d]
-            if top_down_cmd == "INVERT_CANONICAL_DPAD_IMMEDIATELY" or (
-                intended_d in open_dirs and opp_d not in open_dirs
-            ):
+            if intended_d in open_dirs and opp_d not in open_dirs:
                 self.control_probe_swapped.update({(1, 2), (3, 4)})                         # Execute collaborative step: self.control_probe_swapped.update({(1, 2), (3, 4)})
                 self.canonical_to_raw_dpad = {1: 2, 2: 1, 3: 4, 4: 3}                       # Update or query top-down D4 control gauge mapping between canonical and raw actions
                 self.raw_to_canonical_dpad = {2: 1, 1: 2, 4: 3, 3: 4}                       # Update or query top-down D4 control gauge mapping between canonical and raw actions
