@@ -1371,7 +1371,7 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _emit_kaggle_commit_parquet_if_needed() -> None:
+def _emit_kaggle_commit_parquet_if_needed(*, clean_working_dir: bool = False) -> None:
     if os.environ.get("KAGGLE_IS_COMPETITION_RERUN"):
         return
     if not (
@@ -1382,11 +1382,25 @@ def _emit_kaggle_commit_parquet_if_needed() -> None:
     ):
         return
     try:
+        import shutil as _shutil
         import pandas as pd
 
+        kw_dir = Path("/kaggle/working")
+        if clean_working_dir and kw_dir.exists():
+            for item in list(kw_dir.iterdir()):
+                if item.name in ("submission.parquet", "__notebook__.ipynb"):
+                    continue
+                try:
+                    if item.is_dir() and not item.is_symlink():
+                        _shutil.rmtree(item, ignore_errors=True)
+                    else:
+                        item.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
         target_paths = [Path("submission.parquet")]
-        if Path("/kaggle/working").exists():
-            kw_path = Path("/kaggle/working/submission.parquet")
+        if kw_dir.exists():
+            kw_path = kw_dir / "submission.parquet"
             if kw_path.resolve() != target_paths[0].resolve():
                 target_paths.insert(0, kw_path)
         for tp in target_paths:
@@ -1395,7 +1409,7 @@ def _emit_kaggle_commit_parquet_if_needed() -> None:
                 [["1_0", "1", True, 1]],
                 columns=["row_id", "game_id", "end_of_game", "score"],
             ).to_parquet(tp, index=False)
-        print("[Monad(1) V7] Emitted commit-mode submission.parquet.")
+        print(f"[Monad(1) V7] Emitted commit-mode submission.parquet ({target_paths[0].resolve()}).")
     except Exception as exc:
         print(f"[Monad(1) V7] Note: submission.parquet emission skipped: {exc}")
 
@@ -1408,6 +1422,9 @@ def run_notebook_entrypoint() -> int:
       - Else if local environment_files exist and arc_agi is installed, runs --offline --blind-id.
       - Otherwise runs the standalone --self-test --blind-id verification episode.
     """
+    is_rerun = bool(os.environ.get("KAGGLE_IS_COMPETITION_RERUN"))
+    if not is_rerun:
+        _emit_kaggle_commit_parquet_if_needed(clean_working_dir=False)
     try:
         import shutil as _shutil
 
@@ -1416,7 +1433,11 @@ def run_notebook_entrypoint() -> int:
             Path("/kaggle/input/arc-prize-2026-arc-agi-3/ARC-AGI-3-Agents"),
         ):
             if _src_agents.is_dir():
-                _dst_agents = Path("ARC-AGI-3-Agents")
+                _dst_agents = (
+                    Path("ARC-AGI-3-Agents")
+                    if is_rerun
+                    else Path("/tmp/ARC-AGI-3-Agents")
+                )
                 if not _dst_agents.exists():
                     _shutil.copytree(_src_agents, _dst_agents)
                 _dst_pkg = _dst_agents / "agents" / "templates"
@@ -1429,7 +1450,7 @@ def run_notebook_entrypoint() -> int:
     except Exception:
         pass
 
-    if os.environ.get("KAGGLE_IS_COMPETITION_RERUN"):
+    if is_rerun:
         os.environ.setdefault("ARC_BASE_URL", "http://gateway:8001")
         os.environ.setdefault("ARC_API_KEY", "test-key-123")
         gw_url = f"{os.environ['ARC_BASE_URL'].rstrip('/')}/api/games"
@@ -1445,7 +1466,7 @@ def run_notebook_entrypoint() -> int:
         return main(["--workers", "1", *extra_args])
     if os.environ.get("ARC_API_KEY", "").strip():
         rc = main([])
-        _emit_kaggle_commit_parquet_if_needed()
+        _emit_kaggle_commit_parquet_if_needed(clean_working_dir=True)
         return rc
     for cand in (
         Path("environment_files"),
@@ -1453,11 +1474,25 @@ def run_notebook_entrypoint() -> int:
         Path("/kaggle/input/arc-prize-2026-arc-agi-3/environment_files"),
     ):
         if HAS_ARC_AGI and cand.exists() and list(cand.rglob("*.py")):
-            rc = main(["--offline", "--blind-id", "--environments-dir", str(cand)])
-            _emit_kaggle_commit_parquet_if_needed()
+            if Path("/kaggle/working").exists():
+                rc = main(
+                    [
+                        "--offline",
+                        "--blind-id",
+                        "--games",
+                        "ls20",
+                        "--environments-dir",
+                        str(cand),
+                        "--output",
+                        "/tmp/monad1_arc3/commit_scorecard.json",
+                    ]
+                )
+            else:
+                rc = main(["--offline", "--blind-id", "--environments-dir", str(cand)])
+            _emit_kaggle_commit_parquet_if_needed(clean_working_dir=True)
             return rc
     rc = main(["--self-test", "--blind-id"])
-    _emit_kaggle_commit_parquet_if_needed()
+    _emit_kaggle_commit_parquet_if_needed(clean_working_dir=True)
     return rc
 
 
