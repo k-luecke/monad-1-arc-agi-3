@@ -257,7 +257,7 @@ class Brg1BridgeClient:                                                         
         except Exception:                                                                   # Control / block header: except Exception:
             self.read_timeout = 5.0                                                         # Execute INOS meta-reasoning operation: self.read_timeout = 5.0
         if os.getenv("INOS_USE_EXTERNAL_DAEMON", "0") == "1" and os.name != "nt":           # Control / block header: if os.getenv("INOS_USE_EXTERNAL_DAEMON", "0") == "1"
-            here = Path(__file__).resolve().parent                                          # Execute INOS meta-reasoning operation: here = Path(__file__).resolve().parent
+            here = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()  # Execute INOS meta-reasoning operation: here = Path(__file__).resolve().parent
             rust_candidates = [                                                             # Execute INOS meta-reasoning operation: rust_candidates = [
                 Path(os.environ["INOS_RUST_WORKER_BIN"]) if "INOS_RUST_WORKER_BIN" in os.environ else None,  # Execute INOS meta-reasoning operation: Path(os.environ["INOS_RUST_WORKER_BIN"]) if "I
                 Path("/tmp/inos_native/inos_arc_bridge_daemon"),                            # Execute INOS meta-reasoning operation: Path("/tmp/inos_native/inos_arc_bridge_daemon"
@@ -1287,8 +1287,12 @@ class DynamicPackedMerkleGraph:                                                 
             updated_u64 = BitPackedMerkleNodeCodec.pack_u64(shifted_sig32, old_pid16, new_w16)  # Execute collaborative step: updated_u64 = BitPackedMerkleNodeCodec.pack_u64(shif
             self.nodes_u64[best_idx] = np.uint64(updated_u64)                               # Access or update contiguous 64-bit structural node array (8 bytes per Merkle child)
             self.total_collapses += 1                                                       # Execute collaborative step: self.total_collapses += 1
-            if payload_meta:                                                                # Control / block header: if payload_meta:
-                self.cold_payload_store[shifted_sig32] = payload_meta                       # Execute collaborative step: self.cold_payload_store[shifted_sig32] = payload_met
+            prior_meta = self.cold_payload_store.get(old_sig32, {})
+            if prior_meta or payload_meta:                                                  # Control / block header: if prior_meta or payload_meta:
+                merged_meta = dict(prior_meta)
+                if payload_meta:
+                    merged_meta.update(payload_meta)
+                self.cold_payload_store[shifted_sig32] = merged_meta                        # Execute collaborative step: self.cold_payload_store[shifted_sig32] = merged_meta
             return updated_u64, "COLLAPSED_SIBLING", eps                                    # Execute collaborative step: return updated_u64, "COLLAPSED_SIBLING", eps
 
         if self.active_count >= len(self.nodes_u64):                                        # Access or update contiguous 64-bit structural node array (8 bytes per Merkle child)
@@ -1301,7 +1305,10 @@ class DynamicPackedMerkleGraph:                                                 
         self.branch_depth_by_parent[pid16] += 1                                             # Execute collaborative step: self.branch_depth_by_parent[pid16] += 1
         self.total_sprouts += 1                                                             # Execute collaborative step: self.total_sprouts += 1
         if payload_meta:                                                                    # Control / block header: if payload_meta:
-            self.cold_payload_store[sig32] = payload_meta                                   # Execute collaborative step: self.cold_payload_store[sig32] = payload_meta
+            prior_meta = self.cold_payload_store.get(sig32, {})
+            merged_meta = dict(prior_meta)
+            merged_meta.update(payload_meta)
+            self.cold_payload_store[sig32] = merged_meta                                    # Execute collaborative step: self.cold_payload_store[sig32] = merged_meta
         return new_u64, "SPROUTED_CHILD", eps                                               # Execute collaborative step: return new_u64, "SPROUTED_CHILD", eps
 
     def microglial_prune_and_reinforce_sweep(                                               # Tier-2 Microglial Pruning: dW/dt = -delta*W + Phi(Resonance), prune W < tau
@@ -1378,7 +1385,7 @@ class DynamicPackedMerkleGraph:                                                 
             "parent_primitive_id": parent.primitive_id if parent else f"SEED_{pid16:04d}",  # Execute collaborative step: "parent_primitive_id": parent.primitive_id if parent
             "core_knowledge_axiom": (parent.core_knowledge_axiom if parent and w16 >= 0x00FF else "SHALLOW_HEADER_ONLY"),  # Execute collaborative step: "core_knowledge_axiom": (parent.core_knowledge_axiom
             "top_down_operator": parent.top_down_operator if parent else "OBSERVE",         # Execute collaborative step: "top_down_operator": parent.top_down_operator if par
-            "cold_store_payload": cold_blob if w16 >= BitPackedMerkleNodeCodec.EXPANSION_FUSE_FULL else {},  # 16-bit high-activity fuse (0xF000): triggers full cold-store payload unpack
+            "cold_store_payload": dict(cold_blob) if (cold_blob or w16 >= BitPackedMerkleNodeCodec.EXPANSION_FUSE_SHALLOW) else {},  # Unpack stored payload whenever present or above shallow fuse
         }                                                                                   # Close structured composite expression or container literal
 
     def reinforce_tour_corridor_nodes(self, node_indices: tuple[int, ...] | list[int], boost16: int = 0x0040) -> int:  # Collaborative feedback: boost 16-bit weights of nodes on winning Gohst TSP tour
@@ -2016,7 +2023,16 @@ class MonadAssociativeMerkleTree:                                               
         self.total_procedural_endorsements: int = 0                                         # Count of procedures endorsed by the 64-bit Merkle Forest
         self.total_procedural_inhibitions: int = 0                                          # Count of procedures inhibited via causal LTD in the Merkle Forest
         self.total_autobiographical_replays: int = 0                                        # Count of autobiographical causal chain replays
-        self.total_win_chain_backprops: int = 0                                             # Count of retrospective win-chain LTP backpropagations                                                   # Execute collaborative step: self.master_merkle_root: str = ""
+        self.total_win_chain_backprops: int = 0                                             # Count of retrospective win-chain LTP backpropagations
+        self.proc_sig16_to_name: dict[int, str] = {}                                        # Reverse unhash table mapping 16-bit procedural hash -> procedure_name
+        self.sig32_to_child: dict[int, EntropyChildMerkleNode] = {}                         # Reverse unhash table mapping 32-bit SimHash -> EntropyChildMerkleNode
+        for _seed_proc in (
+            "GOAL:REACH", "GOAL:PLACE", "GOAL:MATCH",
+            "SOLVED:REACH", "SOLVED:PLACE", "SOLVED:MATCH",
+            "PROC_S16_NODE_GRAPH_GAUGE",
+            "PRIM:approach", "PRIM:convey", "PRIM:toggle", "PRIM:align", "PRIM:avoid", "PRIM:explore",
+        ):
+            self.proc_sig16_to_name[self.compute_procedure_sig16(_seed_proc)] = _seed_proc
         self._build_precreated_monad_effect_merkle_forest()                                 # Execute collaborative step: self._build_precreated_monad_effect_merkle_forest()
 
     @staticmethod                                                                           # Pure functional helper independent of mutable instance state
@@ -2341,15 +2357,22 @@ class MonadAssociativeMerkleTree:                                               
         prim_counts: dict[int, int] = collections.Counter()                                 # Per-parent branch count
         for p_list in self.children_by_pattern_hash.values():                               # Iterate pattern buckets
             for ch_node in p_list:                                                          # Iterate child branches
-                _, _, b3_sim32, _ = self.compute_fuzzy_fingerprint(ch_node.perturbed_pattern, ch_node.entropy_level)  # 32-bit SimHash
+                b1_r, b2_m, b3_sim32, _ = self.compute_fuzzy_fingerprint(ch_node.perturbed_pattern, ch_node.entropy_level)  # 3-Band fingerprint
                 pid16 = self.parent_prim_to_id16.get(ch_node.primitive_id, 1)               # 16-bit parent ID
                 w16 = 0xFFFF if ch_node.entropy_level == 0 else max(0x0400, 0xF000 - ch_node.entropy_level * 0x1000)  # 16-bit synaptic weight
                 prim_u64_list.append(BitPackedMerkleNodeCodec.pack_u64(b3_sim32, pid16, w16))  # Pack into 64-bit register
                 prim_counts[pid16] += 1                                                     # Increment parent depth
+                if b3_sim32 not in self.sig32_to_child or ch_node.entropy_level < self.sig32_to_child[b3_sim32].entropy_level:
+                    self.sig32_to_child[b3_sim32] = ch_node
+                parent_obj = self.parents_by_id.get(ch_node.primitive_id)
                 self.dynamic_merkle_graph.cold_payload_store[b3_sim32] = {                  # Register cold payload metadata
                     "primitive_id": ch_node.primitive_id,
                     "child_merkle_hash": ch_node.child_merkle_hash,
                     "entropy_level": ch_node.entropy_level,
+                    "perturbed_pattern": ch_node.perturbed_pattern,
+                    "b1_ridge": b1_r,
+                    "b2_minutiae": b2_m,
+                    "top_down_operator": parent_obj.top_down_operator if parent_obj else "OBSERVE",
                 }
         if prim_u64_list:                                                                   # Bulk-ingest all combinatorial primitive branches
             self.dynamic_merkle_graph.ingest_bulk_u64_nodes(np.array(prim_u64_list, dtype=np.uint64), prim_counts)
@@ -2481,6 +2504,11 @@ class MonadAssociativeMerkleTree:                                               
         h16 = int(hashlib.md5(procedure_name.encode("utf-8")).hexdigest()[:4], 16) & 0xFFFF  # Extract 16-bit MD5 prefix of procedure_name
         return h16 if h16 != 0 else 0x0001                                                  # Ensure non-zero 16-bit procedural identifier
 
+    def register_procedure_name(self, procedure_name: str) -> int:                          # Compute 16-bit signature and record reverse unhash mapping
+        h16 = self.compute_procedure_sig16(procedure_name)
+        self.proc_sig16_to_name[h16] = str(procedure_name)
+        return h16
+
     @classmethod                                                                            # Class method combining 16-bit board SimHash and 16-bit procedure hash
     def compute_procedural_causal_sig32(cls, grid: list[list[int]], procedure_name: str) -> tuple[int, int, int]:  # Return (board_sig16, proc_sig16, causal_sig32)
         b16 = cls.compute_board_fuzzy_sig16(grid)                                           # Compute 16-bit fuzzy topological board signature [31:16]
@@ -2508,12 +2536,118 @@ class MonadAssociativeMerkleTree:                                               
             return real_idx, min_d, pid16, w16                                              # Return matched 64-bit procedural node tuple
         return -1, 999, 0, 0                                                                # Return unmatched sentinel
 
+    def unhash_packed_node(self, packed_u64: int, relational_sig16: int | None = None) -> dict[str, Any]:
+        """Unhash a selected 64-bit Fuzzy Merkle node (and any consolidated relational/procedural siblings)
+        into actionable planning information: parent operator, decoded 5-tuple pattern, minutiae flags,
+        relational board features, endorsed/refuted goals, recommended primitives, and candidate bias."""
+        sig32, pid16, w16 = BitPackedMerkleNodeCodec.unpack_u64(int(packed_u64))
+        parent = self.parent_id16_to_parent.get(pid16)
+        prim_id = parent.primitive_id if parent else f"SEED_{pid16:04d}"
+        operator = parent.top_down_operator if parent else "OBSERVE"
+        axiom = parent.core_knowledge_axiom if parent else ""
+        cold_blob = dict(self.dynamic_merkle_graph.cold_payload_store.get(sig32, {}) or {})
+        ch_node = self.sig32_to_child.get(sig32)
+        decoded_pattern = (
+            tuple(ch_node.perturbed_pattern)
+            if ch_node is not None
+            else tuple(cold_blob.get("perturbed_pattern") or (parent.canonical_features if parent else ()))
+        )
+        minutiae_names = (
+            "OPPOSED", "OPEN_NOOP", "BLOCKED", "HAZARD",
+            "INERT", "GATED", "DECOY", "COUPLED",
+            "CORRIDOR_OPEN", "CORRIDOR_UNPROBED", "PX_ZERO", "PX_LARGE_JUMP",
+            "S16_SHIFTED", "CTRL_DPAD", "CTRL_HYBRID", "CTRL_POINTER",
+        )
+        b2_val = cold_blob.get("b2_minutiae")
+        if b2_val is None and decoded_pattern:
+            _, b2_val, _, _ = self.compute_fuzzy_fingerprint(decoded_pattern, int(cold_blob.get("entropy_level") or 0))
+        decoded_minutiae = [
+            tok for idx, tok in enumerate(minutiae_names) if isinstance(b2_val, int) and ((b2_val >> idx) & 1)
+        ]
+        upper16 = (sig32 >> 16) & 0xFFFF
+        lower16 = sig32 & 0xFFFF
+        decoded_proc = str(cold_blob.get("procedure") or self.proc_sig16_to_name.get(lower16) or "")
+        rel_b16 = int(relational_sig16) & 0xFFFF if relational_sig16 is not None else upper16
+        decoded_board_relations = {
+            "has_dpad": bool((rel_b16 >> 15) & 1),
+            "has_pointer": bool((rel_b16 >> 14) & 1),
+            "has_avatar": bool((rel_b16 >> 13) & 1),
+            "has_panel_pair": bool((rel_b16 >> 12) & 1),
+            "has_pushable": bool((rel_b16 >> 11) & 1),
+            "shape_bucket": int((rel_b16 >> 8) & 0x7),
+            "color_bucket": int((rel_b16 >> 4) & 0xF),
+            "unique_small_objs": int(rel_b16 & 0xF),
+        }
+        endorsed_goals: list[str] = []
+        refuted_goals: list[str] = []
+        endorsed_primitives: list[str] = []
+        if decoded_proc:
+            for gname in ("REACH", "PLACE", "MATCH"):
+                if gname in decoded_proc:
+                    if w16 < 0x0200 or pid16 == self.parent_prim_to_id16.get("PRIM_12_PROCEDURAL_CAUSAL_REFUTATION_REDIRECT", 12):
+                        refuted_goals.append(gname)
+                    elif w16 >= 0x0600 or cold_blob.get("solved"):
+                        endorsed_goals.append(gname)
+            if decoded_proc.startswith("PRIM:"):
+                pname = decoded_proc.split(":", 1)[1].strip()
+                if pname and w16 >= 0x0600:
+                    endorsed_primitives.append(pname)
+        for gname in ("REACH", "PLACE", "MATCH"):
+            for prefix in ("SOLVED:", "GOAL:"):
+                proc_tag = f"{prefix}{gname}"
+                p16_q = self.register_procedure_name(proc_tag)
+                idx_q, _d_q, pid_q, w_q = self._find_procedural_node_in_graph(rel_b16, p16_q, max_board_hamming=2)
+                if idx_q >= 0:
+                    if w_q >= 0x0600 and gname not in endorsed_goals:
+                        endorsed_goals.append(gname)
+                    elif (w_q < 0x0200 or pid_q == 12) and gname not in refuted_goals:
+                        refuted_goals.append(gname)
+        prim_map = {
+            "PRIM_01_CONTROL_GAUGE_INVERSION": (["explore", "approach"], "invert_dpad"),
+            "PRIM_02_S16_PALETTE_GAUGE_EQUIVARIANCE": (["approach", "explore"], "shape_invariant"),
+            "PRIM_03_ILLUSORY_VS_SOLID_BARRIER": (["route", "approach"], "detour_wall"),
+            "PRIM_04_COUPLED_REMOTE_SWITCH_GATE": (["toggle", "approach"], "switch_first"),
+            "PRIM_05_DYNAMIC_SENTRY_PATROL_PHASE": (["avoid", "approach"], "avoid_hazard"),
+            "PRIM_06_DECOY_GOAL_INHIBITION": (["explore", "approach"], "refute_decoy"),
+            "PRIM_07_MULTI_OPERATOR_COUPLED_SYMMETRY": (["convey", "approach"], "coupled_avatar"),
+            "PRIM_08_DEMONSTRATION_PANEL_CEGIS_SYNTHESIS": (["align", "toggle"], "match_panel"),
+            "PRIM_08_TEMPLATE_PANEL_MULTI_STEP_INDUCTION": (["align", "toggle"], "match_panel"),
+            "PRIM_11_AUTOBIOGRAPHICAL_CAUSAL_WIN_CHAIN": (["approach", "convey", "toggle"], "win_chain"),
+            "PRIM_12_PROCEDURAL_CAUSAL_REFUTATION_REDIRECT": (["explore", "toggle"], "refute_decoy"),
+        }
+        rec_prims, cand_bias = prim_map.get(prim_id, (["approach", "explore"], "canonical"))
+        for p in rec_prims:
+            if p not in endorsed_primitives:
+                endorsed_primitives.append(p)
+        if prim_id in ("PRIM_08_DEMONSTRATION_PANEL_CEGIS_SYNTHESIS", "PRIM_08_TEMPLATE_PANEL_MULTI_STEP_INDUCTION") and "MATCH" not in endorsed_goals:
+            endorsed_goals.append("MATCH")
+        elif prim_id == "PRIM_04_COUPLED_REMOTE_SWITCH_GATE" and "REACH" not in endorsed_goals:
+            endorsed_goals.append("REACH")
+        return {
+            "sig32": sig32,
+            "parent_id16": pid16,
+            "weight16": w16,
+            "parent_primitive_id": prim_id,
+            "top_down_operator": operator,
+            "core_knowledge_axiom": axiom,
+            "decoded_pattern": decoded_pattern,
+            "decoded_minutiae": decoded_minutiae,
+            "decoded_procedure": decoded_proc,
+            "decoded_board_relations": decoded_board_relations,
+            "endorsed_goals": endorsed_goals,
+            "refuted_goals": refuted_goals,
+            "recommended_primitives": endorsed_primitives,
+            "candidate_bias": cand_bias,
+            "cold_payload": cold_blob,
+        }
+
     def evaluate_procedural_merkle_endorsement(                                             # Query 64-bit Merkle Forest to endorse or inhibit a candidate procedure
         self,                                                                               # Instance reference for MonadAssociativeMerkleTree
         grid: list[list[int]],                                                              # Current 64x64 sensory board S_t
         procedure_name: str,                                                                # Candidate procedural operator or gauge transformation name
         counterfactual_affordance_fn: Any = None,                                           # Optional callable testing whether procedure unlocks downstream plan
     ) -> dict[str, Any]:                                                                    # Return procedural endorsement decision and replayed causal telemetry
+        self.register_procedure_name(procedure_name)
         b16, p16, c32 = self.compute_procedural_causal_sig32(grid, procedure_name)          # Compute 32-bit procedural causal signature
         idx, dist, pid16, w16 = self._find_procedural_node_in_graph(b16, p16, max_board_hamming=3)  # Search 64-bit Merkle graph for prior procedural memory
         if idx >= 0 and (w16 < 0x0200 or pid16 == self.parent_prim_to_id16.get("PRIM_12_PROCEDURAL_CAUSAL_REFUTATION_REDIRECT", 12)):  # Check if procedure was causally refuted via LTD
@@ -2575,7 +2709,11 @@ class MonadAssociativeMerkleTree:                                               
                 u64_ltd = BitPackedMerkleNodeCodec.pack_u64(c32, pid_ltd, 0x0080)           # Pack depressed 64-bit node with weight 0x0080 (< 0x0200 threshold)
                 if idx >= 0:                                                                # Update existing 64-bit node in-place
                     self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(u64_ltd)           # Write LTD-depressed 64-bit register
-                elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Append depressed procedural node directly into contiguous array
+                else:                                                                       # Append depressed procedural node into contiguous array (growing if needed)
+                    if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
+                        grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
+                        grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
+                        self.dynamic_merkle_graph.nodes_u64 = grown
                     ins_i = self.dynamic_merkle_graph.active_count                          # Next free slot in 64-bit array
                     self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(u64_ltd)         # Store depressed 64-bit procedural node
                     self.dynamic_merkle_graph.active_count += 1                             # Increment active 64-bit node count
@@ -2589,10 +2727,13 @@ class MonadAssociativeMerkleTree:                                               
                 }                                                                           # Close inhibition dict
         if idx < 0:                                                                         # First encounter with this procedure in this fuzzy board neighborhood
             pid_init = self.parent_prim_to_id16.get("PRIM_10_PROCEDURAL_OPERATOR_LTP_CONSOLIDATION", 10)  # Default exploratory procedural parent
-            if self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Seed exploratory 64-bit node at weight 0x0400
-                ins_i = self.dynamic_merkle_graph.active_count                              # Next free slot in 64-bit array
-                self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(BitPackedMerkleNodeCodec.pack_u64(c32, pid_init, 0x0400))  # Write exploratory 64-bit node
-                self.dynamic_merkle_graph.active_count += 1                                 # Increment active 64-bit node count
+            if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
+                grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
+                grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
+                self.dynamic_merkle_graph.nodes_u64 = grown
+            ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot in 64-bit array
+            self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(BitPackedMerkleNodeCodec.pack_u64(c32, pid_init, 0x0400))  # Write exploratory 64-bit node
+            self.dynamic_merkle_graph.active_count += 1                                     # Increment active 64-bit node count
             w16 = 0x0400                                                                    # Initial exploratory weight above 0x0200 threshold
         self.total_procedural_endorsements += 1                                             # Increment procedural endorsement counter
         return {                                                                            # Return exploratory endorsement so agent can test procedure once
@@ -2613,7 +2754,7 @@ class MonadAssociativeMerkleTree:                                               
         """Credit assignment on the agent's own wins (PRIM_11 autobiographical win chain):
         consolidate the (board_sig16, procedure) node with strong LTP so later retrieval
         ranks the winning procedure first in fuzzy-matching board contexts."""
-        p16 = self.compute_procedure_sig16(procedure_name)                                  # 16-bit procedural operator signature
+        p16 = self.register_procedure_name(procedure_name)                                  # 16-bit procedural operator signature
         c32 = (((int(board_sig16) & 0xFFFF) << 16) | p16) & 0xFFFFFFFF                      # Packed 32-bit causal signature
         pid_win = self.parent_prim_to_id16.get("PRIM_11_AUTOBIOGRAPHICAL_CAUSAL_WIN_CHAIN", 11)  # Win-chain parent coordinate
         idx, _dist, _pid, w = self._find_procedural_node_in_graph(int(board_sig16) & 0xFFFF, p16, max_board_hamming=0)  # Exact node lookup
@@ -2621,10 +2762,15 @@ class MonadAssociativeMerkleTree:                                               
         u64_new = BitPackedMerkleNodeCodec.pack_u64(c32, pid_win, w_new)                    # Pack consolidated 64-bit node
         if idx >= 0:                                                                        # Update existing node in place
             self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(u64_new)                   # Write consolidated register
-        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Append new consolidated node
+        else:                                                                               # Append new consolidated node (growing buffer if needed)
+            if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
+                grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
+                grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
+                self.dynamic_merkle_graph.nodes_u64 = grown
             ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot
             self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(u64_new)                 # Store node
             self.dynamic_merkle_graph.active_count += 1                                     # Increment active count
+            self.dynamic_merkle_graph.branch_depth_by_parent[pid_win] += 1
         self.dynamic_merkle_graph.cold_payload_store[c32] = dict(                           # Register solved-pattern metadata
             {"procedure": procedure_name, "level_idx": int(level_idx), "solved": True},
             **(payload or {}),
@@ -2648,6 +2794,7 @@ class MonadAssociativeMerkleTree:                                               
         metric_gamma: float = 1.0,                                                          # Relativistic metric dilation gamma_metric(t) from Observer Field Theory
     ) -> AutobiographicalCausalEpisode:                                                     # Return newly chained AutobiographicalCausalEpisode
         pre_g = prev_grid if prev_grid is not None else curr_grid                           # Fallback to curr_grid on initial frame
+        self.register_procedure_name(procedure_name)
         pre_b16, proc_p16, causal_sig32 = self.compute_procedural_causal_sig32(pre_g, procedure_name)  # Compute antecedent 32-bit procedural causal signature
         post_b16 = self.compute_board_fuzzy_sig16(curr_grid)                                # Compute consequent 16-bit fuzzy board signature
         playfield_px = (                                                                    # Count playfield pixel mutations excluding bottom HUD timer rows (r >= 60)
@@ -2697,10 +2844,15 @@ class MonadAssociativeMerkleTree:                                               
         packed_u64 = BitPackedMerkleNodeCodec.pack_u64(causal_sig32, new_pid16, new_w16)    # Bit-pack updated 64-bit procedural node
         if idx >= 0:                                                                        # Update existing 64-bit node in contiguous array
             self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(packed_u64)                # Write updated 64-bit node register
-        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Insert new 64-bit procedural node
+        else:                                                                               # Insert new 64-bit procedural node (growing buffer if needed)
+            if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
+                grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
+                grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
+                self.dynamic_merkle_graph.nodes_u64 = grown
             ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot in 64-bit array
             self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(packed_u64)              # Write new 64-bit node register
             self.dynamic_merkle_graph.active_count += 1                                     # Increment active node count
+            self.dynamic_merkle_graph.branch_depth_by_parent[new_pid16] += 1
 
         prev_hash = self.autobiographical_causal_chain[-1].episode_merkle_hash if self.autobiographical_causal_chain else self.master_merkle_root  # Link to previous episode hash
         raw_ep = f"{prev_hash}|{step_t}|{level_idx}|{causal_sig32:08x}|{post_b16:04x}|{procedure_name}|{executed_action}|{kappa:.2f}"  # Serialize causal transition
@@ -5147,6 +5299,17 @@ class MyAgent(Agent):
                 except Exception:
                     pass
             self.current_level = lvl_done
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None and _m2_rt.on("MONAD2_COORDINATE") and self.prev_hash is not None:
+                try:
+                    from monad2.coordinate import observe as _m2_observe
+
+                    raw_g = _grid_from_frame(latest_frame)
+                    if raw_g is not None:
+                        self._m2_grid = [row[:] for row in raw_g]
+                    _m2_observe(self, True)
+                except Exception:
+                    pass
             self._reset_level_world_model()
             if self.replay_mode and self.replay_started:
                 if self.current_level >= self.replay_target_levels or is_win:
@@ -5727,7 +5890,8 @@ class MyAgent(Agent):
 
         # 1. `warehouse_box_grid` (4x4 cell-grid with color-14 directional player)
         if (
-            self.active_macro_family in (None, "cooperative_box_warehouse")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "cooperative_box_warehouse")
             and arr0.shape == (64, 64)
             and int(np.sum(arr0[4:, :] == 1)) >= 200
         ):
@@ -5749,7 +5913,8 @@ class MyAgent(Agent):
 
         # 2. `node_edge_graph` (3x3 blue player sprite `body==9`)
         if (
-            self.active_macro_family in (None, "node_graph_sentries")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "node_graph_sentries")
             and arr0.shape == (64, 64)
             and set(np.unique(arr0[63, :])) <= {0, 6}
             and int(np.sum(arr0[:63, :] == 5)) >= 1500
@@ -5778,12 +5943,14 @@ class MyAgent(Agent):
 
         # 3. `split_switch_gate` (2x2 color-14 avatar on left playfield)
         if (
-            self.active_macro_family in (None, "hybrid_switch_navigation")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "hybrid_switch_navigation")
             and arr0.shape == (64, 64)
             and sum(
                 1
                 for r in range(16, 48, 4)
                 for c in range(40, 62, 4)
+                for _ in (0,)
                 if int(arr0[r, c]) == 5
             )
             >= 12
@@ -5807,7 +5974,8 @@ class MyAgent(Agent):
 
         # 3b. `key_forge_labyrinth` (5x5 cell labyrinth player with color 12 top and color 9 bottom at col+2)
         if (
-            self.active_macro_family in (None, "shape_color_rot_labyrinth")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "shape_color_rot_labyrinth")
             and arr0.shape == (64, 64)
             and bool(np.all(arr0[0:52, 0:4] == 5))
             and int(arr0[60, 12]) == 5
@@ -5847,7 +6015,8 @@ class MyAgent(Agent):
 
         # 3c. `shape_target_align` (`shape_target_alignment`: 1x1 white selection dot `0` inside selected shape)
         if (
-            self.active_macro_family == "shape_target_alignment"
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family == "shape_target_alignment"
             and arr0.shape == (64, 64)
         ):
             def _find_shape_align_sel_dot(a: Any) -> tuple[int, int] | None:
@@ -5907,7 +6076,8 @@ class MyAgent(Agent):
 
         # 3d. `connector_piece_assembly` (`connector_piece_assembly`: 20x20 coarse grid at `2:62:3` with selected piece body `0`)
         if (
-            self.active_macro_family == "connector_piece_assembly"
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family == "connector_piece_assembly"
             and arr0.shape == (64, 64)
         ):
             g0 = arr0[2:62:3, 2:62:3]
@@ -6076,6 +6246,11 @@ class MyAgent(Agent):
                     else:
                         self.canonical_to_raw_dpad[intended_dir] = old_raw_for_obs
                         self.raw_to_canonical_dpad[old_raw_for_obs] = intended_dir
+                    _m2_st = getattr(self, "_m2_coord", None)
+                    if isinstance(_m2_st, dict):
+                        _m2_st["route_blocks"] = []
+                        _m2_st["conditional_blocks"] = []
+                        _m2_st["route_prefix"] = []
                     return True
         elif (
             self.last_step_was_planned
@@ -6095,6 +6270,11 @@ class MyAgent(Agent):
             self.raw_to_canonical_dpad[r_opp] = intended_dir
             self.raw_to_canonical_dpad[r_int] = opp_c
             self.control_inversions_detected += 1
+            _m2_st = getattr(self, "_m2_coord", None)
+            if isinstance(_m2_st, dict):
+                _m2_st["route_blocks"] = []
+                _m2_st["conditional_blocks"] = []
+                _m2_st["route_prefix"] = []
             return True
         return False
 
@@ -6113,7 +6293,7 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> tuple[str, tuple[int, int], int] | None:
         """Extracts `(archetype_name, logical_pos, step_stride)` for the active controllable avatar."""
-        if len(grid) != 64 or len(grid[0]) != 64:
+        if self.game_specific_solvers_disabled or len(grid) != 64 or len(grid[0]) != 64:
             return None
         arr = np.asarray(grid, dtype=int)
         # 1. node_edge_graph
@@ -6279,7 +6459,7 @@ class MyAgent(Agent):
     ) -> tuple[Any, ...] | None:
         """Computes a static structural signature of the puzzle layout to detect mid-puzzle
         reverts to an old puzzle or random spawning/completion of a nested sub-puzzle."""
-        if len(grid) != 64 or len(grid[0]) != 64:
+        if self.game_specific_solvers_disabled or len(grid) != 64 or len(grid[0]) != 64:
             return None
         arr = np.asarray(grid, dtype=int)
         # 1. node_edge_graph: static red-2 edge bridges
@@ -16577,7 +16757,7 @@ class MyAgent(Agent):
             if unique_priors:
                 unique_priors.sort(key=lambda item: -item[0])
                 return unique_priors[0][1]
-        if self.active_macro_family is None:
+        if self.active_macro_family is None and not self.game_specific_solvers_disabled:
             by_sig_fallback: dict[ShapeSig, list[VectorShape]] = collections.defaultdict(list)
             for s in doc.shapes:
                 if 2 <= s.area <= 16 and s.w == s.h:
@@ -19376,7 +19556,12 @@ class MyAgent(Agent):
                         == 0
                     )
                     else 0,
-                    0 if 6 <= s.click_y <= 60 else 1,
+                    0
+                    if (
+                        s.click_y not in self.hud_rows
+                        and (doc.height // 10) <= s.click_y <= (doc.height - 4)
+                    )
+                    else 1,
                     1
                     if ("CLICK", s.click_x, s.click_y) == self.last_click_action
                     else 0,
@@ -22201,6 +22386,7 @@ class MyAgent(Agent):
                 rt.arm_expectation(self, key)
             except Exception:
                 pass
+        self.prev_action = key
         self.current_level_executed_actions.append(key)
         if self.prev_grid is not None:
             self.prev_logical_avatar_pos = self._extract_logical_avatar_pos(
@@ -22245,10 +22431,12 @@ class MyAgent(Agent):
                 "specialists": self.inos_meta_engine.last_tonic_report.get("active_specialists", ()),  # Execute INOS meta-reasoning operation: "specialists": self.inos_meta_engine.last_toni
                 "nnc_op": self.inos_meta_engine.last_differential_report.get("nnc_operation", "NNC_FACT_COMMITTED"),  # Commit verified @nnc_fact record & Stepping-Stone G_mid on positive causal efficacy
             }                                                                               # Close structured composite expression or container literal
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        _m2_coord_on = bool(_m2_rt is not None and hasattr(_m2_rt, "on") and _m2_rt.on("MONAD2_COORDINATE"))
         if key[0] == "CLICK":                                                               # Control / block header: if key[0] == "CLICK":
             _, x, y = key                                                                   # Execute INOS meta-reasoning operation: _, x, y = key
-            rx = (63 - int(x)) if self.click_mirror_x else int(x)                           # Execute INOS meta-reasoning operation: rx = (63 - int(x)) if self.click_mirror_x else
-            ry = (63 - int(y)) if self.click_mirror_y else int(y)                           # Execute INOS meta-reasoning operation: ry = (63 - int(y)) if self.click_mirror_y else
+            rx = (63 - int(x)) if (self.click_mirror_x and not _m2_coord_on) else int(x)
+            ry = (63 - int(y)) if (self.click_mirror_y and not _m2_coord_on) else int(y)
             self._pending_action_data = {"x": rx, "y": ry}                                  # Execute INOS meta-reasoning operation: self._pending_action_data = {"x": rx, "y": ry}
             meta_info = (                                                                   # Execute INOS meta-reasoning operation: meta_info = (
                 self.second_order_canvas.summary_metrics()                                  # Execute INOS meta-reasoning operation: self.second_order_canvas.summary_metrics()
@@ -23204,6 +23392,8 @@ class MyAgent(Agent):
     ) -> list[list[int]]:
         """Organ 1 (SCP Sensory Membrane): Projects split-panel games (`split_switch_gate`) under arbitrary
         S_16 palette permutations (`palette_17`, `palette_83`, etc.) into canonical role gauge."""
+        if self.game_specific_solvers_disabled:
+            return grid
         if len(grid) != 64 or len(grid[0]) != 64:
             return grid
         if int(grid[0][0]) == 3 and int(grid[2][2]) == 4 and int(grid[16][40]) == 5:
@@ -23704,9 +23894,14 @@ class MyAgent(Agent):
         expanded_payload = self.associative_merkle_tree.dynamic_merkle_graph.expand_node_payload_on_demand(  # Execute collaborative step: expanded_payload = self.associative_merkle_tree.dyna
             matched_u64, self.associative_merkle_tree.parent_id16_to_parent                 # Execute collaborative step: matched_u64, self.associative_merkle_tree.parent_id1
         )                                                                                   # Close structured composite expression or container literal
+        unhashed_merkle = self.associative_merkle_tree.unhash_packed_node(
+            matched_u64, relational_sig16=last_causal_ep.post_board_sig16
+        )
+        self.last_unhashed_merkle_packet = unhashed_merkle
         if not merkle_trace.get("recalled") and expanded_payload.get("parent_primitive_id"):  # Control / block header: if not merkle_trace.get("recalled") and expanded_pay
             merkle_trace["parent_primitive_id"] = expanded_payload["parent_primitive_id"]   # Execute collaborative step: merkle_trace["parent_primitive_id"] = expanded_paylo
             merkle_trace["top_down_operator"] = expanded_payload.get("top_down_operator", "OBSERVE")  # Execute collaborative step: merkle_trace["top_down_operator"] = expanded_payload
+        merkle_trace["unhashed_merkle"] = unhashed_merkle
         merkle_trace["packed_node_u64_hex"] = f"0x{matched_u64:016x}"                       # Execute collaborative step: merkle_trace["packed_node_u64_hex"] = f"0x{matched_u
         merkle_trace["dynamic_node_op"] = node_op                                           # Execute collaborative step: merkle_trace["dynamic_node_op"] = node_op
         merkle_trace["adaptive_epsilon_bits"] = adaptive_eps                                # Execute collaborative step: merkle_trace["adaptive_epsilon_bits"] = adaptive_eps
@@ -23763,7 +23958,10 @@ class MyAgent(Agent):
 
         if (                                                                                # Control / block header: if (
             verdict == "CHALLENGE_CONTROL_GAUGE"                                            # Execute collaborative step: verdict == "CHALLENGE_CONTROL_GAUGE"
-            and top_down_cmd == "INVERT_CANONICAL_DPAD_ON_OPEN_CORRIDOR_NOOP"               # Execute collaborative step: and top_down_cmd == "INVERT_CANONICAL_DPAD_ON_OPEN_C
+            and top_down_cmd in (
+                "INVERT_CANONICAL_DPAD_ON_OPEN_CORRIDOR_NOOP",
+                "INVERT_CANONICAL_DPAD_IMMEDIATELY",
+            )
             and self.last_intent_spec is not None                                           # Execute collaborative step: and self.last_intent_spec is not None
             and self.last_intent_spec.intended_canonical_dir in (1, 2, 3, 4)                # Execute collaborative step: and self.last_intent_spec.intended_canonical_dir in 
             and self.canonical_to_raw_dpad == {1: 1, 2: 2, 3: 3, 4: 4}                      # Update or query top-down D4 control gauge mapping between canonical and raw actions
@@ -23771,13 +23969,20 @@ class MyAgent(Agent):
         ):                                                                                  # Close structured composite expression or container literal
             intended_d = int(self.last_intent_spec.intended_canonical_dir)                  # Execute collaborative step: intended_d = int(self.last_intent_spec.intended_cano
             opp_d = OPPOSITE_DIR[intended_d]                                                # Execute collaborative step: opp_d = OPPOSITE_DIR[intended_d]
-            if intended_d in open_dirs and opp_d not in open_dirs:                          # Control / block header: if intended_d in open_dirs and opp_d not in open_dir
+            if top_down_cmd == "INVERT_CANONICAL_DPAD_IMMEDIATELY" or (
+                intended_d in open_dirs and opp_d not in open_dirs
+            ):
                 self.control_probe_swapped.update({(1, 2), (3, 4)})                         # Execute collaborative step: self.control_probe_swapped.update({(1, 2), (3, 4)})
                 self.canonical_to_raw_dpad = {1: 2, 2: 1, 3: 4, 4: 3}                       # Update or query top-down D4 control gauge mapping between canonical and raw actions
                 self.raw_to_canonical_dpad = {2: 1, 1: 2, 4: 3, 3: 4}                       # Update or query top-down D4 control gauge mapping between canonical and raw actions
                 self.control_inversions_detected += 1                                       # Execute collaborative step: self.control_inversions_detected += 1
                 self.verified_solid_walls.clear()                                           # Clear or query Layer-2 solid barrier memory (flushed upon control gauge inversion)
                 self.planned_queue.clear()                                                  # Access or flush open-loop action queue so Conscious Observer replans under new gauge
+                _m2_st = getattr(self, "_m2_coord", None)
+                if isinstance(_m2_st, dict):
+                    _m2_st["route_blocks"] = []
+                    _m2_st["conditional_blocks"] = []
+                    _m2_st["route_prefix"] = []
                 self.controller_state = ControllerState.RECALIBRATE                         # Transition executive ControllerState (USE, RECALIBRATE, or extreme-stress FALL_BACK)
                 self.observer_unresolved_tension_streak = 0                                 # Execute collaborative step: self.observer_unresolved_tension_streak = 0
                 top_down_recalibrated = True                                                # Execute collaborative step: top_down_recalibrated = True
@@ -24640,6 +24845,16 @@ class MyAgent(Agent):
                     }
                     return GameAction.RESET
                 self._consecutive_game_over_resets += 1
+                _m2_rt = getattr(self, "_m2_runtime", None)
+                if _m2_rt is not None and _m2_rt.on("MONAD2_COORDINATE") and self.prev_hash is not None:
+                    try:
+                        from monad2.coordinate import observe as _m2_observe
+
+                        if go_grid is not None:
+                            self._m2_grid = [row[:] for row in go_grid]
+                        _m2_observe(self, True)
+                    except Exception:
+                        pass
                 self._last_game_over_grid = (
                     [row[:] for row in go_grid] if go_grid is not None else None
                 )
@@ -24701,12 +24916,13 @@ class MyAgent(Agent):
             self._pending_action_data = {}
             self._pending_action_reasoning = {"text": "reset"}
             return GameAction.RESET
+        raw_grid = [row[:] for row in grid]
         grid = self._scp_canonicalize_split_panel_palette(grid)
         grid = self._scp_canonicalize_node_graph_palette(grid)
 
         avail_ids = [a for a in latest_frame.available_actions if a != 0]
         self._m2_avail = list(avail_ids)
-        self._m2_grid = grid
+        self._m2_grid = raw_grid
         has_pointer = 6 in avail_ids
         has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
         is_hybrid = any(a not in (6, 7) for a in avail_ids) and has_pointer
@@ -25033,6 +25249,18 @@ class MyAgent(Agent):
                 )
             except Exception:
                 pass
+
+        if _m2_rt is not None:
+            try:
+                sc_key = _m2_rt.short_circuit_execute(self)
+            except Exception:
+                sc_key = None
+            if sc_key is not None:
+                self.prev_grid = grid
+                self.prev_doc = doc
+                self.prev_hash = h_curr
+                self.prev_action = sc_key
+                return self._materialize_action(sc_key, "monad2-execute-short-circuit")
 
         unexpected_avatar_jump = False
         if not is_blackout and not was_blackout_last_step:

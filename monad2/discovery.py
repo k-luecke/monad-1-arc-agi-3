@@ -17,10 +17,12 @@ from monad2.scp import project
 
 # Confirmed outcome labels from this process. Features only.
 EPISODE_FMF: list[tuple[tuple[str, ...], str]] = []
+EPISODE_FMF_META: list[dict] = []
 
 
 def reset_store() -> None:
     EPISODE_FMF.clear()
+    EPISODE_FMF_META.clear()
 
 
 def _copy(grid) -> list[list[int]] | None:
@@ -221,7 +223,14 @@ def outcome_label(rec: dict) -> str | None:
     return best
 
 
-def remember(features: tuple[str, ...], goal: str, *, holdout: str = "") -> None:
+def remember(
+    features: tuple[str, ...],
+    goal: str,
+    *,
+    holdout: str = "",
+    primitives: tuple[str, ...] | list[str] = (),
+    roles: str = "",
+) -> None:
     if goal not in GOAL_TYPES or not features:
         return
     if holdout in HOLDOUT_PREFIXES:
@@ -229,6 +238,16 @@ def remember(features: tuple[str, ...], goal: str, *, holdout: str = "") -> None
     EPISODE_FMF.append((features, goal))
     if len(EPISODE_FMF) > 64:
         del EPISODE_FMF[0]
+    EPISODE_FMF_META.append(
+        {
+            "features": tuple(features),
+            "goal": str(goal),
+            "primitives": tuple(str(p) for p in (primitives or ()) if p),
+            "roles": str(roles or ""),
+        }
+    )
+    if len(EPISODE_FMF_META) > 64:
+        del EPISODE_FMF_META[0]
 
 
 def recall(features: tuple[str, ...], k: int = 3) -> list[str]:
@@ -241,6 +260,34 @@ def recall(features: tuple[str, ...], k: int = 3) -> list[str]:
         if overlap:
             scores[goal] += overlap * 2
     return [g for g, _n in scores.most_common(k)]
+
+
+def recall_unhashed(features: tuple[str, ...], k: int = 3) -> dict:
+    """Recall confirmed episode FMF entries with their unhashed primitives and role bindings."""
+    goal_scores: Counter[str] = Counter()
+    prim_scores: Counter[str] = Counter()
+    roles_seen: list[str] = []
+    query = set(features)
+    if not query:
+        return {"goals": [], "primitives": [], "roles": []}
+    for feats, goal in EPISODE_FMF:
+        overlap = len(query & set(feats))
+        if overlap:
+            goal_scores[goal] += overlap * 2
+    for row in EPISODE_FMF_META:
+        overlap = len(query & set(row.get("features") or ()))
+        if overlap <= 0:
+            continue
+        for idx, p in enumerate(row.get("primitives") or ()):
+            prim_scores[str(p)] += max(1, overlap * 2 - idx)
+        r_text = str(row.get("roles") or "")
+        if r_text and r_text not in roles_seen:
+            roles_seen.append(r_text)
+    return {
+        "goals": [g for g, _n in goal_scores.most_common(k)],
+        "primitives": [p for p, _n in prim_scores.most_common(4)],
+        "roles": roles_seen[:3],
+    }
 
 
 def probe_budget() -> int:

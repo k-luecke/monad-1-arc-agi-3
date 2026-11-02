@@ -57,6 +57,8 @@ ACTIVE_MODULES = (
     "predicates.py",
     "menu.py",
     "planmode.py",
+    "candidates.py",
+    "synthesizer.py",
 )
 
 HITS: list[str] = []

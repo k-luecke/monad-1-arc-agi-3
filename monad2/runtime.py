@@ -75,6 +75,7 @@ COUNTERS = (
     "plan_writes",
     "execute_steps",
     "replan_calls",
+    "execute_skipped_ggl",
 )
 
 
@@ -555,6 +556,26 @@ def _goal_delta(agent, key, goal: str) -> float | None:
     return float(score_change(grid, nxt).get(goal, 0))
 
 
+def short_circuit_execute(agent):
+    """Expand an active execute-mode script before GGL, solver tiers, and canvas BFS."""
+    if not on("MONAD2_COORDINATE"):
+        return None
+    from monad2.coordinate import try_execute_step
+
+    chosen = try_execute_step(agent)
+    if chosen is None:
+        return None
+    for qname in ("planned_queue", "bfs_route_queue"):
+        q = getattr(agent, qname, None)
+        if q and hasattr(q, "clear"):
+            q.clear()
+    stats = getattr(agent, "m2", None)
+    if isinstance(stats, dict):
+        stats["execute_skipped_ggl"] = int(stats.get("execute_skipped_ggl", 0) or 0) + 1
+    agent._m2_short_circuited = chosen
+    return chosen
+
+
 def maybe_replace_key(agent, key, reason: str = ""):
     """Probes, D-ladder, and A'/B' callosum. The original key when every flag is off.
 
@@ -562,9 +583,19 @@ def maybe_replace_key(agent, key, reason: str = ""):
     is not a factorial column and stays off during score runs.
     """
     if on("MONAD2_COORDINATE"):
+        sc = getattr(agent, "_m2_short_circuited", None)
+        if sc is not None:
+            agent._m2_short_circuited = None
+            return sc
         from monad2.coordinate import decide
 
-        return decide(agent, key, reason)
+        chosen = decide(agent, key, reason)
+        if chosen != key:
+            for qname in ("planned_queue", "bfs_route_queue"):
+                q = getattr(agent, qname, None)
+                if q and hasattr(q, "clear"):
+                    q.clear()
+        return chosen
     ladder = on("MONAD2_DLADDER")
     callosum = on("MONAD2_CALLOSUM")
     discovery = on("MONAD2_GOAL_DISCOVERY")

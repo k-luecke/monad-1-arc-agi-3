@@ -1,0 +1,1396 @@
+{
+  "mode": "offline",
+  "blind_id_mode": true,
+  "game_specific_solvers_disabled": true,
+  "max_game_seconds": 300.0,
+  "game_order": [
+    "cn04",
+    "dc22",
+    "ft09",
+    "g50t",
+    "ka59"
+  ],
+  "partial": false,
+  "games_finished": 5,
+  "games_expected": 5,
+  "warmup_s": 0.01,
+  "elapsed_s": 1208.09,
+  "wins": 0,
+  "levels_completed": 2,
+  "actions": 6342,
+  "levels_per_1k_actions": 0.3154,
+  "per_game_results": [
+    {
+      "game_id": "cn04-2fe56bfb",
+      "agent_game_id": "blind_unknown_env",
+      "state": "GAME_OVER",
+      "levels_completed": 0,
+      "actions": 1519,
+      "elapsed_s": 207.17,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {
+            "refutes": 4,
+            "zero_hits": 1,
+            "decoys": 1
+          },
+          "PLACE": {
+            "refutes": 1,
+            "progress": 1
+          },
+          "MATCH": {}
+        },
+        "level_events": [],
+        "plans_issued": 28,
+        "steps_executed": 45,
+        "dir_model": {
+          "2": [
+            [
+              0,
+              3
+            ],
+            197
+          ],
+          "4": [
+            [
+              3,
+              0
+            ],
+            216
+          ],
+          "1": [
+            [
+              0,
+              -3
+            ],
+            211
+          ],
+          "3": [
+            [
+              -3,
+              0
+            ],
+            257
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1480,
+        "wasted_noop": 207,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 1,
+        "watch_labeled": 0,
+        "watch_scored": 0,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 1500,
+        "coord_plan_steps": 59,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1437,
+        "coord_combine": 0,
+        "coord_explore": 4,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1444,
+        "expect_scored": 1499,
+        "expect_hits": 1292,
+        "expect_doc_scored": 54,
+        "expect_doc_hits": 54,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1437,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 0,
+        "schema_in_stream": 0,
+        "predicate_checks": 1499,
+        "predicate_hits": 851,
+        "predicate_surprises": 645,
+        "qwen_repaired": 0,
+        "llm_calls": 3,
+        "plan_writes": 3,
+        "execute_steps": 56,
+        "replan_calls": 2,
+        "execute_skipped_ggl": 56,
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1441,
+          "plan": 1,
+          "execute": 56,
+          "replan": 2
+        },
+        "llm_calls_by_level": {
+          "0": 3
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "wall, reference",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "changed(role=avatar)",
+            "predicate_hit": true,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "wall, reference, avatar",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "reference, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 42643.4
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "reference, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "reference, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "reference, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "reference, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "reference, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "replan",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "convey",
+            "predicate": "translate(role=movable, dir=down)",
+            "predicate_hit": true,
+            "decision": "replan",
+            "reason": "replan after plan finished. convey(avatar,movable)",
+            "roles": "reference, avatar",
+            "plan": "convey(avatar,movable)",
+            "llm_calls_level": 2,
+            "step_ms": 42375.8
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "dc22-fdcac232",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 0,
+      "actions": 1522,
+      "elapsed_s": 191.03,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {},
+          "PLACE": {},
+          "MATCH": {
+            "refutes": 1
+          }
+        },
+        "level_events": [],
+        "plans_issued": 10,
+        "steps_executed": 10,
+        "dir_model": {
+          "1": [
+            [
+              0,
+              -2
+            ],
+            11
+          ],
+          "4": [
+            [
+              2,
+              0
+            ],
+            24
+          ],
+          "2": [
+            [
+              0,
+              2
+            ],
+            11
+          ],
+          "3": [
+            [
+              -2,
+              0
+            ],
+            25
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1477,
+        "wasted_noop": 42,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 1,
+        "watch_labeled": 1,
+        "watch_scored": 1,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 1500,
+        "coord_plan_steps": 51,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1447,
+        "coord_combine": 0,
+        "coord_explore": 2,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1450,
+        "expect_scored": 1499,
+        "expect_hits": 1457,
+        "expect_doc_scored": 51,
+        "expect_doc_hits": 40,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1447,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 1,
+        "schema_in_stream": 3,
+        "predicate_checks": 1499,
+        "predicate_hits": 40,
+        "predicate_surprises": 11,
+        "qwen_repaired": 0,
+        "llm_calls": 2,
+        "plan_writes": 2,
+        "execute_steps": 50,
+        "replan_calls": 1,
+        "execute_skipped_ggl": 50,
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1449,
+          "plan": 1,
+          "execute": 50,
+          "replan": 0
+        },
+        "llm_calls_by_level": {
+          "0": 2
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 41298.2
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "ft09-0d8bbf25",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 1,
+      "actions": 798,
+      "elapsed_s": 302.16,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {},
+          "PLACE": {},
+          "MATCH": {
+            "refutes": 2
+          }
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [
+              "MATCH"
+            ],
+            "progress_types": [],
+            "ggl_steps": 10
+          }
+        ],
+        "plans_issued": 20,
+        "steps_executed": 20,
+        "dir_model": {},
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 757,
+        "wasted_noop": 94,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 2,
+        "watch_labeled": 0,
+        "watch_scored": 0,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 778,
+        "coord_plan_steps": 90,
+        "coord_inhibit": 2,
+        "coord_inhibit_changed": 1,
+        "coord_accept": 686,
+        "coord_combine": 0,
+        "coord_explore": 0,
+        "coord_errors": 0,
+        "qwen_proposals": 4,
+        "qwen_differ": 1,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 690,
+        "expect_scored": 777,
+        "expect_hits": 683,
+        "expect_doc_scored": 0,
+        "expect_doc_hits": 0,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 1,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 1,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 687,
+        "infl_qwen_a": 1,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 2,
+        "schema_revisions": 0,
+        "schema_in_stream": 690,
+        "predicate_checks": 777,
+        "predicate_hits": 0,
+        "predicate_surprises": 124,
+        "qwen_repaired": 0,
+        "llm_calls": 10,
+        "plan_writes": 4,
+        "execute_steps": 88,
+        "replan_calls": 2,
+        "execute_skipped_ggl": 88,
+        "cross_game": "carry",
+        "modes": {
+          "discover": 688,
+          "plan": 2,
+          "execute": 88,
+          "replan": 0
+        },
+        "llm_calls_by_level": {
+          "0": 5,
+          "1": 5
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "CLICK 44 46",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "plan",
+            "reason": "wrote a level plan. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 42407.8
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 59 33",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 33 59",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 60 59",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 16 11",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 15 14",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 12 45",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 15 44",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "CLICK 59 33",
+            "primitive": "align",
+            "predicate": "match(object=clickable, reference=reference)",
+            "predicate_hit": false,
+            "decision": "inhibit",
+            "reason": "The current hypothesis (",
+            "roles": "receptor, reference",
+            "plan": "",
+            "llm_calls_level": 5,
+            "step_ms": 39449.3
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "g50t-5849a774",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 0,
+      "actions": 1512,
+      "elapsed_s": 199.42,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {
+            "progress": 1,
+            "refutes": 1
+          },
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [],
+        "plans_issued": 2,
+        "steps_executed": 4,
+        "dir_model": {
+          "2": [
+            [
+              0,
+              6
+            ],
+            352
+          ],
+          "1": [
+            [
+              0,
+              -6
+            ],
+            313
+          ],
+          "4": [
+            [
+              6,
+              0
+            ],
+            345
+          ],
+          "3": [
+            [
+              -6,
+              0
+            ],
+            330
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1487,
+        "wasted_noop": 133,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 1,
+        "watch_labeled": 1,
+        "watch_scored": 0,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 1500,
+        "coord_plan_steps": 67,
+        "coord_inhibit": 1,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1429,
+        "coord_combine": 0,
+        "coord_explore": 3,
+        "coord_errors": 0,
+        "qwen_proposals": 2,
+        "qwen_differ": 1,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1434,
+        "expect_scored": 1499,
+        "expect_hits": 1366,
+        "expect_doc_scored": 67,
+        "expect_doc_hits": 45,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 1,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 1,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1430,
+        "infl_qwen_a": 1,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 2,
+        "schema_in_stream": 3,
+        "predicate_checks": 1499,
+        "predicate_hits": 351,
+        "predicate_surprises": 41,
+        "qwen_repaired": 0,
+        "llm_calls": 5,
+        "plan_writes": 2,
+        "execute_steps": 66,
+        "replan_calls": 1,
+        "execute_skipped_ggl": 66,
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1433,
+          "plan": 1,
+          "execute": 66,
+          "replan": 0
+        },
+        "llm_calls_by_level": {
+          "0": 5
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 38339.4
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "ka59-38d34dbb",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 1,
+      "actions": 991,
+      "elapsed_s": 308.21,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {
+            "refutes": 9,
+            "progress": 46,
+            "zero_hits": 12,
+            "decoys": 12
+          },
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [
+              "REACH"
+            ],
+            "progress_types": [
+              "REACH"
+            ],
+            "ggl_steps": 367
+          }
+        ],
+        "plans_issued": 100,
+        "steps_executed": 367,
+        "dir_model": {
+          "1": [
+            [
+              0,
+              -3
+            ],
+            203
+          ],
+          "4": [
+            [
+              3,
+              0
+            ],
+            152
+          ],
+          "2": [
+            [
+              0,
+              3
+            ],
+            181
+          ],
+          "3": [
+            [
+              -3,
+              0
+            ],
+            158
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 971,
+        "wasted_noop": 244,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 2,
+        "watch_labeled": 2,
+        "watch_scored": 2,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 982,
+        "coord_plan_steps": 66,
+        "coord_inhibit": 1,
+        "coord_inhibit_changed": 1,
+        "coord_accept": 911,
+        "coord_combine": 0,
+        "coord_explore": 4,
+        "coord_errors": 0,
+        "qwen_proposals": 2,
+        "qwen_differ": 1,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 920,
+        "expect_scored": 981,
+        "expect_hits": 737,
+        "expect_doc_scored": 53,
+        "expect_doc_hits": 33,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 911,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 1,
+        "schema_revisions": 3,
+        "schema_in_stream": 919,
+        "predicate_checks": 981,
+        "predicate_hits": 53,
+        "predicate_surprises": 17,
+        "qwen_repaired": 0,
+        "llm_calls": 8,
+        "plan_writes": 5,
+        "execute_steps": 62,
+        "replan_calls": 3,
+        "execute_skipped_ggl": 62,
+        "cross_game": "carry",
+        "modes": {
+          "discover": 916,
+          "plan": 2,
+          "execute": 62,
+          "replan": 2
+        },
+        "llm_calls_by_level": {
+          "0": 3,
+          "1": 5
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": false,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 40951.1
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "replan",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "replan",
+            "reason": "replan after candidate refuted. explore(avatar)",
+            "roles": "receptor, reference",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 2,
+            "step_ms": 43148.8
+          }
+        ]
+      }
+    }
+  ]
+}

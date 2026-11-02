@@ -239,6 +239,20 @@ def main() -> int:
         {"sig": (1, 3, 6, 2), "geom": (1, 2, 6), "xy": (4, 4), "wh": (6, 2), "area": 12, "type": 1},
     ]
     assert evaluate(wrong, lone, lone) is False
+
+    # 64x64 D4 quarter-turn and palette permutation invariance with border strips
+    grid64 = _blank(64)
+    for row in range(3, 15):
+        for col in range(10, 22):
+            if row in (3, 14) or col in (10, 21):
+                grid64[row][col] = 1
+    _paint(grid64, 2, _rect(1, 10, 2, 10))
+    _paint(grid64, 3, _rect(20, 20, 4, 4))
+    _paint(grid64, 4, _rect(30, 30, 4, 6))
+    _same_roles(grid64, [6])
+    r64_a = infer_roles(_records_from_grid(grid64), {}, [6], 64)
+    r64_b = infer_roles(_records_from_grid(_permute(_rot90(grid64))), {}, [6], 64)
+    assert len(r64_a["affordances"]["clickable"]) == len(r64_b["affordances"]["clickable"]) == 3
     print("ROLES PASS")
     return 0
 

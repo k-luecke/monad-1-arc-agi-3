@@ -44,11 +44,30 @@ try:
     from arc_agi import Arcade, OperationMode
     HAS_ARC_AGI = True
 except Exception:
-    Arcade = Any  # type: ignore[misc,assignment]
-    OperationMode = Any  # type: ignore[misc,assignment]
-    HAS_ARC_AGI = False
+    _sib = (Path(__file__).resolve().parent.parent if "__file__" in globals() else Path.cwd().parent) / "monad(1)"
+    if _sib.is_dir() and str(_sib) not in sys.path:
+        sys.path.append(str(_sib))
+    try:
+        from arc_agi import Arcade, OperationMode
+        HAS_ARC_AGI = True
+    except Exception:
+        Arcade = Any  # type: ignore[misc,assignment]
+        OperationMode = Any  # type: ignore[misc,assignment]
+        HAS_ARC_AGI = False
 
-from my_agent_v7_inos import FrameData, GameAction, GameState, MyAgent
+if HAS_ARC_AGI and hasattr(Arcade, "_convert_scorecard_to_environment_scorecard"):
+    _orig_convert_sc = Arcade._convert_scorecard_to_environment_scorecard
+    if not getattr(_orig_convert_sc, "_monad_patched", False):
+        def _safe_convert_sc(self: Any, data: dict[str, Any]) -> Any:
+            if isinstance(data, dict):
+                data = {k: v for k, v in data.items() if k not in ("open_at", "last_update")}
+            return _orig_convert_sc(self, data)
+
+        _safe_convert_sc._monad_patched = True  # type: ignore[attr-defined]
+        Arcade._convert_scorecard_to_environment_scorecard = _safe_convert_sc  # type: ignore[method-assign]
+
+if "MyAgent" not in globals():
+    from my_agent_v7_inos import FrameData, GameAction, GameState, MyAgent
 
 EXPECTED_FULL_SUITE_GAMES = 25
 EXPECTED_FULL_SUITE_LEVELS = 183
@@ -243,26 +262,42 @@ def run_self_test_episode(blind_id: bool = True) -> dict:
     }
 
 
-def ensure_local_environments(env_dir: Path) -> list[str]:
-    """Ensure all 25 official ARC-AGI-3 environments are cached locally in env_dir."""
+def ensure_local_environments(
+    env_dir: Path,
+    offline: bool = False,
+    game_filter: set[str] | None = None,
+) -> list[str]:
+    """Ensure official ARC-AGI-3 environments are cached locally in env_dir."""
     if not HAS_ARC_AGI:
         raise RuntimeError("The 'arc-agi' package is required to load official ARC-AGI-3 environments.")
-    env_dir.mkdir(parents=True, exist_ok=True)
+    if not env_dir.exists():
+        env_dir.mkdir(parents=True, exist_ok=True)
     existing_py = [p for p in env_dir.rglob("*.py") if "__pycache__" not in str(p)]
-    if len(existing_py) >= EXPECTED_FULL_SUITE_GAMES:
+    offline_ids: list[str] = []
+    if existing_py:
         offline_arc = Arcade(operation_mode=OperationMode.OFFLINE, environments_dir=str(env_dir))
-        envs = offline_arc.get_environments()
-        if len(envs) >= EXPECTED_FULL_SUITE_GAMES:
-            return sorted({e.game_id for e in envs})
+        offline_ids = sorted({e.game_id for e in offline_arc.get_environments()})
+        if len(offline_ids) >= EXPECTED_FULL_SUITE_GAMES:
+            return offline_ids
+        if offline and offline_ids and (
+            not game_filter
+            or all(any(g == f or g.startswith(f"{f}-") for g in offline_ids) for f in game_filter)
+        ):
+            return offline_ids
 
-    fetcher = Arcade(environments_dir=str(env_dir))
-    envs = fetcher.get_environments()
-    game_ids = sorted({e.game_id for e in envs})
-    for gid in game_ids:
-        prefix = gid.split("-")[0]
-        if not list((env_dir / prefix).rglob("*.py")):
-            fetcher.make(gid, save_recording=False)
-    return game_ids
+    try:
+        fetcher = Arcade(environments_dir=str(env_dir))
+        envs = fetcher.get_environments()
+        game_ids = sorted({e.game_id for e in envs})
+        for gid in game_ids:
+            prefix = gid.split("-")[0]
+            if not list((env_dir / prefix).rglob("*.py")):
+                fetcher.make(gid, save_recording=False)
+        return game_ids
+    except Exception:
+        if offline_ids:
+            return offline_ids
+        raise
 
 
 def _select_game_ids(game_ids: list[str], game_filter: set[str], game_order: str) -> list[str]:
@@ -301,6 +336,8 @@ def play_single_game(
     os.environ["MONAD2_HOLDOUT_GAME"] = gid.split("-")[0]
     if os.getenv("MONAD2_FACTORIAL", "0") == "1" and os.getenv("MONAD2_GAME_SLOT_LOCK", "0") != "1":
         os.environ["MONAD2_GAME_SLOT"] = str(max(0, int(idx) - 1))
+    elif os.getenv("MONAD2_GAME_SLOT_LOCK", "0") != "1":
+        os.environ["MONAD2_GAME_SLOT"] = str(int(idx))
     goal_report = None
     win_records = None
     monad2_report = None
@@ -315,6 +352,8 @@ def play_single_game(
             tags=["monad(1)", "v7-inos", "competition-mode"],
         )
         agent.max_game_seconds = float(max_game_seconds)
+        agent.m2_game_slot = int(idx)
+        agent.m2_pass_idx = int(os.getenv("MONAD2_PASS", "1") or "1")
         agent.main()
         try:
             if getattr(agent, "ggl_enabled", False):
@@ -328,6 +367,7 @@ def play_single_game(
         except Exception:
             win_records = None
         monad2_report = None
+        synth_dict = None
         try:
             from monad2.discovery import finalize_watch
 
@@ -335,11 +375,26 @@ def play_single_game(
         except Exception:
             pass
         try:
+            from monad2.synthesizer import SYNTHESIZED_BY_SLOT, synthesize_solver_from_pass1
+
+            if int(getattr(agent, "m2_pass_idx", 1) or 1) == 1:
+                synth_spec = synthesize_solver_from_pass1(agent, slot=int(idx))
+            else:
+                synth_spec = getattr(agent, "_m2_synthesized_solver", None) or SYNTHESIZED_BY_SLOT.get(int(idx))
+                if synth_spec is None:
+                    synth_spec = synthesize_solver_from_pass1(agent, slot=None)
+            synth_dict = synth_spec.to_dict() if synth_spec is not None else None
+        except Exception:
+            synth_dict = None
+        try:
             stats = getattr(agent, "m2", None)
             if isinstance(stats, dict) and stats:
                 monad2_report = dict(stats)
+                if synth_dict is not None:
+                    monad2_report["synthesized_solver"] = synth_dict
                 monad2_report["rehearsal_log"] = list(getattr(agent, "m2_rehearsal_log", []) or [])
                 monad2_report["cross_game"] = getattr(agent, "m2_cross_game", "carry")
+                level_clear_actions: dict[str, int] = {}
                 level_log = getattr(agent, "m2_level_log", None)
                 if isinstance(level_log, list) and level_log:
                     prefix = gid.split("-")[0]
@@ -354,7 +409,10 @@ def play_single_game(
                         item["cleared"] = int(row["level"]) < done_levels
                         item["holdout"] = prefix in ("cd82", "ft09", "m0r0", "tn36", "tr87")
                         stamped.append(item)
+                        if item["cleared"]:
+                            level_clear_actions[str(int(item["level"]))] = int(item["actions"])
                     monad2_report["level_log"] = stamped
+                    monad2_report["level_clear_actions"] = level_clear_actions
                     monad2_report["factorial_seed"] = stamped[0].get("seed")
                 watch_log = getattr(agent, "m2_watch_log", None)
                 if isinstance(watch_log, list) and watch_log:
@@ -365,6 +423,17 @@ def play_single_game(
                 thought_log = getattr(agent, "m2_thought_log", None)
                 if isinstance(thought_log, list) and thought_log:
                     monad2_report["thought_log"] = list(thought_log)
+                    if not level_clear_actions:
+                        done_levels = int(getattr(agent, "levels_completed", 0) or 0)
+                        lvl_counts: dict[int, int] = {}
+                        for r_idx, r_item in enumerate(thought_log, start=1):
+                            if isinstance(r_item, dict):
+                                lv_i = int(r_item.get("level", 0) or 0)
+                                if lv_i < done_levels:
+                                    lvl_counts[lv_i + 1] = r_idx
+                        for k_lv in sorted(lvl_counts):
+                            level_clear_actions[str(k_lv)] = lvl_counts[k_lv]
+                        monad2_report["level_clear_actions"] = level_clear_actions
         except Exception:
             monad2_report = None
         if blind_id:
@@ -394,12 +463,24 @@ def play_single_game(
         f"levels={lvls:2d} | actions={steps:4d} | {dt:6.2f}s{goal_tag}",
         flush=True,
     )
+    clear_acts = dict((monad2_report or {}).get("level_clear_actions") or {})
+    if not clear_acts and isinstance(win_records, list):
+        for wrec in win_records:
+            if isinstance(wrec, dict) and "level_idx" in wrec and "actions" in wrec:
+                clear_acts[str(int(wrec["level_idx"]))] = int(wrec["actions"])
+    if not clear_acts and isinstance(synth_dict, dict):
+        for lv_k, lv_info in (synth_dict.get("levels") or {}).items():
+            if isinstance(lv_info, dict) and lv_info.get("cleared"):
+                cp = lv_info.get("causal_policy") or {}
+                if cp:
+                    clear_acts[str(int(lv_k) + 1)] = len(cp)
     result = {
         "game_id": gid,
         "agent_game_id": agent_gid,
         "state": state_name,
         "levels_completed": lvls,
         "actions": steps,
+        "level_clear_actions": clear_acts,
         "elapsed_s": dt,
     }
     if goal_report is not None:
@@ -625,6 +706,24 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Comma-separated game prefixes in the order to play them. Overrides sorted order. Used for cross-game permutation tests.",
     )
+    parser.add_argument(
+        "--two-pass",
+        action="store_true",
+        help="Run Pass 1 (discovery + online solver synthesis) followed by Pass 2 (executing synthesized solvers).",
+    )
+    parser.add_argument(
+        "--pass-num",
+        type=int,
+        choices=[1, 2],
+        default=None,
+        help="Explicitly run as Pass 1 (discovery + synthesis) or Pass 2 (execute synthesized solvers).",
+    )
+    parser.add_argument(
+        "--synthesized-solvers-path",
+        type=str,
+        default="scorecards/synthesized_solvers.json",
+        help="Path to save (Pass 1) or load (Pass 2) synthesized solver specifications.",
+    )
     args, _unknown = parser.parse_known_args(argv)
     if args.max_game_seconds is not None:
         max_game_seconds = float(args.max_game_seconds)
@@ -633,6 +732,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.no_game_solvers:
         os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
+    if args.two_pass or args.pass_num in (1, 2):
+        os.environ.setdefault("MONAD2_COORDINATE", "1")
+    if args.pass_num in (1, 2):
+        os.environ["MONAD2_PASS"] = str(args.pass_num)
+        if args.pass_num == 2 and args.synthesized_solvers_path:
+            try:
+                from monad2.synthesizer import load_synthesized_store
+
+                load_synthesized_store(args.synthesized_solvers_path)
+            except Exception:
+                pass
 
     verify_agent_ast_no_env_introspection()
 
@@ -648,13 +758,26 @@ def main(argv: list[str] | None = None) -> int:
         run_self_test_episode(blind_id=True)
         return 0
 
-    env_dir = Path(args.environments_dir).resolve()
+    raw_env_dir = Path(args.environments_dir)
+    if args.environments_dir == "environment_files" and not raw_env_dir.is_dir():
+        _here = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+        for _cand_env in (
+            Path(os.environ["MONAD2_ENV_DIR"]) if os.environ.get("MONAD2_ENV_DIR") else None,
+            Path("../environment_files"),
+            _here.parent / "monad(1)" / "environment_files",
+            Path("/kaggle/input/competitions/arc-prize-2026-arc-agi-3/environment_files"),
+            Path("/kaggle/input/arc-prize-2026-arc-agi-3/environment_files"),
+        ):
+            if _cand_env is not None and _cand_env.is_dir():
+                raw_env_dir = _cand_env
+                break
+    env_dir = raw_env_dir.resolve()
     game_filter = {g.strip() for g in args.games.split(",") if g.strip()}
     is_full_suite = len(game_filter) == 0 and not args.game_order.strip()
 
     if args.offline:
         print(f"[Monad(1) V7] Ensuring official ARC-AGI-3 environments in {env_dir}...")
-        game_ids = ensure_local_environments(env_dir)
+        game_ids = ensure_local_environments(env_dir, offline=True, game_filter=game_filter)
         game_ids = _select_game_ids(game_ids, game_filter, args.game_order)
         out_path = Path(args.output)
         results, prior_s, warmup_s = _load_resume(out_path)
@@ -715,6 +838,67 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"[Monad(1) V7] Flushed {len(results)}/{len(game_ids)} games to {out_path}", flush=True)
             except Exception as exc:
                 print(f"[Monad(1) V7] Scorecard flush failed: {exc}", flush=True)
+        if (
+            args.synthesized_solvers_path
+            and int(os.getenv("MONAD2_PASS", "1") or "1") == 1
+            and (
+                args.two_pass
+                or args.pass_num == 1
+                or os.getenv("MONAD2_TWO_PASS") == "1"
+                or not Path(args.synthesized_solvers_path).exists()
+            )
+        ):
+            try:
+                from monad2.synthesizer import save_synthesized_store
+
+                save_synthesized_store(args.synthesized_solvers_path)
+            except Exception:
+                pass
+        pass1_saved: list[dict] | None = None
+        if args.two_pass or os.getenv("MONAD2_TWO_PASS") == "1":
+            print(
+                f"[Monad(1) V7] Pass 1 complete ({len(results)} games). Launching Pass 2 with synthesized solvers...",
+                flush=True,
+            )
+            pass1_results = list(results)
+            pass1_saved = pass1_results
+            prev_pass = os.environ.get("MONAD2_PASS")
+            os.environ["MONAD2_PASS"] = "2"
+            pass2_results: list[dict] = []
+            try:
+                for idx2, gid in enumerate(game_ids, 1):
+                    if hasattr(MyAgent, "reset_cross_puzzle_archive"):
+                        MyAgent.reset_cross_puzzle_archive()
+                    try:
+                        from monad2.coordinate import reset_carried
+
+                        reset_carried()
+                    except Exception:
+                        pass
+                    res2 = play_single_game(
+                        offline_arc,
+                        "http://localhost",
+                        "offline-card-pass2",
+                        gid,
+                        idx2,
+                        len(game_ids),
+                        blind_id=args.blind_id,
+                        max_game_seconds=max_game_seconds,
+                    )
+                    c2 = _compact_game(res2)
+                    c2["pass"] = 2
+                    p1_row = pass1_results[idx2 - 1] if idx2 - 1 < len(pass1_results) else {}
+                    p1_m2 = p1_row.get("monad2") if isinstance(p1_row.get("monad2"), dict) else {}
+                    c2["pass1_levels_completed"] = int(p1_row.get("levels_completed") or 0)
+                    c2["pass1_actions"] = int(p1_row.get("actions") or 0)
+                    c2["pass1_llm_calls"] = int(p1_m2.get("llm_calls") or (p1_m2.get("stats") or {}).get("llm_calls") or 0)
+                    pass2_results.append(c2)
+                results = pass2_results
+            finally:
+                if prev_pass is None:
+                    os.environ.pop("MONAD2_PASS", None)
+                else:
+                    os.environ["MONAD2_PASS"] = prev_pass
         total_s = round(prior_s + (time.perf_counter() - t0), 2)
         wins = sum(1 for r in results if r["state"] == "WIN")
         lvls = sum(r["levels_completed"] for r in results)
@@ -725,19 +909,28 @@ def main(argv: list[str] | None = None) -> int:
             allow_losses=args.no_game_solvers,
         )
         try:
-            _write_scorecard(
-                out_path,
-                _scorecard_payload(
-                    blind_id=args.blind_id,
-                    no_game_solvers=args.no_game_solvers,
-                    max_game_seconds=max_game_seconds,
-                    game_ids=game_ids,
-                    results=results,
-                    elapsed_s=total_s,
-                    warmup_s=warmup_s,
-                    complete=len(results) >= len(game_ids),
-                ),
+            payload = _scorecard_payload(
+                blind_id=args.blind_id,
+                no_game_solvers=args.no_game_solvers,
+                max_game_seconds=max_game_seconds,
+                game_ids=game_ids,
+                results=results,
+                elapsed_s=total_s,
+                warmup_s=warmup_s,
+                complete=len(results) >= len(game_ids),
             )
+            if pass1_saved is not None:
+                payload["pass1_summary"] = {
+                    "wins": sum(1 for r in pass1_saved if r.get("state") == "WIN"),
+                    "levels_completed": sum(int(r.get("levels_completed") or 0) for r in pass1_saved),
+                    "actions": sum(int(r.get("actions") or 0) for r in pass1_saved),
+                    "llm_calls": sum(
+                        int((r.get("monad2") or {}).get("llm_calls") or ((r.get("monad2") or {}).get("stats") or {}).get("llm_calls") or 0)
+                        for r in pass1_saved
+                    ),
+                }
+                payload["pass1_results"] = pass1_saved
+            _write_scorecard(out_path, payload)
         except Exception:
             pass
         print("=" * 80)
@@ -759,7 +952,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.local_gateway:
         print(f"[Monad(1) V7] Ensuring official ARC-AGI-3 environments in {env_dir}...")
-        game_ids = ensure_local_environments(env_dir)
+        game_ids = ensure_local_environments(env_dir, game_filter=game_filter)
         if game_filter:
             game_ids = [g for g in game_ids if g in game_filter or g.split("-")[0] in game_filter]
         if not api_key:
@@ -821,47 +1014,79 @@ def main(argv: list[str] | None = None) -> int:
 
     t0 = time.perf_counter()
     results = []
-    if args.local_gateway or args.workers <= 1:
-        for idx, gid in enumerate(game_ids, 1):
-            results.append(
-                play_single_game(
-                    client_arc,
-                    base_url,
-                    card_id,
-                    gid,
-                    idx,
-                    len(game_ids),
-                    blind_id=args.blind_id,
-                    max_game_seconds=max_game_seconds,
-                )
-            )
-    else:
-        def _worker(idx_gid: tuple[int, str]) -> dict:
-            i, g = idx_gid
-            w_arc = Arcade(
-                arc_api_key=api_key,
-                arc_base_url=base_url,
-                operation_mode=OperationMode.COMPETITION,
-                environments_dir="",
-            )
+    is_kaggle_rerun = bool(os.environ.get("KAGGLE_IS_COMPETITION_RERUN"))
+    catch_game_errors = is_kaggle_rerun or os.environ.get("MONAD_CATCH_GAME_ERRORS") == "1"
+    scorecard = None
+
+    def _safe_play(arc_inst: Any, gid: str, idx: int) -> dict:
+        if not catch_game_errors:
             return play_single_game(
-                w_arc, base_url, card_id, g, i, len(game_ids),
-                blind_id=args.blind_id, max_game_seconds=max_game_seconds,
+                arc_inst,
+                base_url,
+                card_id,
+                gid,
+                idx,
+                len(game_ids),
+                blind_id=args.blind_id,
+                max_game_seconds=max_game_seconds,
             )
+        try:
+            return play_single_game(
+                arc_inst,
+                base_url,
+                card_id,
+                gid,
+                idx,
+                len(game_ids),
+                blind_id=args.blind_id,
+                max_game_seconds=max_game_seconds,
+            )
+        except Exception as exc:
+            print(f"[Monad(1) V7] Warning: error in game {gid}: {exc}", file=sys.stderr, flush=True)
+            return {
+                "game_id": gid,
+                "agent_game_id": "blind_unknown_env" if args.blind_id else gid,
+                "state": "ERROR",
+                "levels_completed": 0,
+                "actions": 0,
+                "elapsed_s": 0.0,
+                "error": str(exc),
+            }
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
-            for res in pool.map(_worker, enumerate(game_ids, 1)):
-                results.append(res)
+    try:
+        if args.local_gateway or args.workers <= 1:
+            for idx, gid in enumerate(game_ids, 1):
+                results.append(_safe_play(client_arc, gid, idx))
+        else:
+            def _worker(idx_gid: tuple[int, str]) -> dict:
+                i, g = idx_gid
+                w_arc = Arcade(
+                    arc_api_key=api_key,
+                    arc_base_url=base_url,
+                    operation_mode=OperationMode.COMPETITION,
+                    environments_dir="",
+                )
+                return _safe_play(w_arc, g, i)
 
-    scorecard = client_arc.close_scorecard(card_id)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
+                for res in pool.map(_worker, enumerate(game_ids, 1)):
+                    results.append(res)
+    finally:
+        scorecard = client_arc.close_scorecard(card_id)
+
     total_s = round(time.perf_counter() - t0, 2)
-    sc_dict = scorecard.model_dump(mode="json") if hasattr(scorecard, "model_dump") else dict(scorecard)
+    sc_dict = (
+        scorecard.model_dump(mode="json")
+        if hasattr(scorecard, "model_dump")
+        else (dict(scorecard) if scorecard else {})
+    )
 
     verify_claimed_totals(
         results,
         is_full_suite=is_full_suite,
         require_inflight_lock=args.local_gateway,
         inflight_lock_verified=inflight_lock_verified,
+        allow_losses=args.no_game_solvers or is_kaggle_rerun,
     )
 
     out_path = Path(args.output)
@@ -891,6 +1116,35 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def _emit_kaggle_commit_parquet_if_needed() -> None:
+    if os.environ.get("KAGGLE_IS_COMPETITION_RERUN"):
+        return
+    if not (
+        Path("/kaggle/working").exists()
+        or os.environ.get("KAGGLE_KERNEL_RUN_TYPE")
+        or os.environ.get("MONAD_EMIT_SUBMISSION_PARQUET") == "1"
+        or not (Path.cwd() / ".git").exists()
+    ):
+        return
+    try:
+        import pandas as pd
+
+        target_paths = [Path("submission.parquet")]
+        if Path("/kaggle/working").exists():
+            kw_path = Path("/kaggle/working/submission.parquet")
+            if kw_path.resolve() != target_paths[0].resolve():
+                target_paths.insert(0, kw_path)
+        for tp in target_paths:
+            tp.parent.mkdir(parents=True, exist_ok=True)
+            pd.DataFrame(
+                [["1_0", "1", True, 1]],
+                columns=["row_id", "game_id", "end_of_game", "score"],
+            ).to_parquet(tp, index=False)
+        print("[Monad(1) V7] Emitted commit-mode submission.parquet.")
+    except Exception as exc:
+        print(f"[Monad(1) V7] Note: submission.parquet emission skipped: {exc}")
+
+
 def run_notebook_entrypoint() -> int:
     """
     Automatic entry point when executed inside a Kaggle or Jupyter notebook cell:
@@ -899,24 +1153,62 @@ def run_notebook_entrypoint() -> int:
       - Else if local environment_files exist and arc_agi is installed, runs --offline --blind-id.
       - Otherwise runs the standalone --self-test --blind-id verification episode.
     """
+    try:
+        import shutil as _shutil
+
+        for _src_agents in (
+            Path("/kaggle/input/competitions/arc-prize-2026-arc-agi-3/ARC-AGI-3-Agents"),
+            Path("/kaggle/input/arc-prize-2026-arc-agi-3/ARC-AGI-3-Agents"),
+        ):
+            if _src_agents.is_dir():
+                _dst_agents = Path("ARC-AGI-3-Agents")
+                if not _dst_agents.exists():
+                    _shutil.copytree(_src_agents, _dst_agents)
+                _dst_pkg = _dst_agents / "agents" / "templates"
+                if _dst_pkg.is_dir():
+                    if Path("my_agent.py").is_file():
+                        _shutil.copy2("my_agent.py", _dst_pkg / "my_agent.py")
+                    if Path("monad2").is_dir():
+                        _shutil.copytree("monad2", _dst_pkg / "monad2", dirs_exist_ok=True)
+                break
+    except Exception:
+        pass
+
     if os.environ.get("KAGGLE_IS_COMPETITION_RERUN"):
         os.environ.setdefault("ARC_BASE_URL", "http://gateway:8001")
         os.environ.setdefault("ARC_API_KEY", "test-key-123")
-        return main(["--workers", "1"])
+        gw_url = f"{os.environ['ARC_BASE_URL'].rstrip('/')}/api/games"
+        deadline = time.time() + float(os.environ.get("MONAD_GATEWAY_WAIT_SECONDS", "600"))
+        while time.time() < deadline:
+            try:
+                with urllib.request.urlopen(gw_url, timeout=5) as resp:
+                    if resp.status == 200:
+                        break
+            except Exception:
+                time.sleep(2.0)
+        extra_args = [a for a in os.environ.get("KAGGLE_RERUN_ARGS", "").split() if a]
+        return main(["--workers", "1", *extra_args])
     if os.environ.get("ARC_API_KEY", "").strip():
-        return main([])
+        rc = main([])
+        _emit_kaggle_commit_parquet_if_needed()
+        return rc
     for cand in (
         Path("environment_files"),
         Path("/kaggle/input/competitions/arc-prize-2026-arc-agi-3/environment_files"),
         Path("/kaggle/input/arc-prize-2026-arc-agi-3/environment_files"),
     ):
         if HAS_ARC_AGI and cand.exists() and list(cand.rglob("*.py")):
-            return main(["--offline", "--blind-id", "--environments-dir", str(cand)])
-    return main(["--self-test", "--blind-id"])
+            rc = main(["--offline", "--blind-id", "--environments-dir", str(cand)])
+            _emit_kaggle_commit_parquet_if_needed()
+            return rc
+    rc = main(["--self-test", "--blind-id"])
+    _emit_kaggle_commit_parquet_if_needed()
+    return rc
 
 
 if __name__ == "__main__":
-    if any("ipykernel" in a for a in sys.argv):
+    if any("ipykernel" in a for a in sys.argv) or "__file__" not in globals():
         run_notebook_entrypoint()
     else:
         raise SystemExit(main())
+

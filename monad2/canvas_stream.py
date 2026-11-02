@@ -47,14 +47,35 @@ def current_document(agent):
     grid = getattr(agent, "_m2_grid", None)
     if grid is None:
         return None
+    h_rows = _sets(agent, "hud_rows")
+    h_coords = _sets(agent, "hud_coords")
+    h_cols = _sets(agent, "hud_cols")
+    try:
+        cache_key = (
+            tuple(tuple(r) for r in grid),
+            frozenset(h_rows),
+            frozenset(h_coords),
+            frozenset(h_cols),
+        )
+    except Exception:
+        cache_key = None
+    cached = getattr(agent, "_m2_doc_cache", None)
+    if cache_key is not None and isinstance(cached, tuple) and len(cached) == 2 and cached[0] == cache_key:
+        return cached[1]
     from my_agent_v7_inos import CanvasDocument
 
-    return CanvasDocument(
+    doc = CanvasDocument(
         grid,
-        _sets(agent, "hud_rows"),
-        _sets(agent, "hud_coords"),
-        _sets(agent, "hud_cols"),
+        h_rows,
+        h_coords,
+        h_cols,
     )
+    if cache_key is not None:
+        try:
+            agent._m2_doc_cache = (cache_key, doc)
+        except Exception:
+            pass
+    return doc
 
 
 def shape_record(shape) -> dict:

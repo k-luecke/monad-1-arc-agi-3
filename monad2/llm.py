@@ -12,14 +12,27 @@ with the paths it looked for.
 from __future__ import annotations
 
 import os
+import sys
 import time
 from pathlib import Path
+
+try:
+    import llama_cpp as _llama_cpp_check  # noqa: F401
+except ModuleNotFoundError:
+    _shim_dir = Path(__file__).resolve().parents[2] / "monad(1)"
+    if (_shim_dir / "llama_cpp").is_dir() and str(_shim_dir) not in sys.path:
+        sys.path.append(str(_shim_dir))
 
 DEFAULT_DIR = Path(os.environ.get("INOS_MODEL_DIR", "/home/ubuntu/models"))
 DEFAULTS = {
     "a": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
     "b": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
     "executive": "Mistral-NeMo-Minitron-8B-Instruct-Q4_K_M.gguf",
+}
+_ALT_FILES = {
+    "a": ("qwen2.5-0.5b-instruct-q4_k_m.gguf", "qwen2.5-0.5b-instruct-q6_k.gguf"),
+    "b": ("qwen2.5-1.5b-instruct-q4_k_m.gguf", "qwen2.5-1.5b-instruct-q6_k.gguf"),
+    "executive": ("Mistral-NeMo-Minitron-8B-Instruct-Q4_K_M.gguf",),
 }
 ENV_PATH = {
     "a": "INOS_MODEL_A_GGUF",
@@ -28,11 +41,50 @@ ENV_PATH = {
 }
 
 
+def _match_role_gguf(fname: str, role: str) -> bool:
+    low = fname.lower()
+    if not low.endswith(".gguf"):
+        return False
+    if role == "a":
+        return "0.5b" in low
+    if role == "b":
+        return "1.5b" in low
+    return "0.5b" not in low and "1.5b" not in low
+
+
 def model_path(role: str) -> Path:
+    role = role.strip().lower()
     override = os.environ.get(ENV_PATH[role], "").strip()
     if override:
         return Path(override)
-    return DEFAULT_DIR / DEFAULTS[role]
+    env_dir_raw = os.environ.get("INOS_MODEL_DIR", "").strip()
+    active_default_dir = Path(env_dir_raw) if env_dir_raw else DEFAULT_DIR
+    for fname in _ALT_FILES.get(role, (DEFAULTS[role],)):
+        cand = active_default_dir / fname
+        if cand.is_file():
+            return cand
+    if active_default_dir.is_dir():
+        for p in sorted(active_default_dir.rglob("*.gguf")):
+            if p.is_file() and _match_role_gguf(p.name, role):
+                return p
+    home = Path.home()
+    for folder in (
+        active_default_dir,
+        DEFAULT_DIR,
+        home / "Desktop" / "SCP_Local_LLM" / "models",
+        home / "bsplosive" / "models" / "pretrained",
+    ):
+        for fname in _ALT_FILES.get(role, (DEFAULTS[role],)):
+            cand = folder / fname
+            if cand.is_file():
+                return cand
+    kaggle_in = Path("/kaggle/input")
+    if kaggle_in.is_dir():
+        for root_d, _dirs, files in os.walk(str(kaggle_in), followlinks=True):
+            for fname in sorted(files):
+                if _match_role_gguf(fname, role):
+                    return Path(root_d) / fname
+    return active_default_dir / DEFAULTS[role]
 
 
 _STRING = r'''

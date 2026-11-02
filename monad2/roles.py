@@ -42,6 +42,11 @@ def _span(records: list[dict], span: int | None) -> int:
             pass
     best = 1
     for rec in records or []:
+        if rec.get("span"):
+            try:
+                best = max(best, int(rec["span"]))
+            except (TypeError, ValueError):
+                pass
         wh = rec.get("wh") or (0, 0)
         xy = rec.get("xy") or (0, 0)
         try:
@@ -169,15 +174,36 @@ def infer_roles(
     click = _has_click(legal)
     roles: list[dict] = []
     taken: set[int] = set()
+    evidence_avatar = _find_geom(recs, evidence.get("avatar"), taken) if dpad else None
+    if evidence_avatar is None and dpad:
+        for part in evidence.get("avatar_parts") or []:
+            if _unique_geom(recs, part):
+                evidence_avatar = _find_geom(recs, part, taken)
+                if evidence_avatar is not None:
+                    break
+    if evidence_avatar is not None:
+        av_geom = _geom(evidence_avatar)
+        for rec in recs:
+            if _geom(rec) == av_geom:
+                taken.add(id(rec))
+    if dpad:
+        for part in evidence.get("avatar_parts") or []:
+            if isinstance(part, (list, tuple)) and len(part) == 3:
+                pt = (int(part[0]), int(part[1]), int(part[2]))
+                for rec in recs:
+                    if _geom(rec) == pt:
+                        taken.add(id(rec))
 
     for rec in recs:
+        if id(rec) in taken:
+            continue
         geom = _geom(rec)
         if geom is not None and int(geom[0]) == 2:
             _add(roles, taken, "receptor", rec)
             _add(roles, set(), "reference", rec)
             break
-    evidence_wall = _find_geom(recs, evidence.get("wall"))
-    if evidence_wall is not None:
+    evidence_wall = _find_geom(recs, evidence.get("wall"), taken)
+    if evidence_wall is not None and evidence_wall is not evidence_avatar and id(evidence_wall) not in taken:
         _add(roles, taken, "wall", evidence_wall)
     if not any(slot.get("role") == "wall" for slot in roles):
         walls = [rec for rec in recs if id(rec) not in taken and _thin_wall(rec, width)]
@@ -185,7 +211,7 @@ def infer_roles(
         if walls:
             _add(roles, taken, "wall", walls[-1])
 
-    reference = next((rec for rec in recs if _geom(rec) and int(_geom(rec)[0]) == 2), None)
+    reference = next((rec for rec in recs if id(rec) not in taken and _geom(rec) and int(_geom(rec)[0]) == 2), None)
     if reference is None:
         containers = []
         for rec in recs:
@@ -198,7 +224,7 @@ def infer_roles(
             containers.sort(key=_area)
             reference = containers[-1]
         else:
-            ranked = sorted(recs, key=_area)
+            ranked = sorted([rec for rec in recs if rec is not evidence_avatar], key=_area)
             if len(ranked) >= 2 and _area(ranked[-1]) >= _area(ranked[-2]) * 2 and _thin_wall(ranked[-1], width) is False:
                 geom = _geom(ranked[-1])
                 if geom is not None and int(geom[2]) * 2 >= width:
@@ -210,8 +236,7 @@ def infer_roles(
         if id(reference) not in taken and not any(slot.get("role") == "receptor" for slot in roles):
             taken.add(id(reference))
 
-    evidence_avatar = _find_geom(recs, evidence.get("avatar"), taken)
-    if dpad and evidence_avatar is not None and _unique_geom(recs, evidence.get("avatar")):
+    if evidence_avatar is not None:
         _add(roles, taken, "avatar", evidence_avatar)
 
     evidence_movable = _find_geom(recs, evidence.get("movable"), taken)
@@ -221,8 +246,19 @@ def infer_roles(
     if evidence_hazard is not None and _unique_geom(recs, evidence.get("hazard")):
         _add(roles, taken, "hazard", evidence_hazard)
 
+    if evidence.get("switch") and _unique_geom(recs, evidence.get("switch")):
+        host = _find_geom(recs, evidence.get("switch"))
+        if host is not None:
+            _add(roles, set(), "switch", host)
+            _add(roles, set(), "clickable", host)
+    elif evidence.get("clickable") and _unique_geom(recs, evidence.get("clickable")):
+        host = _find_geom(recs, evidence.get("clickable"))
+        if host is not None:
+            _add(roles, set(), "clickable", host)
+
     clickables = []
     if click or not dpad:
+        counts = _geom_counts(recs)
         for rec in recs:
             if id(rec) in taken:
                 continue
@@ -230,16 +266,31 @@ def infer_roles(
                 continue
             if any(slot.get("role") == "wall" and slot.get("geom") == list(_geom(rec) or ()) for slot in roles):
                 continue
+            cbox = _bbox(rec)
+            if width >= 32 and cbox is not None:
+                cx, cy, cw, ch = int(cbox[0]), int(cbox[1]), int(cbox[2]), int(cbox[3])
+                if (
+                    (cy <= 1 and ch <= 2 and cw > 2)
+                    or (cy + ch >= width - 1 and ch <= 2 and cw > 2)
+                    or (cx <= 1 and cw <= 2 and ch > 2)
+                    or (cx + cw >= width - 1 and cw <= 2 and ch > 2)
+                    or cw >= width - 2
+                    or ch >= width - 2
+                ):
+                    continue
             clickables.append(rec)
-    if evidence.get("switch") and _unique_geom(recs, evidence.get("switch")):
-        host = _find_geom(recs, evidence.get("switch"))
-        if host is not None:
-            _add(roles, set(), "switch", host)
-            _add(roles, taken, "clickable", host)
-    elif evidence.get("clickable") and _unique_geom(recs, evidence.get("clickable")):
-        host = _find_geom(recs, evidence.get("clickable"))
-        if host is not None:
-            _add(roles, taken, "clickable", host)
+        clickables.sort(
+            key=lambda rec: (
+                _area(rec) > 64,
+                (_geom(rec) or (0, 0, 0))[1] < 2,
+                (_geom(rec) or (0, 0, 0))[2] > 2 * max(1, (_geom(rec) or (0, 0, 0))[1]),
+                (_geom(rec) or (0, 0, 0))[1] != (_geom(rec) or (0, 0, 0))[2],
+                _area(rec) > 16,
+                counts.get(_geom(rec) or (0, 0, 0), 0),
+                _area(rec),
+                _geom(rec) or (0, 0, 0),
+            )
+        )
 
     goal_rec = _find_geom(recs, evidence.get("goal"))
     if goal_rec is not None and _unique_geom(recs, evidence.get("goal")):
@@ -314,6 +365,8 @@ def infer_roles(
 
     affordances: dict[str, list] = {}
     for slot in roles:
+        if slot["role"] == "clickable" and clickables:
+            continue
         geom = tuple(slot["geom"]) if slot.get("geom") else None
         if geom is None:
             continue
@@ -354,10 +407,24 @@ def _unique(relations: list[dict]) -> list[dict]:
     return out
 
 
+def _ensure_click(records: list[dict]) -> list[dict]:
+    out = []
+    for rec in records or []:
+        if not isinstance(rec, dict):
+            continue
+        if "click" in rec and rec["click"] is not None:
+            out.append(rec)
+        else:
+            copy = dict(rec)
+            copy["click"] = _click_of(rec)
+            out.append(copy)
+    return out
+
+
 def _deltas_of(before: list[dict], after: list[dict]) -> list[tuple[dict, int, int]]:
     from monad2.canvas_stream import diff_records
 
-    diff = diff_records(before, after)
+    diff = diff_records(_ensure_click(before), _ensure_click(after))
     found = []
     for move in diff.get("moved") or []:
         mark = tuple(move.get("sig") or ())
@@ -371,7 +438,7 @@ def _deltas_of(before: list[dict], after: list[dict]) -> list[tuple[dict, int, i
 def _changed(before: list[dict], after: list[dict]) -> bool:
     from monad2.canvas_stream import diff_records
 
-    diff = diff_records(before, after)
+    diff = diff_records(_ensure_click(before), _ensure_click(after))
     return bool(diff.get("moved") or diff.get("vanished") or diff.get("appeared"))
 
 
@@ -395,16 +462,30 @@ def _clicked(records: list[dict], action) -> dict | None:
     return best
 
 
-def _blocker(records: list[dict], avatar_geom, aid: int):
+def _blocker(
+    records: list[dict],
+    avatar_geom,
+    aid: int,
+    quantum: int | None = None,
+    excluded: set[tuple[int, int, int]] | None = None,
+):
     avatar = _find_geom(records, avatar_geom)
     box = _bbox(avatar) if avatar is not None else None
     if box is None:
         return None
+    width = _span(records, None)
+    av_area = _area(avatar)
+    excl = excluded or set()
     ax, ay, aw, ah = box
     best = None
     best_gap = None
     for rec in records:
         if rec is avatar:
+            continue
+        g = _geom(rec)
+        if g is None or g in excl or int(g[0]) not in (1, 3):
+            continue
+        if not (_thin_wall(rec, width) or _area(rec) > av_area):
             continue
         other = _bbox(rec)
         if other is None:
@@ -423,7 +504,9 @@ def _blocker(records: list[dict], avatar_geom, aid: int):
             continue
         if best_gap is None or gap < best_gap:
             best_gap = gap
-            best = _geom(rec)
+            best = g
+    if quantum is not None and best_gap is not None and best_gap >= max(1, int(quantum)):
+        return None
     return best
 
 
@@ -441,7 +524,7 @@ def note_effect(evidence: dict | None, before: list[dict], after: list[dict], ac
     moved = _deltas_of(list(before or []), list(after or []))
     kind = action[0] if action else ""
     counts = _geom_counts(list(before or []))
-    if kind == "SIMPLE" and action and int(action[1]) in (1, 2, 3, 4):
+    if kind == "SIMPLE" and outcome == "continue" and action and int(action[1]) in (1, 2, 3, 4):
         deltas = {}
         for rec, dx, dy in moved:
             geom = _geom(rec)
@@ -450,53 +533,178 @@ def note_effect(evidence: dict | None, before: list[dict], after: list[dict], ac
             if counts.get(geom, 0) != 1:
                 continue
             deltas[geom] = (int(dx), int(dy))
+        shared_movers = [
+            (rec, int(dx), int(dy))
+            for rec, dx, dy in moved
+            if _geom(rec) is not None and (dx or dy) and counts.get(_geom(rec), 0) > 1
+        ]
         geoms = list(deltas)
         known = tuple(kept["avatar"]) if kept.get("avatar") else None
-        if known is not None and counts.get(known, 0) != 1:
+        known_moved = (
+            next(
+                ((int(dx), int(dy)) for r, dx, dy in moved if _geom(r) == known and (dx or dy)),
+                None,
+            )
+            if known is not None
+            else None
+        )
+        confirmed_av = known is not None and any(
+            tuple(v.get("geom") or ()) == known
+            for v in (kept.get("deltas") or {}).values()
+            if isinstance(v, dict)
+        )
+        if known is not None and counts.get(known, 0) != 1 and known_moved is None and not confirmed_av:
             known = None
             kept.pop("avatar", None)
         avatar_geom = None
-        if known is not None and known in geoms:
+        if known is not None and (known in geoms or known_moved is not None):
             avatar_geom = known
+            if known not in deltas and known_moved is not None:
+                deltas[known] = known_moved
+        elif confirmed_av:
+            pass
         elif len(geoms) == 1:
-            avatar_geom = geoms[0]
-        elif geoms and len(set(deltas.values())) == 1:
-            # One motion split across colors. Each geom is still unique.
-            avatar_geom = _largest_part(list(before or []), geoms)
+            cand_g = geoms[0]
+            cand_rec = next((r for r, _dx, _dy in moved if _geom(r) == cand_g), None)
+            pushed_by_shared = False
+            if known is None and cand_rec is not None and _bbox(cand_rec) is not None:
+                cbox = _bbox(cand_rec)
+                for s_rec, sdx, sdy in shared_movers:
+                    sbox = _bbox(s_rec)
+                    if (
+                        sbox is not None
+                        and (sdx, sdy) == deltas[cand_g]
+                        and _touched(s_rec, cand_rec)
+                        and not _inside(cbox, sbox)
+                        and not _inside(sbox, cbox)
+                        and _area(s_rec) >= _area(cand_rec)
+                    ):
+                        pushed_by_shared = True
+                        break
+            if pushed_by_shared:
+                kept["movable"] = [cand_g[0], cand_g[1], cand_g[2]]
+            else:
+                avatar_geom = cand_g
+        elif geoms:
+            cand_host = _largest_part(list(before or []), geoms)
+            same_delta = len(set(deltas.values())) == 1
+            inner_parts = False
+            if not same_delta and cand_host is not None:
+                b_host = _find_geom(list(before or []), cand_host)
+                a_host = _find_geom(list(after or []), cand_host)
+                bh_box = _bbox(b_host) if b_host is not None else None
+                ah_box = _bbox(a_host) if a_host is not None else None
+                if bh_box is not None and ah_box is not None:
+                    inner_parts = all(
+                        (
+                            (br := _find_geom(list(before or []), g)) is not None
+                            and (ar := _find_geom(list(after or []), g)) is not None
+                            and _bbox(br) is not None
+                            and _bbox(ar) is not None
+                            and _inside(_bbox(br), bh_box)
+                            and _inside(_bbox(ar), ah_box)
+                        )
+                        for g in geoms
+                        if g != cand_host
+                    )
+            if same_delta or inner_parts:
+                # One motion split across colors, or internal eye/ornament rotating inside avatar body.
+                avatar_geom = cand_host
+                if known is None and avatar_geom is not None:
+                    kept["avatar_parts"] = [
+                        [g[0], g[1], g[2]] for g in geoms if g != avatar_geom
+                    ]
         if avatar_geom is not None:
             kept["avatar"] = [avatar_geom[0], avatar_geom[1], avatar_geom[2]]
-            for rec, _dx, _dy in moved:
-                geom = _geom(rec)
-                if geom is None or geom == avatar_geom or counts.get(geom, 0) != 1:
-                    continue
-                host = _find_geom(before, avatar_geom)
-                if host is not None and _touched(host, rec):
-                    kept["movable"] = [geom[0], geom[1], geom[2]]
-                    break
+            dx, dy = deltas.get(avatar_geom, (0, 0))
+            table = dict(kept.get("deltas") or {})
+            table[int(action[1])] = {
+                "geom": [avatar_geom[0], avatar_geom[1], avatar_geom[2]],
+                "dx": int(dx),
+                "dy": int(dy),
+            }
+            kept["deltas"] = table
+            step_q = max(abs(int(dx)), abs(int(dy)))
+            if step_q > 0 and not kept.get("quantum"):
+                kept["quantum"] = int(step_q)
+            part_set = {
+                (int(p[0]), int(p[1]), int(p[2]))
+                for p in (kept.get("avatar_parts") or [])
+                if isinstance(p, (list, tuple)) and len(p) == 3
+            }
+            w_cur = kept.get("wall")
+            if isinstance(w_cur, (list, tuple)) and len(w_cur) == 3:
+                wt = (int(w_cur[0]), int(w_cur[1]), int(w_cur[2]))
+                if wt == avatar_geom or wt in part_set:
+                    kept.pop("wall", None)
+            if known is not None:
+                for rec, _dx, _dy in moved:
+                    geom = _geom(rec)
+                    if geom is None or geom == avatar_geom or geom in part_set or counts.get(geom, 0) != 1:
+                        continue
+                    host = _find_geom(before, avatar_geom)
+                    if host is not None and _touched(host, rec):
+                        kept["movable"] = [geom[0], geom[1], geom[2]]
+                        break
         if not geoms and kept.get("avatar"):
-            wall = _blocker(list(before or []), kept.get("avatar"), int(action[1]))
+            non_wall: set[tuple[int, int, int]] = set()
+            for rkey in ("movable", "switch", "clickable", "goal", "candidate_geom"):
+                rg = kept.get(rkey)
+                if isinstance(rg, (list, tuple)) and len(rg) == 3:
+                    non_wall.add((int(rg[0]), int(rg[1]), int(rg[2])))
+            for p in kept.get("avatar_parts") or []:
+                if isinstance(p, (list, tuple)) and len(p) == 3:
+                    non_wall.add((int(p[0]), int(p[1]), int(p[2])))
+            wall = _blocker(
+                list(before or []),
+                kept.get("avatar"),
+                int(action[1]),
+                kept.get("quantum"),
+                excluded=non_wall,
+            )
             if wall is not None and _unique_geom(list(before or []), wall):
                 kept["wall"] = [wall[0], wall[1], wall[2]]
-    if kind == "CLICK":
-        target = _clicked(list(before or []), action)
-        geom = _geom(target) if target is not None else None
-        changed = _changed(list(before or []), list(after or []))
-        if geom is not None and changed and counts.get(geom, 0) == 1:
-            kept["switch"] = [geom[0], geom[1], geom[2]]
-            kept["clickable"] = [geom[0], geom[1], geom[2]]
+    if kind == "CLICK" and (outcome != "completed" or not kept.get("switch")):
+        width = _span(list(before or []), None)
+        moved_geoms = []
+        for rec, dx, dy in moved:
+            g = _geom(rec)
+            if g is None or not (dx or dy):
+                continue
+            if counts.get(g, 0) != 1 or _thin_wall(rec, width):
+                continue
+            if g not in moved_geoms:
+                moved_geoms.append(g)
+        if moved_geoms:
+            solid = [g for g in moved_geoms if int(g[0]) == 1]
+            chosen_g = _largest_part(list(before or []), solid or moved_geoms)
+            if chosen_g is not None:
+                kept["switch"] = [chosen_g[0], chosen_g[1], chosen_g[2]]
+                kept["clickable"] = [chosen_g[0], chosen_g[1], chosen_g[2]]
+        elif not moved:
+            from monad2.canvas_stream import diff_records
+
+            target = _clicked(list(before or []), action)
+            geom = _geom(target) if target is not None else None
+            diff = diff_records(list(before or []), list(after or []))
+            vanished_geoms = {_geom(v) for v in diff.get("vanished") or [] if isinstance(v, dict)}
+            if geom is not None and geom in vanished_geoms and counts.get(geom, 0) == 1:
+                kept["switch"] = [geom[0], geom[1], geom[2]]
+                kept["clickable"] = [geom[0], geom[1], geom[2]]
     if outcome == "reset":
         hazard = kept.get("avatar") or kept.get("switch") or kept.get("clickable")
         if hazard and _geom_counts(list(before or [])).get(tuple(int(v) for v in hazard), 0) <= 1:
             kept["hazard"] = list(hazard)
     if outcome == "completed":
         after_counts = _geom_counts(list(after or before or []))
-        for key in ("movable", "avatar", "switch", "clickable"):
+        for key in ("candidate_geom", "movable", "avatar", "switch", "clickable"):
             goal = kept.get(key)
             if not goal or len(goal) != 3:
                 continue
             want = (int(goal[0]), int(goal[1]), int(goal[2]))
             seen = after_counts.get(want, counts.get(want, 0))
-            if seen <= 1:
+            if key == "candidate_geom" or seen <= 1 or counts.get(want, 0) == 1:
                 kept["goal"] = [want[0], want[1], want[2]]
+                kept["preferred_goal"] = [want[0], want[1], want[2]]
                 break
     return kept

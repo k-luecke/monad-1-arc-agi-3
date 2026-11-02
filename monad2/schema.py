@@ -689,7 +689,8 @@ def _records_from_grid(grid, hud_rows=None, hud_cols=None) -> list[dict]:
     from monad2.canvas_stream import shape_record
 
     doc = CanvasDocument(grid, set(hud_rows or []), set(), set(hud_cols or []))
-    return [shape_record(shape) for shape in doc.shapes]
+    span = max(len(grid or ()), len(grid[0]) if grid else 0)
+    return [{**shape_record(shape), "span": span} for shape in doc.shapes]
 
 
 def _rot90(grid):

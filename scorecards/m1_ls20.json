@@ -1,0 +1,295 @@
+{
+  "mode": "offline",
+  "blind_id_mode": true,
+  "game_specific_solvers_disabled": true,
+  "max_game_seconds": 900.0,
+  "game_order": [
+    "ls20"
+  ],
+  "partial": false,
+  "games_finished": 1,
+  "games_expected": 1,
+  "warmup_s": 0.01,
+  "elapsed_s": 91.85,
+  "wins": 0,
+  "levels_completed": 1,
+  "actions": 60,
+  "levels_per_1k_actions": 16.6667,
+  "per_game_results": [
+    {
+      "game_id": "ls20-9607627b",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 1,
+      "actions": 60,
+      "elapsed_s": 91.84,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {},
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          }
+        ],
+        "plans_issued": 0,
+        "steps_executed": 0,
+        "dir_model": {
+          "1": [
+            [
+              0,
+              -5
+            ],
+            10
+          ],
+          "2": [
+            [
+              0,
+              5
+            ],
+            4
+          ],
+          "3": [
+            [
+              -5,
+              0
+            ],
+            16
+          ],
+          "4": [
+            [
+              5,
+              0
+            ],
+            17
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 58,
+        "wasted_noop": 11,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 2,
+        "watch_labeled": 2,
+        "watch_scored": 2,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 60,
+        "coord_plan_steps": 56,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 0,
+        "coord_combine": 0,
+        "coord_explore": 4,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 6,
+        "expect_scored": 59,
+        "expect_hits": 48,
+        "expect_doc_scored": 55,
+        "expect_doc_hits": 45,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 0,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 0,
+        "schema_in_stream": 0,
+        "predicate_checks": 59,
+        "predicate_hits": 46,
+        "predicate_surprises": 12,
+        "qwen_repaired": 0,
+        "llm_calls": 2,
+        "plan_writes": 2,
+        "execute_steps": 54,
+        "replan_calls": 0,
+        "execute_skipped_ggl": 54,
+        "cross_game": "carry",
+        "modes": {
+          "discover": 4,
+          "plan": 2,
+          "execute": 54,
+          "replan": 0
+        },
+        "llm_calls_by_level": {
+          "0": 1,
+          "1": 1
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=avatar)",
+            "predicate_hit": true,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 43314.1
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -83,6 +83,12 @@ def _self_check() -> None:
 
 
 def _collect(env_dir: Path) -> tuple[list, list, dict]:
+    for sib in (
+        Path(__file__).resolve().parent.parent.parent / "monad(1)",
+        env_dir.resolve().parent,
+    ):
+        if sib.is_dir() and str(sib) not in sys.path:
+            sys.path.append(str(sib))
     from arc_agi import Arcade, OperationMode
     from arcengine import GameAction
 
@@ -139,8 +145,20 @@ def _collect(env_dir: Path) -> tuple[list, list, dict]:
 
 
 def main() -> int:
+    import os
+
     _self_check()
-    env_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "environment_files")
+    env_dir = Path(sys.argv[1] if len(sys.argv) > 1 else (os.environ.get("MONAD2_ENV_DIR") or "environment_files"))
+    if not env_dir.is_dir():
+        for cand in (
+            Path("../environment_files"),
+            Path(__file__).resolve().parent.parent.parent / "monad(1)" / "environment_files",
+            Path("/kaggle/input/competitions/arc-prize-2026-arc-agi-3/environment_files"),
+            Path("/kaggle/input/arc-prize-2026-arc-agi-3/environment_files"),
+        ):
+            if cand.is_dir():
+                env_dir = cand
+                break
     try:
         (train_p, test_p), (train_r, test_r), meta = _collect(env_dir)
     except Exception as exc:

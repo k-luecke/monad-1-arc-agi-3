@@ -92,10 +92,15 @@ def bind_predicate(name: str, action, obs: dict, model: dict | None = None) -> d
     model_kind = str(model.get("predicate") or "")
     model_role = str(model.get("role") or "")
     model_b = str(model.get("role_b") or "")
-    if model_kind == kind and model_role in have:
+    if name == "explore" and model_kind in KINDS and (model_role in have or model_role in ("avatar", "movable")):
+        kind = model_kind
         role = model_role
-    if model_kind == kind and model_b in have:
-        role_b = model_b
+        role_b = model_b if model_b in have else "none"
+    else:
+        if model_kind == kind and (model_role in have or model_role in ("avatar", "movable")):
+            role = model_role
+        if model_kind == kind and model_b in have:
+            role_b = model_b
     direction = _dir_of(action)
     if kind not in ("translate", "no_reverse"):
         direction = "none"
@@ -165,20 +170,49 @@ def _with_geom(records: list[dict], geom) -> list[dict]:
 
 
 def _deltas(before: list[dict], after: list[dict], geom) -> list[tuple[int, int]] | None:
-    """Motion of shapes with this geom. None when the role is not in the before frame."""
+    """Motion of shapes with this geom. None when the role is missing from either frame."""
     targets = _with_geom(before, geom)
-    if not targets:
+    after_targets = _with_geom(after, geom)
+    if not targets or not after_targets:
         return None
     pools: dict[tuple, list[dict]] = {}
     for rec in after or []:
         pools.setdefault(tuple(rec.get("sig") or ()), []).append(rec)
     used: set[int] = set()
     out = []
+    unmatched = []
     for rec in targets:
         pool = pools.get(tuple(rec.get("sig") or ()), [])
+        if not pool:
+            unmatched.append(rec)
+            continue
         choice = None
         best = None
         for other in pool:
+            if id(other) in used:
+                continue
+            box = _bbox(rec)
+            obox = _bbox(other)
+            if box is None or obox is None:
+                dist = 0
+            else:
+                dist = abs(obox[0] - box[0]) + abs(obox[1] - box[1])
+            if best is None or dist < best:
+                best = dist
+                choice = other
+        if choice is None:
+            unmatched.append(rec)
+            continue
+        used.add(id(choice))
+        box = _bbox(rec)
+        obox = _bbox(choice)
+        if box is None or obox is None:
+            continue
+        out.append((obox[0] - box[0], obox[1] - box[1]))
+    for rec in unmatched:
+        choice = None
+        best = None
+        for other in after_targets:
             if id(other) in used:
                 continue
             box = _bbox(rec)
@@ -214,10 +248,12 @@ def _dir_ok(dx: int, dy: int, direction: str) -> bool:
 
 
 def _moved_apart(before: list[dict], after: list[dict], geom) -> bool | None:
-    """True when a shape with this geom translated, vanished, or appeared."""
+    """True when a shape with this geom translated or changed count; None when missing from one side."""
+    if not _with_geom(before, geom) or not _with_geom(after, geom):
+        return None
     deltas = _deltas(before, after, geom)
     if deltas is None:
-        return True if _with_geom(after, geom) else None
+        return None
     if any(dx or dy for dx, dy in deltas):
         return True
     if len(_with_geom(before, geom)) != len(_with_geom(after, geom)):
