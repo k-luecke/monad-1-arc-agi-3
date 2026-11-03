@@ -944,17 +944,38 @@ def _solve_panel_align(
         work_x, work_y, ref_x, ref_y = (xb, yb, xa, ya) if in_b > in_a else (xa, ya, xb, yb)
         clicks: list[tuple] = []
         tried_clicks = set(state.get("synth_tried_clicks") or ())
-        for dy in range(h):
-            for dx in range(w):
-                wy, wx = work_y + dy, work_x + dx
+        for pt in (state.get("tried_anchors") or []):
+            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                tried_clicks.add(("CLICK", int(pt[0]), int(pt[1])))
+        # Prefer clickable affordance centroids inside the work panel that lie on or near a mismatching cell
+        for pt in aff:
+            if not isinstance(pt, (list, tuple)) or len(pt) < 2:
+                continue
+            px, py = int(pt[0]), int(pt[1])
+            if work_x < px < work_x + w - 1 and work_y < py < work_y + h - 1:
+                act = ("CLICK", px, py)
+                if act in tried_clicks:
+                    continue
+                dx, dy = px - work_x, py - work_y
                 ry, rx = ref_y + dy, ref_x + dx
-                if 0 <= wy < len(grid) and 0 <= wx < len(grid[0]) and 0 <= ry < len(grid) and 0 <= rx < len(grid[0]):
-                    if int(grid[wy][wx]) != int(grid[ry][rx]):
-                        act = ("CLICK", int(wx), int(wy))
-                        if act not in tried_clicks:
-                            clicks.append(act)
+                if 0 <= py < len(grid) and 0 <= px < len(grid[0]) and 0 <= ry < len(grid) and 0 <= rx < len(grid[0]):
+                    if int(grid[py][px]) != int(grid[ry][rx]):
+                        clicks.append(act)
+        if not clicks:
+            for dy in range(1, max(1, h - 1)):
+                for dx in range(1, max(1, w - 1)):
+                    wy, wx = work_y + dy, work_x + dx
+                    ry, rx = ref_y + dy, ref_x + dx
+                    if 0 <= wy < len(grid) and 0 <= wx < len(grid[0]) and 0 <= ry < len(grid) and 0 <= rx < len(grid[0]):
+                        if int(grid[wy][wx]) != int(grid[ry][rx]):
+                            act = ("CLICK", int(wx), int(wy))
+                            if act not in tried_clicks and not any(
+                                abs(int(wx) - int(ca[1])) + abs(int(wy) - int(ca[2])) <= 2
+                                for ca in clicks
+                            ):
+                                clicks.append(act)
         if clicks:
-            return clicks[:8]
+            return [clicks[0]]
 
     # Fallback for non-pair pointer boards: click responsive geometries first, then non-inert clickable affordances
     aff = (state.get("affordances") or {}).get("clickable") or []

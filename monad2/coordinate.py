@@ -1269,12 +1269,20 @@ def _expand_valid(agent, step: dict, legal: list[int], state: dict, menu: list[d
             bh = state.setdefault("blocked_here", [])
             if int(action[1]) not in bh:
                 bh.append(int(action[1]))
-        elif action[0] == "CLICK" and (step.get("primitive") or "") in ("toggle", "cycle_select"):
+        elif action[0] == "CLICK":
             pt = [int(action[1]), int(action[2])]
             tried_anc = step.setdefault("tried_anchors", [])
             if pt not in tried_anc:
                 tried_anc.append(pt)
             state["tried_anchors"] = list(tried_anc)
+            tried_c = state.setdefault("synth_tried_clicks", [])
+            c_tup = ("CLICK", int(action[1]), int(action[2]))
+            if c_tup not in tried_c:
+                tried_c.append(c_tup)
+            if ref:
+                tried_refs = step.setdefault("tried", [])
+                if ref not in tried_refs:
+                    tried_refs.append(ref)
             step["active_anchor"] = None
             state["active_anchor"] = None
             step["fails"] = 0
@@ -2523,6 +2531,14 @@ def observe(agent, changed: bool) -> None:
                     predicate = dict(predicate)
                     predicate["geom"] = [int(bound_g[0]), int(bound_g[1]), int(bound_g[2])]
             pred_hit = evaluate(predicate, list(before), after)
+            if (
+                pred_hit is None
+                and outcome == "continue"
+                and not changed
+                and not state.get("hud_changed")
+                and bool(pending.get("expect_change", True))
+            ):
+                pred_hit = False
             _bump(agent, "predicate_checks")
             if pred_hit:
                 _bump(agent, "predicate_hits")
@@ -2541,6 +2557,32 @@ def observe(agent, changed: bool) -> None:
                 pass
         try:
             act_now = pending.get("action")
+            if (
+                outcome == "continue"
+                and not changed
+                and not state.get("hud_changed")
+                and act_now
+                and act_now[0] == "CLICK"
+                and len(act_now) >= 3
+            ):
+                cx_now, cy_now = int(act_now[1]), int(act_now[2])
+                c_tup = ("CLICK", cx_now, cy_now)
+                tried_c = state.setdefault("synth_tried_clicks", [])
+                if c_tup not in tried_c:
+                    tried_c.append(c_tup)
+                pt_now = [cx_now, cy_now]
+                tried_anc = state.setdefault("tried_anchors", [])
+                if pt_now not in tried_anc:
+                    tried_anc.append(pt_now)
+                h_state = getattr(agent, "_m2_state_hash", None)
+                if h_state is None:
+                    h_state = getattr(agent, "prev_hash", None)
+                dead_map = getattr(agent, "dead_actions", None)
+                if h_state is not None and isinstance(dead_map, dict):
+                    try:
+                        dead_map[h_state].add(c_tup)
+                    except Exception:
+                        pass
             if outcome == "continue" and state.get("mode") != "execute" and act_now and act_now[0] == "SIMPLE" and int(act_now[1]) in (1, 2, 3, 4):
                 from monad2.planmode import _non_avatar_changed, _reached_candidate
                 from monad2.primitives import _boxes_for, _mover_box, note_route

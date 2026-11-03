@@ -25254,7 +25254,17 @@ class MyAgent(Agent):
                     self.mutable_object_sigs.add(s.sig)
                     self.level_interacted_sigs[s.sig] += 1
 
-        from_macro = bool(self.planned_queue or self.active_macro_family is not None)
+        from_macro = bool(
+            not self.game_specific_solvers_disabled
+            and (self.planned_queue or self.last_step_was_planned)
+            and self.active_macro_family
+            not in (
+                None,
+                "online_general_goal",
+                "online_learned_kinematic",
+                "online_learned_switch_gate",
+            )
+        )
         if self.prev_hash is not None and self.prev_action is not None:
             self._record_cnn_experience(
                 self.prev_grid,
@@ -26169,6 +26179,29 @@ class MyAgent(Agent):
                     self.active_macro_family = "online_learned_switch_gate"
                     self.planned_queue.extend(sw_plan)
 
+            if (
+                not self.planned_queue
+                and self.active_macro_family
+                in (
+                    "online_general_goal",
+                    "online_learned_kinematic",
+                    "online_learned_switch_gate",
+                )
+            ):
+                self.active_macro_family = None
+
+            if _m2_rt is not None and not self.planned_queue:
+                try:
+                    sc_key = _m2_rt.short_circuit_execute(self)
+                except Exception:
+                    sc_key = None
+                if sc_key is not None:
+                    self.prev_grid = grid
+                    self.prev_doc = doc
+                    self.prev_hash = h_curr
+                    self.prev_action = sc_key
+                    return self._materialize_action(sc_key, "monad2-execute-short-circuit")
+
             # Tier 2.6: General Goal Engine (goal hypothesis -> subgoal -> plan -> verify/revise)
             if (
                 self.ggl_enabled
@@ -26445,8 +26478,12 @@ class MyAgent(Agent):
                 or (
                     self.level_dpad_successes > 0
                     and (
-                        self.steps_since_last_click <= 3
-                        or len(untried_dpad) >= 2
+                        self.steps_since_last_click
+                        <= (2 if self.hybrid_click_successes > 0 else 3)
+                        or (
+                            self.hybrid_click_successes == 0
+                            and len(untried_dpad) >= 2
+                        )
                     )
                 )
             )
@@ -26487,6 +26524,26 @@ class MyAgent(Agent):
                 return self._materialize_action(
                     top_click, "canvas-vector-hybrid-click"
                 )
+
+        # Tier 0b: Proven or Initial ACTION5 (Interact / Stamp) after playfield changes
+        if (
+            untried_action5
+            and not self.action5_is_reset
+            and self.playfield_changed_since_action5
+            and self.prev_action != ("SIMPLE", 5)
+            and (
+                self.action5_changed_playfield
+                or (
+                    self.steps_in_level >= 3
+                    and ("SIMPLE", 5) not in self.current_level_executed_actions
+                )
+            )
+        ):
+            chosen = untried_action5[0]
+            self.prev_grid = grid
+            self.prev_hash = h_curr
+            self.prev_action = chosen
+            return self._materialize_action(chosen, "canvas-vector-action5")
 
         # Tier 1: Untried D-pad kinematic control actions
         if untried_dpad:

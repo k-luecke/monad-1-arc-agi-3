@@ -726,12 +726,22 @@ def _dpad(legal: list[int]) -> list[int]:
 def _click_at(state: dict, *roles: str):
     """A click anchor from the live affordance map. Not stored on the primitive."""
     aff = (state or {}).get("affordances") or {}
+    tried_pts = {
+        (int(p[0]), int(p[1]))
+        for p in ((state or {}).get("tried_anchors") or [])
+        if isinstance(p, (list, tuple)) and len(p) == 2
+    }
+    for c_act in (state or {}).get("synth_tried_clicks") or []:
+        if isinstance(c_act, (list, tuple)) and len(c_act) >= 3 and c_act[0] == "CLICK":
+            tried_pts.add((int(c_act[1]), int(c_act[2])))
     for role in roles:
         points = aff.get(role) or []
         if isinstance(points, (list, tuple)) and points:
-            point = points[0]
-            if isinstance(point, (list, tuple)) and len(point) == 2:
-                return ("CLICK", int(point[0]), int(point[1]))
+            for point in points:
+                if isinstance(point, (list, tuple)) and len(point) == 2:
+                    pt = (int(point[0]), int(point[1]))
+                    if pt not in tried_pts:
+                        return ("CLICK", pt[0], pt[1])
     return None
 
 

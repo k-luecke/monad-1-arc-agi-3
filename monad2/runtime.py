@@ -303,6 +303,15 @@ def _fallback_to_baseline(agent) -> None:
     policy that clears them. The pending restore emits one RESET and rebuilds
     the level world model from the residue captured at level start.
     """
+    if getattr(agent, "game_specific_solvers_disabled", False):
+        agent._m2_unchanged_streak = 0
+        coord_st = getattr(agent, "_m2_coord", None)
+        if isinstance(coord_st, dict):
+            coord_st["script"] = []
+            coord_st["mode"] = "discover"
+            coord_st["coop_handoff"] = False
+            coord_st["surprise_pending"] = "stall recovery"
+        return
     if getattr(agent, "_m2_stall_fallback", False):
         return
     from monad2.factorial import FACTORS
