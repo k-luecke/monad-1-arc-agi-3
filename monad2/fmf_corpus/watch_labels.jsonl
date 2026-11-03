@@ -1,0 +1,3 @@
+{"features": ["aff:corridor"], "goal": "PLACE", "support": 3, "votes": {"PLACE": 3}}
+{"features": ["aff:avatar", "aff:corridor", "aff:portal"], "goal": "PLACE", "support": 66, "votes": {"PLACE": 60, "REACH": 6}}
+{"features": ["aff:avatar", "aff:corridor", "aff:panel", "aff:portal"], "goal": "MATCH", "support": 3, "votes": {"MATCH": 3}}

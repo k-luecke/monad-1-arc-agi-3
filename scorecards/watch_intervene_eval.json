@@ -1,0 +1,3308 @@
+{
+  "mode": "offline",
+  "blind_id_mode": true,
+  "game_specific_solvers_disabled": true,
+  "max_game_seconds": 300.0,
+  "game_order": [
+    "lp85",
+    "ls20",
+    "sp80",
+    "tu93",
+    "vc33"
+  ],
+  "partial": false,
+  "games_finished": 5,
+  "games_expected": 5,
+  "warmup_s": 0.01,
+  "elapsed_s": 838.16,
+  "wins": 1,
+  "levels_completed": 15,
+  "actions": 6399,
+  "levels_per_1k_actions": 2.3441,
+  "per_game_results": [
+    {
+      "game_id": "lp85-305b61c3",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 1,
+      "actions": 1552,
+      "elapsed_s": 197.67,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {},
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          }
+        ],
+        "plans_issued": 0,
+        "steps_executed": 0,
+        "dir_model": {},
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1505,
+        "wasted_noop": 118,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 2,
+        "watch_labeled": 2,
+        "watch_scored": 0,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 1528,
+        "coord_plan_steps": 177,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1351,
+        "coord_combine": 0,
+        "coord_explore": 0,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1354,
+        "expect_scored": 1527,
+        "expect_hits": 1409,
+        "expect_doc_scored": 0,
+        "expect_doc_hits": 0,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1351,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 0,
+        "schema_in_stream": 0,
+        "predicate_checks": 1527,
+        "predicate_hits": 0,
+        "predicate_surprises": 0,
+        "qwen_repaired": 0,
+        "llm_calls": 2,
+        "plan_writes": 3,
+        "execute_steps": 174,
+        "replan_calls": 1,
+        "execute_skipped_ggl": 174,
+        "synthesized_solver": {
+          "solver_family": "PANEL_ALIGN",
+          "secondary_families": [],
+          "goal_type": "MATCH",
+          "avatar_geom": null,
+          "avatar_parts": [],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              4,
+              2,
+              2
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              2,
+              3,
+              4
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              4,
+              1,
+              2
+            ],
+            [
+              1,
+              41,
+              41
+            ]
+          ],
+          "inert_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              6,
+              2,
+              4
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              4,
+              1,
+              2
+            ],
+            [
+              3,
+              1,
+              4
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              1,
+              41,
+              41
+            ],
+            [
+              2,
+              3,
+              4
+            ]
+          ],
+          "quantum": 1,
+          "dpad_vectors": {
+            "1": [
+              0,
+              -1
+            ],
+            "2": [
+              0,
+              1
+            ],
+            "3": [
+              -1,
+              0
+            ],
+            "4": [
+              1,
+              0
+            ]
+          },
+          "canonical_to_raw_dpad": {
+            "1": 1,
+            "2": 2,
+            "3": 3,
+            "4": 4
+          },
+          "control_inverted": false,
+          "has_panel_pair": false,
+          "panel_dims": null,
+          "switch_first": false,
+          "hybrid_corridor_click": false,
+          "fmf_primitives": [
+            "approach",
+            "explore",
+            "toggle",
+            "convey"
+          ],
+          "schema_id": null,
+          "levels": {
+            "0": {
+              "level_idx": 0,
+              "avatar_geom": null,
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  4,
+                  2,
+                  2
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [
+                [
+                  4,
+                  2,
+                  2
+                ],
+                [
+                  1,
+                  4,
+                  4
+                ],
+                [
+                  6,
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  41,
+                  41
+                ],
+                [
+                  2,
+                  3,
+                  4
+                ]
+              ],
+              "responsive_geoms": [],
+              "quantum": 1,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "1": {
+              "level_idx": 1,
+              "avatar_geom": null,
+              "movable_geoms": [],
+              "goal_geoms": [],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [
+                [
+                  4,
+                  2,
+                  2
+                ],
+                [
+                  2,
+                  3,
+                  4
+                ],
+                [
+                  4,
+                  1,
+                  1
+                ],
+                [
+                  4,
+                  1,
+                  2
+                ],
+                [
+                  1,
+                  41,
+                  41
+                ]
+              ],
+              "inert_geoms": [
+                [
+                  4,
+                  2,
+                  2
+                ],
+                [
+                  4,
+                  1,
+                  1
+                ],
+                [
+                  4,
+                  1,
+                  2
+                ],
+                [
+                  3,
+                  1,
+                  4
+                ]
+              ],
+              "responsive_geoms": [
+                [
+                  1,
+                  41,
+                  41
+                ],
+                [
+                  2,
+                  3,
+                  4
+                ]
+              ],
+              "quantum": 1,
+              "had_conditional_blocks": false,
+              "cleared": false
+            }
+          }
+        },
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1351,
+          "plan": 2,
+          "execute": 174,
+          "replan": 1
+        },
+        "llm_calls_by_level": {
+          "0": 1,
+          "1": 1
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "CLICK 10 17",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "plan",
+            "reason": "wrote a level plan. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 41963.2
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 16 17",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 10 23",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 16 23",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 13 20",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 19 20",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 25 20",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 31 20",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "wall, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 1,
+            "mode": "replan",
+            "action": "CLICK 14 26",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": null,
+            "decision": "replan",
+            "reason": "replan after predicate false. toggle(clickable)",
+            "roles": "receptor, reference",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 41395.0
+          },
+          {
+            "level": 1,
+            "mode": "discover",
+            "action": "CLICK 14 35",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "accept",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference",
+            "plan": "",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "ls20-9607627b",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 1,
+      "actions": 1538,
+      "elapsed_s": 168.5,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {
+            "progress": 12,
+            "refutes": 4,
+            "zero_hits": 6,
+            "decoys": 6
+          },
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          }
+        ],
+        "plans_issued": 22,
+        "steps_executed": 87,
+        "dir_model": {
+          "1": [
+            [
+              0,
+              -5
+            ],
+            552
+          ],
+          "3": [
+            [
+              -5,
+              0
+            ],
+            250
+          ],
+          "2": [
+            [
+              0,
+              5
+            ],
+            307
+          ],
+          "4": [
+            [
+              5,
+              0
+            ],
+            292
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1502,
+        "wasted_noop": 67,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 2,
+        "watch_labeled": 2,
+        "watch_scored": 2,
+        "watch_hits": 0,
+        "level_restores": 0,
+        "coord_steps": 1521,
+        "coord_plan_steps": 43,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1421,
+        "coord_combine": 0,
+        "coord_explore": 57,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1481,
+        "expect_scored": 1520,
+        "expect_hits": 1453,
+        "expect_doc_scored": 43,
+        "expect_doc_hits": 27,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1421,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 1,
+        "schema_in_stream": 3,
+        "predicate_checks": 1520,
+        "predicate_hits": 1450,
+        "predicate_surprises": 69,
+        "qwen_repaired": 0,
+        "llm_calls": 2,
+        "plan_writes": 3,
+        "execute_steps": 40,
+        "replan_calls": 1,
+        "execute_skipped_ggl": 40,
+        "synthesized_solver": {
+          "solver_family": "REACH_BFS",
+          "secondary_families": [],
+          "goal_type": "REACH",
+          "avatar_geom": [
+            1,
+            3,
+            5
+          ],
+          "avatar_parts": [
+            [
+              1,
+              2,
+              5
+            ]
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              7,
+              7
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 5,
+          "dpad_vectors": {
+            "1": [
+              0,
+              -1
+            ],
+            "2": [
+              0,
+              1
+            ],
+            "3": [
+              -1,
+              0
+            ],
+            "4": [
+              1,
+              0
+            ]
+          },
+          "canonical_to_raw_dpad": {
+            "1": 1,
+            "2": 2,
+            "3": 3,
+            "4": 4
+          },
+          "control_inverted": false,
+          "has_panel_pair": false,
+          "panel_dims": null,
+          "switch_first": false,
+          "hybrid_corridor_click": false,
+          "fmf_primitives": [
+            "route",
+            "approach",
+            "explore",
+            "convey",
+            "toggle"
+          ],
+          "schema_id": null,
+          "levels": {
+            "0": {
+              "level_idx": 0,
+              "avatar_geom": [
+                1,
+                3,
+                5
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  7,
+                  7
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 5,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "1": {
+              "level_idx": 1,
+              "avatar_geom": [
+                1,
+                3,
+                5
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 5,
+              "had_conditional_blocks": false,
+              "cleared": false
+            }
+          }
+        },
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1478,
+          "plan": 2,
+          "execute": 40,
+          "replan": 1
+        },
+        "llm_calls_by_level": {
+          "0": 1,
+          "1": 1
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 3 (left)",
+            "primitive": "explore",
+            "predicate": "changed(role=avatar)",
+            "predicate_hit": false,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 38092.8
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 3 (left)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=left)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 3 (left)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=left)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 3 (left)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=left)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 1,
+            "mode": "replan",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "replan",
+            "reason": "replan after solver loop. explore(avatar)",
+            "roles": "receptor, reference, wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 35167.2
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "sp80-589a99af",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 1,
+      "actions": 1542,
+      "elapsed_s": 169.85,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {
+            "progress": 24,
+            "refutes": 34,
+            "zero_hits": 10,
+            "decoys": 10
+          },
+          "PLACE": {
+            "progress": 5,
+            "zero_hits": 2,
+            "decoys": 2
+          },
+          "MATCH": {
+            "refutes": 4
+          }
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          }
+        ],
+        "plans_issued": 532,
+        "steps_executed": 663,
+        "dir_model": {
+          "4": [
+            [
+              4,
+              0
+            ],
+            248
+          ],
+          "2": [
+            [
+              0,
+              4
+            ],
+            508
+          ],
+          "3": [
+            [
+              -4,
+              0
+            ],
+            210
+          ],
+          "1": [
+            [
+              0,
+              -4
+            ],
+            352
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1474,
+        "wasted_noop": 87,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 2,
+        "watch_labeled": 2,
+        "watch_scored": 2,
+        "watch_hits": 2,
+        "level_restores": 0,
+        "coord_steps": 1509,
+        "coord_plan_steps": 59,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1440,
+        "coord_combine": 0,
+        "coord_explore": 10,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1453,
+        "expect_scored": 1508,
+        "expect_hits": 1421,
+        "expect_doc_scored": 59,
+        "expect_doc_hits": 37,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1440,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 2,
+        "schema_in_stream": 3,
+        "predicate_checks": 1508,
+        "predicate_hits": 416,
+        "predicate_surprises": 759,
+        "qwen_repaired": 0,
+        "llm_calls": 2,
+        "plan_writes": 3,
+        "execute_steps": 56,
+        "replan_calls": 1,
+        "execute_skipped_ggl": 56,
+        "synthesized_solver": {
+          "solver_family": "REACH_BFS",
+          "secondary_families": [
+            "PANEL_ALIGN"
+          ],
+          "goal_type": "PLACE",
+          "avatar_geom": [
+            1,
+            4,
+            20
+          ],
+          "avatar_parts": [],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              4
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [
+            [
+              1,
+              4,
+              20
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [
+            [
+              1,
+              4,
+              20
+            ],
+            [
+              1,
+              4,
+              12
+            ],
+            [
+              1,
+              4,
+              8
+            ],
+            [
+              5,
+              8,
+              24
+            ]
+          ],
+          "quantum": 4,
+          "dpad_vectors": {
+            "1": [
+              0,
+              -1
+            ],
+            "2": [
+              0,
+              1
+            ],
+            "3": [
+              -1,
+              0
+            ],
+            "4": [
+              1,
+              0
+            ]
+          },
+          "canonical_to_raw_dpad": {
+            "1": 1,
+            "2": 2,
+            "3": 3,
+            "4": 4
+          },
+          "control_inverted": false,
+          "has_panel_pair": false,
+          "panel_dims": null,
+          "switch_first": false,
+          "hybrid_corridor_click": true,
+          "fmf_primitives": [
+            "route",
+            "approach",
+            "explore",
+            "toggle",
+            "convey"
+          ],
+          "schema_id": null,
+          "levels": {
+            "0": {
+              "level_idx": 0,
+              "avatar_geom": [
+                1,
+                4,
+                20
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  4
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 4,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "1": {
+              "level_idx": 1,
+              "avatar_geom": [
+                1,
+                4,
+                20
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [
+                [
+                  1,
+                  4,
+                  20
+                ]
+              ],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [
+                [
+                  1,
+                  4,
+                  20
+                ],
+                [
+                  1,
+                  4,
+                  12
+                ],
+                [
+                  1,
+                  4,
+                  8
+                ],
+                [
+                  5,
+                  8,
+                  24
+                ]
+              ],
+              "quantum": 4,
+              "had_conditional_blocks": false,
+              "cleared": false
+            }
+          }
+        },
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1450,
+          "plan": 2,
+          "execute": 56,
+          "replan": 1
+        },
+        "llm_calls_by_level": {
+          "0": 1,
+          "1": 1
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "changed(role=avatar)",
+            "predicate_hit": true,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "wall, avatar",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": false,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 39105.6
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 5 (interact)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=none)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 1,
+            "mode": "replan",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "replan",
+            "reason": "replan after level reset. explore(avatar)",
+            "roles": "wall, avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 39173.0
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "tu93-0768757b",
+      "agent_game_id": "blind_unknown_env",
+      "state": "WIN",
+      "levels_completed": 9,
+      "actions": 188,
+      "elapsed_s": 53.66,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {},
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 1,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 2,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 3,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 4,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 5,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 6,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 7,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 8,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          }
+        ],
+        "plans_issued": 0,
+        "steps_executed": 0,
+        "dir_model": {
+          "4": [
+            [
+              6,
+              0
+            ],
+            49
+          ],
+          "2": [
+            [
+              0,
+              6
+            ],
+            42
+          ],
+          "1": [
+            [
+              0,
+              -6
+            ],
+            44
+          ],
+          "3": [
+            [
+              -6,
+              0
+            ],
+            41
+          ]
+        },
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 179,
+        "wasted_noop": 3,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 10,
+        "watch_labeled": 2,
+        "watch_scored": 2,
+        "watch_hits": 1,
+        "level_restores": 0,
+        "coord_steps": 188,
+        "coord_plan_steps": 184,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 0,
+        "coord_combine": 0,
+        "coord_explore": 4,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 13,
+        "expect_scored": 188,
+        "expect_hits": 185,
+        "expect_doc_scored": 184,
+        "expect_doc_hits": 184,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 0,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 0,
+        "schema_in_stream": 13,
+        "predicate_checks": 188,
+        "predicate_hits": 180,
+        "predicate_surprises": 4,
+        "qwen_repaired": 0,
+        "llm_calls": 1,
+        "plan_writes": 9,
+        "execute_steps": 175,
+        "replan_calls": 0,
+        "execute_skipped_ggl": 175,
+        "synthesized_solver": {
+          "solver_family": "REACH_BFS",
+          "secondary_families": [],
+          "goal_type": "REACH",
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "avatar_parts": [
+            [
+              4,
+              1,
+              1
+            ]
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "dpad_vectors": {
+            "1": [
+              0,
+              -1
+            ],
+            "2": [
+              0,
+              1
+            ],
+            "3": [
+              -1,
+              0
+            ],
+            "4": [
+              1,
+              0
+            ]
+          },
+          "canonical_to_raw_dpad": {
+            "1": 1,
+            "2": 2,
+            "3": 3,
+            "4": 4
+          },
+          "control_inverted": false,
+          "has_panel_pair": false,
+          "panel_dims": null,
+          "switch_first": false,
+          "hybrid_corridor_click": false,
+          "fmf_primitives": [
+            "route",
+            "approach",
+            "explore",
+            "convey",
+            "toggle"
+          ],
+          "schema_id": null,
+          "levels": {
+            "0": {
+              "level_idx": 0,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "1": {
+              "level_idx": 1,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "2": {
+              "level_idx": 2,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "3": {
+              "level_idx": 3,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "4": {
+              "level_idx": 4,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "5": {
+              "level_idx": 5,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "6": {
+              "level_idx": 6,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "7": {
+              "level_idx": 7,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "8": {
+              "level_idx": 8,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "9": {
+              "level_idx": 9,
+              "avatar_geom": [
+                2,
+                3,
+                3
+              ],
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  3,
+                  3
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 6,
+              "had_conditional_blocks": false,
+              "cleared": false
+            }
+          }
+        },
+        "cross_game": "carry",
+        "modes": {
+          "discover": 4,
+          "plan": 9,
+          "execute": 175,
+          "replan": 0
+        },
+        "llm_calls_by_level": {
+          "0": 1,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 0,
+          "8": 0
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 3 (left)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "discover",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": null,
+            "decision": "explore",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference",
+            "plan": "",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. explore(avatar)",
+            "roles": "avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 39786.5
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 2 (down)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=down)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 4 (right)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=right)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "SIMPLE 1 (up)",
+            "primitive": "explore",
+            "predicate": "translate(role=avatar, dir=up)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. explore(avatar)",
+            "roles": "avatar",
+            "plan": "explore(avatar)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          }
+        ]
+      }
+    },
+    {
+      "game_id": "vc33-5430563c",
+      "agent_game_id": "blind_unknown_env",
+      "state": "NOT_FINISHED",
+      "levels_completed": 3,
+      "actions": 1579,
+      "elapsed_s": 248.37,
+      "goal_report": {
+        "confirmed_type": null,
+        "confirm_level": null,
+        "type_stats": {
+          "REACH": {},
+          "PLACE": {},
+          "MATCH": {}
+        },
+        "level_events": [
+          {
+            "level": 0,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 1,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          },
+          {
+            "level": 2,
+            "credited_type": null,
+            "types_used": [],
+            "progress_types": [],
+            "ggl_steps": 0
+          }
+        ],
+        "plans_issued": 0,
+        "steps_executed": 0,
+        "dir_model": {},
+        "prediction": {
+          "scored": 0,
+          "hits": 0,
+          "exact": 0,
+          "mismatches": 0,
+          "replans": 0,
+          "probes": 0,
+          "first_miss": null
+        },
+        "effects_learned": {
+          "dpad_dirs": 0,
+          "push_colors": 0,
+          "toggles": 0,
+          "appear_colors": 0,
+          "vanish_colors": 0
+        },
+        "memory_retrievals": 0,
+        "memory_mean_band_agree": null,
+        "memory_mean_hamming": null,
+        "win_records": 0
+      },
+      "monad2": {
+        "steps": 1518,
+        "wasted_noop": 627,
+        "ladder_vetoes": 0,
+        "illegal_blocked": 0,
+        "callosum_overrides": 0,
+        "callosum_seen": 0,
+        "pll_steps": 0,
+        "pll_losses": 0,
+        "plan_steps": 0,
+        "plan_fails": 0,
+        "loss_and_fail": 0,
+        "rehearsal_taken": 0,
+        "dead_skipped": 0,
+        "callosum_blocked": 0,
+        "stall_fallbacks": 0,
+        "goal_demotions": 0,
+        "discovery_probes": 0,
+        "discovery_scored": 0,
+        "discovery_hits": 0,
+        "watch_episodes": 4,
+        "watch_labeled": 3,
+        "watch_scored": 3,
+        "watch_hits": 3,
+        "level_restores": 0,
+        "coord_steps": 1549,
+        "coord_plan_steps": 101,
+        "coord_inhibit": 0,
+        "coord_inhibit_changed": 0,
+        "coord_accept": 1448,
+        "coord_combine": 0,
+        "coord_explore": 0,
+        "coord_errors": 0,
+        "qwen_proposals": 0,
+        "qwen_differ": 0,
+        "qwen_influenced": 0,
+        "fmf_in_stream": 1453,
+        "expect_scored": 1548,
+        "expect_hits": 921,
+        "expect_doc_scored": 0,
+        "expect_doc_hits": 0,
+        "surprise_revisions": 0,
+        "coord_ladder_vetoes": 0,
+        "carried_theories": 0,
+        "infl_scp": 0,
+        "infl_canvas": 0,
+        "infl_pll": 0,
+        "infl_tonic": 0,
+        "infl_fmf": 0,
+        "infl_effect": 0,
+        "infl_dead": 0,
+        "infl_collapse": 0,
+        "infl_skinner": 0,
+        "infl_heuristic": 1448,
+        "infl_qwen_a": 0,
+        "infl_qwen_b": 0,
+        "infl_model_a": 0,
+        "infl_model_b": 0,
+        "infl_solver": 0,
+        "infl_schema": 0,
+        "schema_revisions": 0,
+        "schema_in_stream": 1453,
+        "predicate_checks": 1548,
+        "predicate_hits": 185,
+        "predicate_surprises": 1363,
+        "qwen_repaired": 0,
+        "llm_calls": 2,
+        "plan_writes": 5,
+        "execute_steps": 96,
+        "replan_calls": 1,
+        "execute_skipped_ggl": 96,
+        "synthesized_solver": {
+          "solver_family": "PANEL_ALIGN",
+          "secondary_families": [],
+          "goal_type": "MATCH",
+          "avatar_geom": null,
+          "avatar_parts": [],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              4,
+              2,
+              2
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [
+            [
+              1,
+              2,
+              6
+            ]
+          ],
+          "switch_geoms": [
+            [
+              1,
+              2,
+              6
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              1,
+              2,
+              6
+            ]
+          ],
+          "inert_geoms": [
+            [
+              1,
+              19,
+              52
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              1,
+              19,
+              48
+            ],
+            [
+              1,
+              19,
+              44
+            ],
+            [
+              1,
+              19,
+              40
+            ],
+            [
+              1,
+              19,
+              36
+            ],
+            [
+              1,
+              19,
+              32
+            ],
+            [
+              1,
+              19,
+              28
+            ],
+            [
+              1,
+              19,
+              24
+            ],
+            [
+              1,
+              19,
+              20
+            ],
+            [
+              1,
+              16,
+              44
+            ],
+            [
+              1,
+              16,
+              40
+            ],
+            [
+              1,
+              16,
+              36
+            ],
+            [
+              1,
+              16,
+              32
+            ],
+            [
+              1,
+              16,
+              28
+            ],
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              1,
+              3,
+              33
+            ],
+            [
+              1,
+              12,
+              33
+            ],
+            [
+              1,
+              3,
+              4
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              1,
+              3,
+              9
+            ],
+            [
+              1,
+              3,
+              18
+            ],
+            [
+              1,
+              3,
+              12
+            ],
+            [
+              1,
+              3,
+              30
+            ],
+            [
+              2,
+              4,
+              6
+            ],
+            [
+              3,
+              1,
+              8
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              5,
+              63,
+              64
+            ],
+            [
+              1,
+              6,
+              8
+            ],
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              1,
+              4,
+              10
+            ],
+            [
+              5,
+              4,
+              8
+            ],
+            [
+              1,
+              6,
+              10
+            ],
+            [
+              1,
+              8,
+              10
+            ],
+            [
+              1,
+              10,
+              10
+            ],
+            [
+              1,
+              10,
+              12
+            ],
+            [
+              1,
+              10,
+              14
+            ],
+            [
+              1,
+              10,
+              16
+            ],
+            [
+              1,
+              10,
+              18
+            ],
+            [
+              1,
+              8,
+              8
+            ],
+            [
+              1,
+              8,
+              12
+            ],
+            [
+              5,
+              6,
+              9
+            ],
+            [
+              1,
+              3,
+              3
+            ],
+            [
+              5,
+              9,
+              9
+            ],
+            [
+              1,
+              9,
+              12
+            ],
+            [
+              1,
+              9,
+              15
+            ],
+            [
+              1,
+              12,
+              21
+            ],
+            [
+              1,
+              12,
+              24
+            ],
+            [
+              1,
+              12,
+              27
+            ],
+            [
+              1,
+              12,
+              30
+            ],
+            [
+              1,
+              9,
+              18
+            ],
+            [
+              1,
+              9,
+              21
+            ],
+            [
+              1,
+              9,
+              24
+            ],
+            [
+              1,
+              9,
+              27
+            ],
+            [
+              1,
+              9,
+              30
+            ],
+            [
+              1,
+              12,
+              12
+            ],
+            [
+              1,
+              12,
+              15
+            ],
+            [
+              1,
+              12,
+              18
+            ],
+            [
+              1,
+              7,
+              9
+            ],
+            [
+              1,
+              7,
+              12
+            ],
+            [
+              1,
+              7,
+              15
+            ],
+            [
+              1,
+              7,
+              18
+            ],
+            [
+              1,
+              7,
+              21
+            ],
+            [
+              1,
+              7,
+              24
+            ],
+            [
+              1,
+              7,
+              27
+            ],
+            [
+              1,
+              7,
+              30
+            ],
+            [
+              5,
+              6,
+              7
+            ],
+            [
+              1,
+              6,
+              12
+            ]
+          ],
+          "quantum": 1,
+          "dpad_vectors": {
+            "1": [
+              0,
+              -1
+            ],
+            "2": [
+              0,
+              1
+            ],
+            "3": [
+              -1,
+              0
+            ],
+            "4": [
+              1,
+              0
+            ]
+          },
+          "canonical_to_raw_dpad": {
+            "1": 1,
+            "2": 2,
+            "3": 3,
+            "4": 4
+          },
+          "control_inverted": false,
+          "has_panel_pair": false,
+          "panel_dims": null,
+          "switch_first": false,
+          "hybrid_corridor_click": false,
+          "fmf_primitives": [
+            "approach",
+            "explore",
+            "toggle",
+            "convey"
+          ],
+          "schema_id": null,
+          "levels": {
+            "0": {
+              "level_idx": 0,
+              "avatar_geom": null,
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  4,
+                  4
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [
+                [
+                  1,
+                  2,
+                  6
+                ]
+              ],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [],
+              "responsive_geoms": [],
+              "quantum": 1,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "1": {
+              "level_idx": 1,
+              "avatar_geom": null,
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  1,
+                  4,
+                  4
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [
+                [
+                  1,
+                  2,
+                  6
+                ]
+              ],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [
+                [
+                  1,
+                  19,
+                  52
+                ],
+                [
+                  1,
+                  4,
+                  4
+                ],
+                [
+                  1,
+                  19,
+                  48
+                ],
+                [
+                  1,
+                  19,
+                  44
+                ],
+                [
+                  1,
+                  19,
+                  40
+                ],
+                [
+                  1,
+                  19,
+                  36
+                ],
+                [
+                  1,
+                  19,
+                  32
+                ],
+                [
+                  1,
+                  19,
+                  28
+                ],
+                [
+                  1,
+                  19,
+                  24
+                ],
+                [
+                  1,
+                  19,
+                  20
+                ],
+                [
+                  1,
+                  16,
+                  44
+                ],
+                [
+                  1,
+                  16,
+                  40
+                ],
+                [
+                  1,
+                  16,
+                  36
+                ],
+                [
+                  1,
+                  16,
+                  32
+                ],
+                [
+                  1,
+                  16,
+                  28
+                ],
+                [
+                  5,
+                  63,
+                  64
+                ]
+              ],
+              "responsive_geoms": [],
+              "quantum": 1,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "2": {
+              "level_idx": 2,
+              "avatar_geom": null,
+              "movable_geoms": [],
+              "goal_geoms": [
+                [
+                  4,
+                  2,
+                  2
+                ]
+              ],
+              "wall_geoms": [],
+              "hazard_geoms": [],
+              "switch_geoms": [
+                [
+                  1,
+                  2,
+                  6
+                ]
+              ],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [],
+              "inert_geoms": [
+                [
+                  1,
+                  2,
+                  3
+                ],
+                [
+                  1,
+                  3,
+                  33
+                ],
+                [
+                  1,
+                  9,
+                  12
+                ]
+              ],
+              "responsive_geoms": [
+                [
+                  5,
+                  63,
+                  64
+                ],
+                [
+                  1,
+                  6,
+                  8
+                ],
+                [
+                  4,
+                  2,
+                  2
+                ],
+                [
+                  1,
+                  4,
+                  10
+                ],
+                [
+                  5,
+                  4,
+                  8
+                ],
+                [
+                  1,
+                  6,
+                  10
+                ],
+                [
+                  1,
+                  8,
+                  10
+                ],
+                [
+                  1,
+                  10,
+                  10
+                ],
+                [
+                  1,
+                  10,
+                  12
+                ],
+                [
+                  1,
+                  10,
+                  14
+                ],
+                [
+                  1,
+                  10,
+                  16
+                ],
+                [
+                  1,
+                  10,
+                  18
+                ],
+                [
+                  1,
+                  8,
+                  8
+                ],
+                [
+                  1,
+                  8,
+                  12
+                ]
+              ],
+              "quantum": 1,
+              "had_conditional_blocks": false,
+              "cleared": true
+            },
+            "3": {
+              "level_idx": 3,
+              "avatar_geom": null,
+              "movable_geoms": [],
+              "goal_geoms": [],
+              "wall_geoms": [],
+              "hazard_geoms": [
+                [
+                  1,
+                  2,
+                  6
+                ]
+              ],
+              "switch_geoms": [
+                [
+                  1,
+                  2,
+                  6
+                ]
+              ],
+              "portal_geoms": [],
+              "collectible_geoms": [],
+              "refuted_geoms": [
+                [
+                  1,
+                  2,
+                  6
+                ]
+              ],
+              "inert_geoms": [
+                [
+                  1,
+                  12,
+                  33
+                ],
+                [
+                  1,
+                  2,
+                  3
+                ],
+                [
+                  1,
+                  3,
+                  4
+                ],
+                [
+                  1,
+                  2,
+                  6
+                ],
+                [
+                  1,
+                  3,
+                  9
+                ],
+                [
+                  1,
+                  3,
+                  18
+                ],
+                [
+                  1,
+                  3,
+                  12
+                ],
+                [
+                  1,
+                  3,
+                  30
+                ],
+                [
+                  2,
+                  4,
+                  6
+                ],
+                [
+                  1,
+                  3,
+                  33
+                ],
+                [
+                  3,
+                  1,
+                  8
+                ]
+              ],
+              "responsive_geoms": [
+                [
+                  5,
+                  6,
+                  9
+                ],
+                [
+                  1,
+                  3,
+                  3
+                ],
+                [
+                  5,
+                  9,
+                  9
+                ],
+                [
+                  1,
+                  9,
+                  12
+                ],
+                [
+                  1,
+                  9,
+                  15
+                ],
+                [
+                  1,
+                  12,
+                  21
+                ],
+                [
+                  1,
+                  12,
+                  24
+                ],
+                [
+                  1,
+                  12,
+                  27
+                ],
+                [
+                  1,
+                  12,
+                  30
+                ],
+                [
+                  1,
+                  9,
+                  18
+                ],
+                [
+                  1,
+                  9,
+                  21
+                ],
+                [
+                  1,
+                  9,
+                  24
+                ],
+                [
+                  1,
+                  9,
+                  27
+                ],
+                [
+                  1,
+                  9,
+                  30
+                ],
+                [
+                  1,
+                  12,
+                  12
+                ],
+                [
+                  1,
+                  12,
+                  15
+                ],
+                [
+                  1,
+                  12,
+                  18
+                ],
+                [
+                  1,
+                  7,
+                  9
+                ],
+                [
+                  1,
+                  7,
+                  12
+                ],
+                [
+                  1,
+                  7,
+                  15
+                ],
+                [
+                  1,
+                  7,
+                  18
+                ],
+                [
+                  1,
+                  7,
+                  21
+                ],
+                [
+                  1,
+                  7,
+                  24
+                ],
+                [
+                  1,
+                  7,
+                  27
+                ],
+                [
+                  1,
+                  7,
+                  30
+                ],
+                [
+                  5,
+                  6,
+                  7
+                ],
+                [
+                  1,
+                  6,
+                  12
+                ]
+              ],
+              "quantum": 1,
+              "had_conditional_blocks": false,
+              "cleared": false
+            }
+          }
+        },
+        "cross_game": "carry",
+        "modes": {
+          "discover": 1448,
+          "plan": 4,
+          "execute": 96,
+          "replan": 1
+        },
+        "llm_calls_by_level": {
+          "0": 1,
+          "1": 0,
+          "2": 0,
+          "3": 1
+        },
+        "excerpts": [
+          {
+            "level": 0,
+            "mode": "plan",
+            "action": "CLICK 61 25",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": true,
+            "decision": "plan",
+            "reason": "wrote a level plan. toggle(clickable)",
+            "roles": "receptor, reference, wall",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 39933.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 61 33",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 61 33",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 61 33",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 0,
+            "mode": "execute",
+            "action": "CLICK 61 33",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": true,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          },
+          {
+            "level": 1,
+            "mode": "plan",
+            "action": "CLICK 1 17",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": false,
+            "decision": "plan",
+            "reason": "wrote a level plan. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 1,
+            "mode": "execute",
+            "action": "CLICK 1 17",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 1,
+            "mode": "execute",
+            "action": "CLICK 1 25",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": false,
+            "decision": "execute",
+            "reason": "executing the level plan; models not called. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 0,
+            "step_ms": 0.0
+          },
+          {
+            "level": 3,
+            "mode": "replan",
+            "action": "CLICK 10 62",
+            "primitive": "toggle",
+            "predicate": "changed(role=switch)",
+            "predicate_hit": true,
+            "decision": "replan",
+            "reason": "replan after no progress. toggle(clickable)",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "toggle(clickable)",
+            "llm_calls_level": 1,
+            "step_ms": 42777.9
+          },
+          {
+            "level": 3,
+            "mode": "discover",
+            "action": "CLICK 16 62",
+            "primitive": "explore",
+            "predicate": "changed(role=clickable)",
+            "predicate_hit": true,
+            "decision": "accept",
+            "reason": "deterministic direction probe during discovery; models not called",
+            "roles": "receptor, reference, wall, switch, clickable",
+            "plan": "",
+            "llm_calls_level": 1,
+            "step_ms": 0.0
+          }
+        ]
+      }
+    }
+  ]
+}

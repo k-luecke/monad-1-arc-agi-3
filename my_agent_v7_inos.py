@@ -24,6 +24,7 @@ from __future__ import annotations
 import collections
 import copy
 import enum
+import functools
 import hashlib
 import heapq
 import itertools
@@ -257,7 +258,7 @@ class Brg1BridgeClient:                                                         
         except Exception:                                                                   # Control / block header: except Exception:
             self.read_timeout = 5.0                                                         # Execute INOS meta-reasoning operation: self.read_timeout = 5.0
         if os.getenv("INOS_USE_EXTERNAL_DAEMON", "0") == "1" and os.name != "nt":           # Control / block header: if os.getenv("INOS_USE_EXTERNAL_DAEMON", "0") == "1"
-            here = Path(__file__).resolve().parent                                          # Execute INOS meta-reasoning operation: here = Path(__file__).resolve().parent
+            here = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()  # Execute INOS meta-reasoning operation: here = Path(__file__).resolve().parent
             rust_candidates = [                                                             # Execute INOS meta-reasoning operation: rust_candidates = [
                 Path(os.environ["INOS_RUST_WORKER_BIN"]) if "INOS_RUST_WORKER_BIN" in os.environ else None,  # Execute INOS meta-reasoning operation: Path(os.environ["INOS_RUST_WORKER_BIN"]) if "I
                 Path("/tmp/inos_native/inos_arc_bridge_daemon"),                            # Execute INOS meta-reasoning operation: Path("/tmp/inos_native/inos_arc_bridge_daemon"
@@ -1287,8 +1288,12 @@ class DynamicPackedMerkleGraph:                                                 
             updated_u64 = BitPackedMerkleNodeCodec.pack_u64(shifted_sig32, old_pid16, new_w16)  # Execute collaborative step: updated_u64 = BitPackedMerkleNodeCodec.pack_u64(shif
             self.nodes_u64[best_idx] = np.uint64(updated_u64)                               # Access or update contiguous 64-bit structural node array (8 bytes per Merkle child)
             self.total_collapses += 1                                                       # Execute collaborative step: self.total_collapses += 1
-            if payload_meta:                                                                # Control / block header: if payload_meta:
-                self.cold_payload_store[shifted_sig32] = payload_meta                       # Execute collaborative step: self.cold_payload_store[shifted_sig32] = payload_met
+            prior_meta = self.cold_payload_store.get(old_sig32, {})
+            if prior_meta or payload_meta:                                                  # Control / block header: if prior_meta or payload_meta:
+                merged_meta = dict(prior_meta)
+                if payload_meta:
+                    merged_meta.update(payload_meta)
+                self.cold_payload_store[shifted_sig32] = merged_meta                        # Execute collaborative step: self.cold_payload_store[shifted_sig32] = merged_meta
             return updated_u64, "COLLAPSED_SIBLING", eps                                    # Execute collaborative step: return updated_u64, "COLLAPSED_SIBLING", eps
 
         if self.active_count >= len(self.nodes_u64):                                        # Access or update contiguous 64-bit structural node array (8 bytes per Merkle child)
@@ -1301,7 +1306,10 @@ class DynamicPackedMerkleGraph:                                                 
         self.branch_depth_by_parent[pid16] += 1                                             # Execute collaborative step: self.branch_depth_by_parent[pid16] += 1
         self.total_sprouts += 1                                                             # Execute collaborative step: self.total_sprouts += 1
         if payload_meta:                                                                    # Control / block header: if payload_meta:
-            self.cold_payload_store[sig32] = payload_meta                                   # Execute collaborative step: self.cold_payload_store[sig32] = payload_meta
+            prior_meta = self.cold_payload_store.get(sig32, {})
+            merged_meta = dict(prior_meta)
+            merged_meta.update(payload_meta)
+            self.cold_payload_store[sig32] = merged_meta                                    # Execute collaborative step: self.cold_payload_store[sig32] = merged_meta
         return new_u64, "SPROUTED_CHILD", eps                                               # Execute collaborative step: return new_u64, "SPROUTED_CHILD", eps
 
     def microglial_prune_and_reinforce_sweep(                                               # Tier-2 Microglial Pruning: dW/dt = -delta*W + Phi(Resonance), prune W < tau
@@ -1378,7 +1386,7 @@ class DynamicPackedMerkleGraph:                                                 
             "parent_primitive_id": parent.primitive_id if parent else f"SEED_{pid16:04d}",  # Execute collaborative step: "parent_primitive_id": parent.primitive_id if parent
             "core_knowledge_axiom": (parent.core_knowledge_axiom if parent and w16 >= 0x00FF else "SHALLOW_HEADER_ONLY"),  # Execute collaborative step: "core_knowledge_axiom": (parent.core_knowledge_axiom
             "top_down_operator": parent.top_down_operator if parent else "OBSERVE",         # Execute collaborative step: "top_down_operator": parent.top_down_operator if par
-            "cold_store_payload": cold_blob if w16 >= BitPackedMerkleNodeCodec.EXPANSION_FUSE_FULL else {},  # 16-bit high-activity fuse (0xF000): triggers full cold-store payload unpack
+            "cold_store_payload": dict(cold_blob) if (cold_blob or w16 >= BitPackedMerkleNodeCodec.EXPANSION_FUSE_SHALLOW) else {},  # Unpack stored payload whenever present or above shallow fuse
         }                                                                                   # Close structured composite expression or container literal
 
     def reinforce_tour_corridor_nodes(self, node_indices: tuple[int, ...] | list[int], boost16: int = 0x0040) -> int:  # Collaborative feedback: boost 16-bit weights of nodes on winning Gohst TSP tour
@@ -2016,7 +2024,16 @@ class MonadAssociativeMerkleTree:                                               
         self.total_procedural_endorsements: int = 0                                         # Count of procedures endorsed by the 64-bit Merkle Forest
         self.total_procedural_inhibitions: int = 0                                          # Count of procedures inhibited via causal LTD in the Merkle Forest
         self.total_autobiographical_replays: int = 0                                        # Count of autobiographical causal chain replays
-        self.total_win_chain_backprops: int = 0                                             # Count of retrospective win-chain LTP backpropagations                                                   # Execute collaborative step: self.master_merkle_root: str = ""
+        self.total_win_chain_backprops: int = 0                                             # Count of retrospective win-chain LTP backpropagations
+        self.proc_sig16_to_name: dict[int, str] = {}                                        # Reverse unhash table mapping 16-bit procedural hash -> procedure_name
+        self.sig32_to_child: dict[int, EntropyChildMerkleNode] = {}                         # Reverse unhash table mapping 32-bit SimHash -> EntropyChildMerkleNode
+        for _seed_proc in (
+            "GOAL:REACH", "GOAL:PLACE", "GOAL:MATCH",
+            "SOLVED:REACH", "SOLVED:PLACE", "SOLVED:MATCH",
+            "PROC_S16_NODE_GRAPH_GAUGE",
+            "PRIM:approach", "PRIM:convey", "PRIM:toggle", "PRIM:align", "PRIM:avoid", "PRIM:explore",
+        ):
+            self.proc_sig16_to_name[self.compute_procedure_sig16(_seed_proc)] = _seed_proc
         self._build_precreated_monad_effect_merkle_forest()                                 # Execute collaborative step: self._build_precreated_monad_effect_merkle_forest()
 
     @staticmethod                                                                           # Pure functional helper independent of mutable instance state
@@ -2025,6 +2042,7 @@ class MonadAssociativeMerkleTree:                                               
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]                         # Execute collaborative step: return hashlib.sha256(raw.encode("utf-8")).hexdigest
 
     @staticmethod                                                                           # Pure functional helper independent of mutable instance state
+    @functools.lru_cache(maxsize=4096)
     def compute_fuzzy_fingerprint(pattern: tuple[str, ...], entropy_level: int = 0) -> tuple[int, int, int, str]:  # Compute 3-Band Biometric Fuzzy Fingerprint (8b Ridge : 16b Minutiae : 32b SimHash)
         joined = "|".join(pattern)                                                          # Execute collaborative step: joined = "|".join(pattern)
         b1 = 0                                                                              # Execute collaborative step: b1 = 0
@@ -2341,15 +2359,22 @@ class MonadAssociativeMerkleTree:                                               
         prim_counts: dict[int, int] = collections.Counter()                                 # Per-parent branch count
         for p_list in self.children_by_pattern_hash.values():                               # Iterate pattern buckets
             for ch_node in p_list:                                                          # Iterate child branches
-                _, _, b3_sim32, _ = self.compute_fuzzy_fingerprint(ch_node.perturbed_pattern, ch_node.entropy_level)  # 32-bit SimHash
+                b1_r, b2_m, b3_sim32, _ = self.compute_fuzzy_fingerprint(ch_node.perturbed_pattern, ch_node.entropy_level)  # 3-Band fingerprint
                 pid16 = self.parent_prim_to_id16.get(ch_node.primitive_id, 1)               # 16-bit parent ID
                 w16 = 0xFFFF if ch_node.entropy_level == 0 else max(0x0400, 0xF000 - ch_node.entropy_level * 0x1000)  # 16-bit synaptic weight
                 prim_u64_list.append(BitPackedMerkleNodeCodec.pack_u64(b3_sim32, pid16, w16))  # Pack into 64-bit register
                 prim_counts[pid16] += 1                                                     # Increment parent depth
+                if b3_sim32 not in self.sig32_to_child or ch_node.entropy_level < self.sig32_to_child[b3_sim32].entropy_level:
+                    self.sig32_to_child[b3_sim32] = ch_node
+                parent_obj = self.parents_by_id.get(ch_node.primitive_id)
                 self.dynamic_merkle_graph.cold_payload_store[b3_sim32] = {                  # Register cold payload metadata
                     "primitive_id": ch_node.primitive_id,
                     "child_merkle_hash": ch_node.child_merkle_hash,
                     "entropy_level": ch_node.entropy_level,
+                    "perturbed_pattern": ch_node.perturbed_pattern,
+                    "b1_ridge": b1_r,
+                    "b2_minutiae": b2_m,
+                    "top_down_operator": parent_obj.top_down_operator if parent_obj else "OBSERVE",
                 }
         if prim_u64_list:                                                                   # Bulk-ingest all combinatorial primitive branches
             self.dynamic_merkle_graph.ingest_bulk_u64_nodes(np.array(prim_u64_list, dtype=np.uint64), prim_counts)
@@ -2481,6 +2506,11 @@ class MonadAssociativeMerkleTree:                                               
         h16 = int(hashlib.md5(procedure_name.encode("utf-8")).hexdigest()[:4], 16) & 0xFFFF  # Extract 16-bit MD5 prefix of procedure_name
         return h16 if h16 != 0 else 0x0001                                                  # Ensure non-zero 16-bit procedural identifier
 
+    def register_procedure_name(self, procedure_name: str) -> int:                          # Compute 16-bit signature and record reverse unhash mapping
+        h16 = self.compute_procedure_sig16(procedure_name)
+        self.proc_sig16_to_name[h16] = str(procedure_name)
+        return h16
+
     @classmethod                                                                            # Class method combining 16-bit board SimHash and 16-bit procedure hash
     def compute_procedural_causal_sig32(cls, grid: list[list[int]], procedure_name: str) -> tuple[int, int, int]:  # Return (board_sig16, proc_sig16, causal_sig32)
         b16 = cls.compute_board_fuzzy_sig16(grid)                                           # Compute 16-bit fuzzy topological board signature [31:16]
@@ -2508,12 +2538,118 @@ class MonadAssociativeMerkleTree:                                               
             return real_idx, min_d, pid16, w16                                              # Return matched 64-bit procedural node tuple
         return -1, 999, 0, 0                                                                # Return unmatched sentinel
 
+    def unhash_packed_node(self, packed_u64: int, relational_sig16: int | None = None) -> dict[str, Any]:
+        """Unhash a selected 64-bit Fuzzy Merkle node (and any consolidated relational/procedural siblings)
+        into actionable planning information: parent operator, decoded 5-tuple pattern, minutiae flags,
+        relational board features, endorsed/refuted goals, recommended primitives, and candidate bias."""
+        sig32, pid16, w16 = BitPackedMerkleNodeCodec.unpack_u64(int(packed_u64))
+        parent = self.parent_id16_to_parent.get(pid16)
+        prim_id = parent.primitive_id if parent else f"SEED_{pid16:04d}"
+        operator = parent.top_down_operator if parent else "OBSERVE"
+        axiom = parent.core_knowledge_axiom if parent else ""
+        cold_blob = dict(self.dynamic_merkle_graph.cold_payload_store.get(sig32, {}) or {})
+        ch_node = self.sig32_to_child.get(sig32)
+        decoded_pattern = (
+            tuple(ch_node.perturbed_pattern)
+            if ch_node is not None
+            else tuple(cold_blob.get("perturbed_pattern") or (parent.canonical_features if parent else ()))
+        )
+        minutiae_names = (
+            "OPPOSED", "OPEN_NOOP", "BLOCKED", "HAZARD",
+            "INERT", "GATED", "DECOY", "COUPLED",
+            "CORRIDOR_OPEN", "CORRIDOR_UNPROBED", "PX_ZERO", "PX_LARGE_JUMP",
+            "S16_SHIFTED", "CTRL_DPAD", "CTRL_HYBRID", "CTRL_POINTER",
+        )
+        b2_val = cold_blob.get("b2_minutiae")
+        if b2_val is None and decoded_pattern:
+            _, b2_val, _, _ = self.compute_fuzzy_fingerprint(decoded_pattern, int(cold_blob.get("entropy_level") or 0))
+        decoded_minutiae = [
+            tok for idx, tok in enumerate(minutiae_names) if isinstance(b2_val, int) and ((b2_val >> idx) & 1)
+        ]
+        upper16 = (sig32 >> 16) & 0xFFFF
+        lower16 = sig32 & 0xFFFF
+        decoded_proc = str(cold_blob.get("procedure") or self.proc_sig16_to_name.get(lower16) or "")
+        rel_b16 = int(relational_sig16) & 0xFFFF if relational_sig16 is not None else upper16
+        decoded_board_relations = {
+            "has_dpad": bool((rel_b16 >> 15) & 1),
+            "has_pointer": bool((rel_b16 >> 14) & 1),
+            "has_avatar": bool((rel_b16 >> 13) & 1),
+            "has_panel_pair": bool((rel_b16 >> 12) & 1),
+            "has_pushable": bool((rel_b16 >> 11) & 1),
+            "shape_bucket": int((rel_b16 >> 8) & 0x7),
+            "color_bucket": int((rel_b16 >> 4) & 0xF),
+            "unique_small_objs": int(rel_b16 & 0xF),
+        }
+        endorsed_goals: list[str] = []
+        refuted_goals: list[str] = []
+        endorsed_primitives: list[str] = []
+        if decoded_proc:
+            for gname in ("REACH", "PLACE", "MATCH"):
+                if gname in decoded_proc:
+                    if w16 < 0x0200 or pid16 == self.parent_prim_to_id16.get("PRIM_12_PROCEDURAL_CAUSAL_REFUTATION_REDIRECT", 12):
+                        refuted_goals.append(gname)
+                    elif w16 >= 0x0600 or cold_blob.get("solved"):
+                        endorsed_goals.append(gname)
+            if decoded_proc.startswith("PRIM:"):
+                pname = decoded_proc.split(":", 1)[1].strip()
+                if pname and w16 >= 0x0600:
+                    endorsed_primitives.append(pname)
+        for gname in ("REACH", "PLACE", "MATCH"):
+            for prefix in ("SOLVED:", "GOAL:"):
+                proc_tag = f"{prefix}{gname}"
+                p16_q = self.register_procedure_name(proc_tag)
+                idx_q, _d_q, pid_q, w_q = self._find_procedural_node_in_graph(rel_b16, p16_q, max_board_hamming=2)
+                if idx_q >= 0:
+                    if w_q >= 0x0600 and gname not in endorsed_goals:
+                        endorsed_goals.append(gname)
+                    elif (w_q < 0x0200 or pid_q == 12) and gname not in refuted_goals:
+                        refuted_goals.append(gname)
+        prim_map = {
+            "PRIM_01_CONTROL_GAUGE_INVERSION": (["explore", "approach"], "invert_dpad"),
+            "PRIM_02_S16_PALETTE_GAUGE_EQUIVARIANCE": (["approach", "explore"], "shape_invariant"),
+            "PRIM_03_ILLUSORY_VS_SOLID_BARRIER": (["route", "approach"], "detour_wall"),
+            "PRIM_04_COUPLED_REMOTE_SWITCH_GATE": (["toggle", "approach"], "switch_first"),
+            "PRIM_05_DYNAMIC_SENTRY_PATROL_PHASE": (["avoid", "approach"], "avoid_hazard"),
+            "PRIM_06_DECOY_GOAL_INHIBITION": (["explore", "approach"], "refute_decoy"),
+            "PRIM_07_MULTI_OPERATOR_COUPLED_SYMMETRY": (["convey", "approach"], "coupled_avatar"),
+            "PRIM_08_DEMONSTRATION_PANEL_CEGIS_SYNTHESIS": (["align", "toggle"], "match_panel"),
+            "PRIM_08_TEMPLATE_PANEL_MULTI_STEP_INDUCTION": (["align", "toggle"], "match_panel"),
+            "PRIM_11_AUTOBIOGRAPHICAL_CAUSAL_WIN_CHAIN": (["approach", "convey", "toggle"], "win_chain"),
+            "PRIM_12_PROCEDURAL_CAUSAL_REFUTATION_REDIRECT": (["explore", "toggle"], "refute_decoy"),
+        }
+        rec_prims, cand_bias = prim_map.get(prim_id, (["approach", "explore"], "canonical"))
+        for p in rec_prims:
+            if p not in endorsed_primitives:
+                endorsed_primitives.append(p)
+        if prim_id in ("PRIM_08_DEMONSTRATION_PANEL_CEGIS_SYNTHESIS", "PRIM_08_TEMPLATE_PANEL_MULTI_STEP_INDUCTION") and "MATCH" not in endorsed_goals:
+            endorsed_goals.append("MATCH")
+        elif prim_id == "PRIM_04_COUPLED_REMOTE_SWITCH_GATE" and "REACH" not in endorsed_goals:
+            endorsed_goals.append("REACH")
+        return {
+            "sig32": sig32,
+            "parent_id16": pid16,
+            "weight16": w16,
+            "parent_primitive_id": prim_id,
+            "top_down_operator": operator,
+            "core_knowledge_axiom": axiom,
+            "decoded_pattern": decoded_pattern,
+            "decoded_minutiae": decoded_minutiae,
+            "decoded_procedure": decoded_proc,
+            "decoded_board_relations": decoded_board_relations,
+            "endorsed_goals": endorsed_goals,
+            "refuted_goals": refuted_goals,
+            "recommended_primitives": endorsed_primitives,
+            "candidate_bias": cand_bias,
+            "cold_payload": cold_blob,
+        }
+
     def evaluate_procedural_merkle_endorsement(                                             # Query 64-bit Merkle Forest to endorse or inhibit a candidate procedure
         self,                                                                               # Instance reference for MonadAssociativeMerkleTree
         grid: list[list[int]],                                                              # Current 64x64 sensory board S_t
         procedure_name: str,                                                                # Candidate procedural operator or gauge transformation name
         counterfactual_affordance_fn: Any = None,                                           # Optional callable testing whether procedure unlocks downstream plan
     ) -> dict[str, Any]:                                                                    # Return procedural endorsement decision and replayed causal telemetry
+        self.register_procedure_name(procedure_name)
         b16, p16, c32 = self.compute_procedural_causal_sig32(grid, procedure_name)          # Compute 32-bit procedural causal signature
         idx, dist, pid16, w16 = self._find_procedural_node_in_graph(b16, p16, max_board_hamming=3)  # Search 64-bit Merkle graph for prior procedural memory
         if idx >= 0 and (w16 < 0x0200 or pid16 == self.parent_prim_to_id16.get("PRIM_12_PROCEDURAL_CAUSAL_REFUTATION_REDIRECT", 12)):  # Check if procedure was causally refuted via LTD
@@ -2613,7 +2749,7 @@ class MonadAssociativeMerkleTree:                                               
         """Credit assignment on the agent's own wins (PRIM_11 autobiographical win chain):
         consolidate the (board_sig16, procedure) node with strong LTP so later retrieval
         ranks the winning procedure first in fuzzy-matching board contexts."""
-        p16 = self.compute_procedure_sig16(procedure_name)                                  # 16-bit procedural operator signature
+        p16 = self.register_procedure_name(procedure_name)                                  # 16-bit procedural operator signature
         c32 = (((int(board_sig16) & 0xFFFF) << 16) | p16) & 0xFFFFFFFF                      # Packed 32-bit causal signature
         pid_win = self.parent_prim_to_id16.get("PRIM_11_AUTOBIOGRAPHICAL_CAUSAL_WIN_CHAIN", 11)  # Win-chain parent coordinate
         idx, _dist, _pid, w = self._find_procedural_node_in_graph(int(board_sig16) & 0xFFFF, p16, max_board_hamming=0)  # Exact node lookup
@@ -2621,10 +2757,15 @@ class MonadAssociativeMerkleTree:                                               
         u64_new = BitPackedMerkleNodeCodec.pack_u64(c32, pid_win, w_new)                    # Pack consolidated 64-bit node
         if idx >= 0:                                                                        # Update existing node in place
             self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(u64_new)                   # Write consolidated register
-        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Append new consolidated node
+        else:                                                                               # Append new consolidated node (growing buffer if needed)
+            if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
+                grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
+                grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
+                self.dynamic_merkle_graph.nodes_u64 = grown
             ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot
             self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(u64_new)                 # Store node
             self.dynamic_merkle_graph.active_count += 1                                     # Increment active count
+            self.dynamic_merkle_graph.branch_depth_by_parent[pid_win] += 1
         self.dynamic_merkle_graph.cold_payload_store[c32] = dict(                           # Register solved-pattern metadata
             {"procedure": procedure_name, "level_idx": int(level_idx), "solved": True},
             **(payload or {}),
@@ -2648,6 +2789,7 @@ class MonadAssociativeMerkleTree:                                               
         metric_gamma: float = 1.0,                                                          # Relativistic metric dilation gamma_metric(t) from Observer Field Theory
     ) -> AutobiographicalCausalEpisode:                                                     # Return newly chained AutobiographicalCausalEpisode
         pre_g = prev_grid if prev_grid is not None else curr_grid                           # Fallback to curr_grid on initial frame
+        self.register_procedure_name(procedure_name)
         pre_b16, proc_p16, causal_sig32 = self.compute_procedural_causal_sig32(pre_g, procedure_name)  # Compute antecedent 32-bit procedural causal signature
         post_b16 = self.compute_board_fuzzy_sig16(curr_grid)                                # Compute consequent 16-bit fuzzy board signature
         playfield_px = (                                                                    # Count playfield pixel mutations excluding bottom HUD timer rows (r >= 60)
@@ -2697,10 +2839,15 @@ class MonadAssociativeMerkleTree:                                               
         packed_u64 = BitPackedMerkleNodeCodec.pack_u64(causal_sig32, new_pid16, new_w16)    # Bit-pack updated 64-bit procedural node
         if idx >= 0:                                                                        # Update existing 64-bit node in contiguous array
             self.dynamic_merkle_graph.nodes_u64[idx] = np.uint64(packed_u64)                # Write updated 64-bit node register
-        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64):  # Insert new 64-bit procedural node
+        elif self.dynamic_merkle_graph.active_count < len(self.dynamic_merkle_graph.nodes_u64) or procedure_name.startswith(("GOAL:", "SOLVED:", "PRIM:")):
+            if self.dynamic_merkle_graph.active_count >= len(self.dynamic_merkle_graph.nodes_u64):
+                grown = np.zeros(len(self.dynamic_merkle_graph.nodes_u64) * 2, dtype=np.uint64)
+                grown[: self.dynamic_merkle_graph.active_count] = self.dynamic_merkle_graph.nodes_u64[: self.dynamic_merkle_graph.active_count]
+                self.dynamic_merkle_graph.nodes_u64 = grown
             ins_i = self.dynamic_merkle_graph.active_count                                  # Next free slot in 64-bit array
             self.dynamic_merkle_graph.nodes_u64[ins_i] = np.uint64(packed_u64)              # Write new 64-bit node register
             self.dynamic_merkle_graph.active_count += 1                                     # Increment active node count
+            self.dynamic_merkle_graph.branch_depth_by_parent[new_pid16] += 1
 
         prev_hash = self.autobiographical_causal_chain[-1].episode_merkle_hash if self.autobiographical_causal_chain else self.master_merkle_root  # Link to previous episode hash
         raw_ep = f"{prev_hash}|{step_t}|{level_idx}|{causal_sig32:08x}|{post_b16:04x}|{procedure_name}|{executed_action}|{kappa:.2f}"  # Serialize causal transition
@@ -4169,6 +4316,10 @@ if HAS_TORCH:
 
             return torch.cat([action_logits, coord_logits], dim=1)
 
+class _GameSolversOff(Exception):
+    """Raised to skip the per-game solver tier without running any of those methods."""
+
+
 class MyAgent(Agent):
     """Monad(1) + INOS Hybrid Structural World-Model & Online GPU ActionModel CNN Agent for ARC-AGI-3."""
     MODEL_NAME = "monad(1P0)"
@@ -4305,7 +4456,7 @@ class MyAgent(Agent):
             super().__init__(*args, **kwargs)
         except TypeError:
             self.game_id = str(kwargs.get("game_id", args[0] if args else "unknown"))
-            self.frames = []
+            self.frames = [FrameData(levels_completed=0)]
         self.bridge = Brg1BridgeClient.get()
         self.rng = random.Random(42)
         self.game_start_time: float | None = None
@@ -4453,7 +4604,10 @@ class MyAgent(Agent):
             os.getenv("MONAD1_DISABLE_GAME_SOLVERS", "0") == "1"
         )
         self.ggl_enabled = (
-            self.game_specific_solvers_disabled
+            (
+                self.game_specific_solvers_disabled
+                or bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
+            )
             and os.getenv("MONAD1_DISABLE_GOAL_ENGINE", "0") != "1"
         ) or os.getenv("MONAD1_FORCE_GOAL_ENGINE", "0") == "1"
         self._ggl_init_game_state()
@@ -4463,13 +4617,21 @@ class MyAgent(Agent):
         #   MONAD1_CANVAS_REHEARSAL=1  roll candidate plans through that model before acting
         #   MONAD1_WINS_TEACH=1        log general win records and call inos_merkle_log_solved_pattern
         #   MONAD1_RELATION_MEMORY=path  load relation-keyed records (no game ids) and bias goal type
-        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1"
-        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1"
+        self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "0") == "1" or os.getenv("MONAD2_REHEARSAL", "0") == "1"
+        self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "0") == "1" or os.getenv("MONAD2_REHEARSAL", "0") == "1"
         self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "0") == "1"
         self.relation_memory_path = os.getenv("MONAD1_RELATION_MEMORY", "").strip()
         self._fx_init_game_state()
         if self.relation_memory_path:
             self._wt_load_memory(self.relation_memory_path)
+        self._m2_runtime = None
+        self.m2_cross_game = "carry"
+        try:
+            import monad2.runtime as _m2rt
+            self._m2_runtime = _m2rt
+            _m2rt.init_agent(self)
+        except Exception:
+            self.m2_cross_game = "carry"
         if self.game_specific_solvers_disabled:
             self._disable_game_specific_solvers()
 
@@ -4496,7 +4658,71 @@ class MyAgent(Agent):
             self.cnn_optimizer = None
             return False
 
+    def _m2_assign_level(self) -> None:
+        import monad2.factorial as _m2fz
+
+        _m2fz.assign_level(self)
+
+    def _m2_tonic_limits(self) -> tuple[int | None, int]:
+        """Depth cap and rehearsal breadth. Unset flag keeps the fixed search."""
+        if os.getenv("MONAD2_TONIC", "0") != "1":
+            return None, 3
+        raw = 4
+        narr = self.self_narrative if isinstance(getattr(self, "self_narrative", None), dict) else {}
+        if narr.get("inos_depth_budget") is not None:
+            try:
+                raw = int(narr["inos_depth_budget"])
+            except (TypeError, ValueError):
+                raw = 4
+        depth = max(1, min(8, raw))
+        return depth, max(1, min(3, (depth + 1) // 2))
+
+    def _m2_restore_baseline_level(self) -> None:
+        """Restart this level under the baseline policy.
+
+        Decision flags are already off. The level-start residue is put back
+        before the world model is rebuilt, so gauge flips and goal votes from
+        the diverged prefix do not steer the replay. One RESET then returns
+        the game to the start of this level.
+        """
+        import os
+
+        from monad2.factorial import FACTORS
+        from monad2.runtime import apply_policy_residue
+
+        self._m2_in_restore = True
+        try:
+            if getattr(self, "planned_queue", None) is not None:
+                self.planned_queue.clear()
+            if getattr(self, "bfs_route_queue", None) is not None:
+                self.bfs_route_queue.clear()
+            self.active_macro_family = None
+            apply_policy_residue(self)
+            self._reset_level_world_model()
+        finally:
+            self._m2_in_restore = False
+        self._m2_stall_fallback = True
+        for name in FACTORS:
+            os.environ[name] = "0"
+        self.m2_cross_game = "carry"
+        os.environ["MONAD2_CROSS_GAME"] = "carry"
+        if os.getenv("MONAD1_CANVAS_REHEARSAL", "0") != "1":
+            self.rehearse_enabled = False
+        if os.getenv("MONAD1_EFFECT_MODEL", "0") != "1":
+            self.fx_enabled = False
+        stats = getattr(self, "m2", None)
+        if isinstance(stats, dict):
+            stats["level_restores"] = stats.get("level_restores", 0) + 1
+
     def _reset_level_world_model(self) -> None:
+        if not getattr(self, "_m2_in_restore", False):
+            try:
+                from monad2.runtime import capture_policy_residue
+
+                capture_policy_residue(self)
+            except Exception:
+                pass
+        self._m2_assign_level()
         self.state_grids: dict[int, list[list[int]]] = {}
         self.state_actions: dict[int, list[ActionKey]] = {}
         self.state_actions_version: dict[int, tuple[int, int]] = {}
@@ -4681,6 +4907,29 @@ class MyAgent(Agent):
         else:
             self.second_order_canvas.reset()
         self.stm_shard = Monad1ShortTermMemoryShard(task_id=f"{self.game_id}_L{self.current_level}", level_idx=self.current_level)
+        if (
+            getattr(self, "game_specific_solvers_disabled", False)
+            or bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
+            or os.getenv("MONAD1_FORCE_GOAL_ENGINE", "0") == "1"
+        ) and os.getenv("MONAD2_FACTORIAL", "0") != "1":
+            self._m2_stall_fallback = False
+            self._m2_pending_level_restore = False
+            self._m2_unchanged_streak = 0
+            self.ggl_enabled = os.getenv("MONAD1_DISABLE_GOAL_ENGINE", "0") != "1"
+            self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "1") == "1"
+            self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "1") == "1"
+            self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "1") == "1"
+            for _m2_flag in (
+                "MONAD2_COORDINATE",
+                "MONAD2_SCP",
+                "MONAD2_GOAL_DISCOVERY",
+                "MONAD2_CALLOSUM",
+                "MONAD2_DLADDER",
+                "MONAD2_REHEARSAL",
+                "MONAD2_TONIC",
+                "MONAD2_GRAFT",
+            ):
+                os.environ[_m2_flag] = "1"
         if hasattr(self, "ggl_enabled"):
             self._ggl_reset_level_state()
         if hasattr(self, "fx_enabled"):
@@ -4787,6 +5036,8 @@ class MyAgent(Agent):
             self.replay_mode
             or self.planned_queue
             or self.last_step_was_planned
+            or self.bfs_route_queue
+            or (getattr(self, "ggl_enabled", False) and getattr(self, "ggl_active", None) is not None)
         )
 
     def _update_dynamic_step_budget(self, latest_frame: FrameData) -> int:
@@ -4930,7 +5181,29 @@ class MyAgent(Agent):
         return 3 + sum(len(self.learned_level_opt_plans[l]) for l in range(k))
 
     def _should_trigger_optimal_replay(self, is_win: bool) -> bool:
-        return False
+        if not is_win or self.replay_mode or self.replay_play_completed:
+            return False
+        if os.getenv("MONAD_OPTIMAL_WIN_REPLAY", "1") == "0":
+            return False
+        if not (
+            self.game_specific_solvers_disabled
+            or int(getattr(self, "m2_round_idx", 1) or 1) > 1
+            or os.getenv("MONAD_OPTIMAL_WIN_REPLAY", "0") == "1"
+            or bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
+        ):
+            return False
+        k = self._consecutive_learned_levels()
+        if k <= 0 or k < self.current_level:
+            return False
+        opt_sum = sum(len(self.learned_level_opt_plans.get(l, ())) for l in range(k))
+        if opt_sum <= 0:
+            return False
+        if self.action_counter <= opt_sum + 2:
+            return False
+        rem_session = self._session_remaining_seconds()
+        if rem_session is not None and rem_session < 15.0:
+            return False
+        return True
 
     def _activate_optimal_replay(self, target_levels: int) -> None:
         k = min(target_levels, self._consecutive_learned_levels())
@@ -4951,6 +5224,9 @@ class MyAgent(Agent):
 
     def _on_level_or_puzzle_solved(self, latest_frame: FrameData) -> None:
         lvl_done = int(getattr(latest_frame, "levels_completed", 0) or 0)
+        self._max_levels_completed = max(
+            int(getattr(self, "_max_levels_completed", 0) or 0), lvl_done
+        )
         is_win = latest_frame.state is GameState.WIN
         if lvl_done < self.current_level and not self.replay_mode:
             if self.current_level_executed_actions:
@@ -5057,12 +5333,14 @@ class MyAgent(Agent):
                 self.active_macro_family,
                 True,
             )
-            if getattr(self, "ggl_enabled", False):
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            _tier1_active = bool(_m2_rt is not None and _m2_rt.has_active_tier1_macro(self))
+            if getattr(self, "ggl_enabled", False) and not _tier1_active:
                 try:
                     self._ggl_on_level_completed(lvl_done)
                 except Exception:
                     pass
-            if getattr(self, "wins_teach", False):
+            if getattr(self, "wins_teach", False) and not _tier1_active:
                 try:
                     # Prefer the last in-level board. The completion frame is often
                     # already the next level, which is not the situation that was solved.
@@ -5071,9 +5349,21 @@ class MyAgent(Agent):
                 except Exception:
                     pass
             self.current_level = lvl_done
+            if _m2_rt is not None and _m2_rt.on("MONAD2_COORDINATE") and self.prev_hash is not None and not _tier1_active:
+                try:
+                    from monad2.coordinate import observe as _m2_observe
+
+                    raw_g = _grid_from_frame(latest_frame)
+                    if raw_g is not None:
+                        self._m2_grid = [row[:] for row in raw_g]
+                    _m2_observe(self, True)
+                except Exception:
+                    pass
             self._reset_level_world_model()
             if self.replay_mode and self.replay_started:
                 if self.current_level >= self.replay_target_levels or is_win:
+                    if is_win:
+                        self.replay_win_actions = int(self.replay_steps_taken)
                     self.replay_play_completed = True
                     self.force_done = True
                 elif self.current_level in self.learned_level_opt_plans:
@@ -5114,11 +5404,98 @@ class MyAgent(Agent):
             return None
         try:
             start_epoch = float(raw_start)
-            session_limit = float(os.getenv("MONAD_SESSION_SECONDS", str(9 * 3600)))
-            reserve = float(os.getenv("MONAD_FINALIZE_RESERVE_SECONDS", "300"))
+            session_limit = float(os.getenv("MONAD_SESSION_SECONDS", str(6 * 3600)))
+            reserve = float(os.getenv("MONAD_FINALIZE_RESERVE_SECONDS", "240"))
         except Exception:
             return None
         return (start_epoch + session_limit - reserve) - time.time()
+
+    def prepare_for_next_round(self, round_idx: int, slice_seconds: float) -> None:
+        """Re-arm an unsolved game agent for Round `round_idx` of the 6-hour 100%-solution loop."""
+        r_idx = max(2, int(round_idx))
+        self.m2_round_idx = r_idx
+        self.m2_pass_idx = 2
+        self.force_done = False
+        self._m2_stall_fallback = False
+        self._m2_pending_level_restore = False
+        self._m2_unchanged_streak = 0
+        self._consecutive_game_over_resets = 0
+        self._last_game_over_grid = None
+        self.game_start_time = time.monotonic()
+        self.timer = time.time()
+        self.max_game_seconds = max(5.0, float(slice_seconds))
+        self.rng.seed(42 + 997 * r_idx)
+
+        extra_actions = max(2500, int(self.max_game_seconds * 45))
+        self.base_action_budget = max(
+            self.base_action_budget, self.action_counter + extra_actions
+        )
+        self.max_exploration_cap = max(
+            self.max_exploration_cap, self.action_counter + extra_actions * 2
+        )
+        self.MAX_MACRO_CAP = max(
+            self.MAX_MACRO_CAP, self.action_counter + extra_actions * 2
+        )
+        self.MAX_ACTIONS = max(self.MAX_ACTIONS, self.action_counter + extra_actions)
+
+        # Re-enable General Goal Engine, effect modeling, canvas rehearsal, and Monad(2) coordination
+        self.ggl_enabled = True
+        self.fx_enabled = True
+        self.rehearse_enabled = True
+        self.wins_teach = True
+        for flag_name in (
+            "MONAD2_COORDINATE",
+            "MONAD2_GOAL_DISCOVERY",
+            "MONAD2_CALLOSUM",
+            "MONAD2_REHEARSAL",
+            "MONAD2_TONIC",
+            "MONAD2_GRAFT",
+            "MONAD2_DLADDER",
+            "MONAD2_PLL_SURPRISE",
+        ):
+            os.environ[flag_name] = "1"
+        os.environ["MONAD2_PASS"] = "2"
+
+        # Clear per-round search exhaustion locks while preserving learned transitions, dead_actions, and level plans
+        self.replanned_state_hashes.clear()
+        self.replan_attempts_in_level = 0
+        self.macro_plan_attempted = False
+        self.online_kinematic_plan_hashes.clear()
+        self.online_kinematic_plan_attempts = 0
+        self.exhausted_frontiers.clear()
+        self.bfs_target_attempts.clear()
+        self.steps_since_novel_atom = 0
+        self.planned_queue.clear()
+        self.bfs_route_queue.clear()
+
+        try:
+            from monad2.synthesizer import synthesize_solver_from_pass1
+
+            slot_id = int(getattr(self, "m2_game_slot", 0) or 0)
+            spec = synthesize_solver_from_pass1(self, slot=slot_id if slot_id > 0 else None)
+            if spec is not None and r_idx >= 3:
+                all_fams = [
+                    "SWITCH_GATE",
+                    "WAYPOINT_TOUR",
+                    "SOKOBAN_PUSH",
+                    "PANEL_ALIGN",
+                    "REACH_BFS",
+                ]
+                rot = (r_idx - 2) % len(all_fams)
+                rotated = all_fams[rot:] + all_fams[:rot]
+                spec.secondary_families = [
+                    f for f in rotated if f != spec.solver_family
+                ]
+                if r_idx % 2 == 1:
+                    spec.switch_first = not bool(spec.switch_first)
+            coord = getattr(self, "_m2_coord", None)
+            if isinstance(coord, dict):
+                coord["corridor_tour_queue"] = []
+                coord["synth_tried_clicks"] = []
+                coord["llm_calls_level"] = 0
+                coord["interventions_level"] = 0
+        except Exception:
+            pass
 
     def is_done(self, frames: list[FrameData], latest_frame: FrameData) -> bool:
         try:
@@ -5163,6 +5540,8 @@ class MyAgent(Agent):
                 latest_frame.state is GameState.WIN
                 or self.current_level >= self.replay_target_levels
             ):
+                if latest_frame.state is GameState.WIN:
+                    self.replay_win_actions = int(self.replay_steps_taken)
                 self.replay_play_completed = True
                 self.force_done = True
                 return True
@@ -5179,19 +5558,25 @@ class MyAgent(Agent):
                 self._activate_optimal_replay(self.current_level)
                 return False
             return True
+        r_mult = max(1, int(getattr(self, "m2_round_idx", 1) or 1))
         level_stagnated = bool(
-            self.steps_in_level >= 1500
+            self.steps_in_level >= 1500 * r_mult
             or (
                 not self._has_active_macro_or_closed_loop()
-                and self.steps_in_level >= 600
-                and self.steps_since_novel_atom >= 300
-                and self.level_resets_in_level >= 4
+                and self.steps_in_level >= 600 * r_mult
+                and self.steps_since_novel_atom >= 300 * r_mult
+                and self.level_resets_in_level >= 4 * r_mult
             )
         )
         session_remaining = self._session_remaining_seconds()
+        _coord_cap = os.getenv("MONAD2_COORD_MAX_ACTIONS", "").strip()
+        _coord_hit = False
+        if _coord_cap.isdigit():
+            _coord_hit = self.action_counter >= int(_coord_cap) * r_mult
         budget_exhausted = bool(
             elapsed >= self.max_game_seconds
             or self.action_counter >= self.MAX_ACTIONS
+            or _coord_hit
             or (session_remaining is not None and session_remaining <= 0.0)
         )
         if level_stagnated or budget_exhausted:
@@ -5238,7 +5623,11 @@ class MyAgent(Agent):
             and not self.responsive_geom_sigs
             and not self.mutable_object_sigs
         ):
-            return self.GLOBAL_SOLVED_GEOM_PRIORS[geom] > 0
+            n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[geom])
+            rt = getattr(self, "_m2_runtime", None)
+            if rt is not None:
+                n = rt.earned_count(self, n, geom, "geom")
+            return n > 0
         return False
 
     def _compute_active_playfield_bbox(
@@ -5642,7 +6031,8 @@ class MyAgent(Agent):
 
         # 1. `warehouse_box_grid` (4x4 cell-grid with color-14 directional player)
         if (
-            self.active_macro_family in (None, "cooperative_box_warehouse")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "cooperative_box_warehouse")
             and arr0.shape == (64, 64)
             and int(np.sum(arr0[4:, :] == 1)) >= 200
         ):
@@ -5664,7 +6054,8 @@ class MyAgent(Agent):
 
         # 2. `node_edge_graph` (3x3 blue player sprite `body==9`)
         if (
-            self.active_macro_family in (None, "node_graph_sentries")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "node_graph_sentries")
             and arr0.shape == (64, 64)
             and set(np.unique(arr0[63, :])) <= {0, 6}
             and int(np.sum(arr0[:63, :] == 5)) >= 1500
@@ -5693,12 +6084,14 @@ class MyAgent(Agent):
 
         # 3. `split_switch_gate` (2x2 color-14 avatar on left playfield)
         if (
-            self.active_macro_family in (None, "hybrid_switch_navigation")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "hybrid_switch_navigation")
             and arr0.shape == (64, 64)
             and sum(
                 1
                 for r in range(16, 48, 4)
                 for c in range(40, 62, 4)
+                for _ in (0,)
                 if int(arr0[r, c]) == 5
             )
             >= 12
@@ -5722,7 +6115,8 @@ class MyAgent(Agent):
 
         # 3b. `key_forge_labyrinth` (5x5 cell labyrinth player with color 12 top and color 9 bottom at col+2)
         if (
-            self.active_macro_family in (None, "shape_color_rot_labyrinth")
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family in (None, "shape_color_rot_labyrinth")
             and arr0.shape == (64, 64)
             and bool(np.all(arr0[0:52, 0:4] == 5))
             and int(arr0[60, 12]) == 5
@@ -5762,7 +6156,8 @@ class MyAgent(Agent):
 
         # 3c. `shape_target_align` (`shape_target_alignment`: 1x1 white selection dot `0` inside selected shape)
         if (
-            self.active_macro_family == "shape_target_alignment"
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family == "shape_target_alignment"
             and arr0.shape == (64, 64)
         ):
             def _find_shape_align_sel_dot(a: Any) -> tuple[int, int] | None:
@@ -5822,7 +6217,8 @@ class MyAgent(Agent):
 
         # 3d. `connector_piece_assembly` (`connector_piece_assembly`: 20x20 coarse grid at `2:62:3` with selected piece body `0`)
         if (
-            self.active_macro_family == "connector_piece_assembly"
+            not self.game_specific_solvers_disabled
+            and self.active_macro_family == "connector_piece_assembly"
             and arr0.shape == (64, 64)
         ):
             g0 = arr0[2:62:3, 2:62:3]
@@ -5991,6 +6387,11 @@ class MyAgent(Agent):
                     else:
                         self.canonical_to_raw_dpad[intended_dir] = old_raw_for_obs
                         self.raw_to_canonical_dpad[old_raw_for_obs] = intended_dir
+                    _m2_st = getattr(self, "_m2_coord", None)
+                    if isinstance(_m2_st, dict):
+                        _m2_st["route_blocks"] = []
+                        _m2_st["conditional_blocks"] = []
+                        _m2_st["route_prefix"] = []
                     return True
         elif (
             self.last_step_was_planned
@@ -6010,6 +6411,11 @@ class MyAgent(Agent):
             self.raw_to_canonical_dpad[r_opp] = intended_dir
             self.raw_to_canonical_dpad[r_int] = opp_c
             self.control_inversions_detected += 1
+            _m2_st = getattr(self, "_m2_coord", None)
+            if isinstance(_m2_st, dict):
+                _m2_st["route_blocks"] = []
+                _m2_st["conditional_blocks"] = []
+                _m2_st["route_prefix"] = []
             return True
         return False
 
@@ -6028,7 +6434,7 @@ class MyAgent(Agent):
         self, grid: list[list[int]]
     ) -> tuple[str, tuple[int, int], int] | None:
         """Extracts `(archetype_name, logical_pos, step_stride)` for the active controllable avatar."""
-        if len(grid) != 64 or len(grid[0]) != 64:
+        if self.game_specific_solvers_disabled or len(grid) != 64 or len(grid[0]) != 64:
             return None
         arr = np.asarray(grid, dtype=int)
         # 1. node_edge_graph
@@ -6194,7 +6600,7 @@ class MyAgent(Agent):
     ) -> tuple[Any, ...] | None:
         """Computes a static structural signature of the puzzle layout to detect mid-puzzle
         reverts to an old puzzle or random spawning/completion of a nested sub-puzzle."""
-        if len(grid) != 64 or len(grid[0]) != 64:
+        if self.game_specific_solvers_disabled or len(grid) != 64 or len(grid[0]) != 64:
             return None
         arr = np.asarray(grid, dtype=int)
         # 1. node_edge_graph: static red-2 edge bridges
@@ -16479,15 +16885,20 @@ class MyAgent(Agent):
             for s in doc.shapes:
                 if 1 <= s.area <= 64:
                     by_geom[s.shape_geom_sig].append(s)
-            unique_priors = [
-                (self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g], lst[0])
-                for g, lst in by_geom.items()
-                if len(lst) == 1 and self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g] > 0
-            ]
+            unique_priors = []
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            for g, lst in by_geom.items():
+                if len(lst) != 1:
+                    continue
+                n = int(self.GLOBAL_SOLVED_AVATAR_GEOM_PRIORS[g])
+                if _m2_rt is not None:
+                    n = _m2_rt.earned_count(self, n, g, "avatar")
+                if n > 0:
+                    unique_priors.append((n, lst[0]))
             if unique_priors:
                 unique_priors.sort(key=lambda item: -item[0])
                 return unique_priors[0][1]
-        if self.active_macro_family is None:
+        if self.active_macro_family is None and not self.game_specific_solvers_disabled:
             by_sig_fallback: dict[ShapeSig, list[VectorShape]] = collections.defaultdict(list)
             for s in doc.shapes:
                 if 2 <= s.area <= 16 and s.w == s.h:
@@ -16760,6 +17171,10 @@ class MyAgent(Agent):
             setattr(self, name, self._game_solver_stub_none)
         for name in self._GAME_SPECIFIC_SOLVERS_RETURN_EMPTY:
             setattr(self, name, self._game_solver_stub_empty)
+        if os.getenv("MONAD2_COORDINATE") == "1":
+            from monad2.general_guard import arm_solver_guard
+
+            arm_solver_guard(self)
 
     # ================================================================================
     # General Goal Engine (GGL): goal hypothesis -> subgoal -> plan -> verify/revise
@@ -17167,7 +17582,16 @@ class MyAgent(Agent):
             tree = self.associative_merkle_tree
             if credited is not None:
                 self.ggl_type_stats[credited]["level_credits"] += 1
-                if self.ggl_confirmed_type is None:
+                promote = self.ggl_confirmed_type is None
+                if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
+                    from monad2.memory import EpisodeLTP
+
+                    ltp = getattr(self, "m2_ltp", None)
+                    if ltp is None:
+                        ltp = EpisodeLTP()
+                        self.m2_ltp = ltp
+                    promote = promote and bool(ltp.confirm(credited))
+                if promote:
                     self.ggl_confirmed_type = credited
                     self.ggl_confirm_level = int(self.current_level)
                 sig16 = int(goal.get("sig16", 1)) if goal else 1
@@ -17541,7 +17965,9 @@ class MyAgent(Agent):
         if arr0.shape != arr1.shape:
             self.fx_pending = None
             return
-        if self.fx_enabled:
+        # Callosum reads this model. Record effects when it is on without also
+        # turning on the rehearsal probes that fx_enabled controls.
+        if self.fx_enabled or os.getenv("MONAD2_CALLOSUM", "0") == "1":
             self._fx_learn(arr0, arr1, self.prev_action)
         pending = self.fx_pending
         self.fx_pending = None
@@ -18372,6 +18798,8 @@ class MyAgent(Agent):
         start = (int(start_xy[0]), int(start_xy[1]))
         prev: dict[tuple[int, int], tuple[tuple[int, int], int] | None] = {start: None}
         q: collections.deque = collections.deque([start])
+        depth_cap, _breadth = self._m2_tonic_limits()
+        dist: dict[tuple[int, int], int] | None = {start: 0} if depth_cap is not None else None
         while q and len(prev) < max_nodes:
             p = q.popleft()
             if p != start and goal_test(p):
@@ -18381,6 +18809,8 @@ class MyAgent(Agent):
                     node, aid = prev[node]
                     path.append(aid)
                 return path[::-1]
+            if dist is not None and dist[p] >= int(depth_cap or 0):
+                continue
             for aid, (dx, dy) in moves.items():
                 nx, ny = p[0] + dx, p[1] + dy
                 npos = (nx, ny)
@@ -18396,6 +18826,8 @@ class MyAgent(Agent):
                     continue
                 prev[npos] = (p, aid)
                 q.append(npos)
+                if dist is not None:
+                    dist[npos] = dist[p] + 1
         return None
 
     def _ggl_reach_candidates(
@@ -18746,6 +19178,59 @@ class MyAgent(Agent):
         }
         if self.ggl_confirmed_type is not None and prior[self.ggl_confirmed_type] > 0:
             prior[self.ggl_confirmed_type] += 4.0
+        if os.getenv("MONAD2_SCP", "0") == "1":
+            try:
+                from monad2.scp import project
+
+                proj = project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                self.m2_projection_tokens = len(proj.tokens())
+                if proj.panel_mismatch >= 4 and prior.get("MATCH", 0) > 0:
+                    prior["MATCH"] += 1.0
+                if proj.controllable_role is not None and prior.get("REACH", 0) > 0:
+                    prior["REACH"] += 1.0
+                if proj.feedback == "shift" and prior.get("PLACE", 0) > 0:
+                    prior["PLACE"] += 0.5
+            except Exception:
+                pass
+        if os.getenv("MONAD2_GOAL_MEMORY", "0") == "1":
+            path = os.getenv("MONAD2_RECORDS", "").strip()
+            hyps: list[str] = []
+            try:
+                from monad2.memory import corpus_path, eligible, grid_features, load_records, retrieve
+                from monad2.scp import project as _m2_project
+
+                if not path:
+                    path = str(corpus_path())
+                if os.path.isfile(path):
+                    held = os.getenv("MONAD2_HOLDOUT_GAME", "")
+                    recs = load_records(path)
+                    if held:
+                        recs = eligible(recs, held)
+                    proj = _m2_project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                    hyps = retrieve(grid_features(proj, avail_ids), recs, k=3)
+            except Exception:
+                hyps = []
+            self.m2_goal_hypotheses = hyps
+            for hyp in hyps:
+                if prior.get(hyp, 0) > 0:
+                    prior[hyp] += 1.5
+        if os.getenv("MONAD2_GOAL_DISCOVERY", "0") == "1":
+            try:
+                from monad2.discovery import ensure, recall
+                from monad2.memory import grid_features
+                from monad2.scp import project as _disc_project
+
+                disc = ensure(self)
+                hyp = disc.hypothesis()
+                self.m2_goal_hypothesis = hyp
+                if hyp is not None and prior.get(hyp, 0) > 0:
+                    prior[hyp] += 3.0
+                proj = _disc_project(arr, getattr(self, "prev_grid", None), legal=list(avail_ids))
+                for remembered in recall(grid_features(proj, avail_ids), k=2):
+                    if prior.get(remembered, 0) > 0:
+                        prior[remembered] += 1.0
+            except Exception:
+                pass
         sig16 = self._ggl_relational_sig16(doc, arr, avail_ids)
         if getattr(self, "wt_memory", None):
             try:
@@ -18849,12 +19334,19 @@ class MyAgent(Agent):
                 # A type tried only because rehearsal wants alternatives must
                 # not change the flag when an earlier plan is committed.
                 self.ggl_match_refuted = refuted_before_type
-                if len(options) >= 3:
+                _depth_cap, _breadth = self._m2_tonic_limits()
+                if len(options) >= _breadth:
                     break
             elif options and self.ggl_match_refuted != refuted_before_type:
                 self.ggl_match_refuted = refuted_before_type
         if rehearse and options:
             _best_i, plan, goal = self._fx_pick_rehearsed(arr, options)
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None:
+                try:
+                    _m2_rt.note_rehearsal(self, _best_i, str(goal.get("type") if goal else ""))
+                except Exception:
+                    pass
             self.ggl_match_refuted = option_refuted[_best_i]
             self.ggl_active = goal
             gtype = str(goal["type"]) if goal is not None else "REACH"
@@ -19135,7 +19627,11 @@ class MyAgent(Agent):
                 2 if s.sig in self.mutable_object_sigs else 0
             )
             resp_geom = -self.responsive_geom_sigs[s.shape_geom_sig]
-            cross_geom = -min(3, self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
+            _m2_geom_n = int(self.GLOBAL_SOLVED_GEOM_PRIORS[s.shape_geom_sig])
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            if _m2_rt is not None:
+                _m2_geom_n = _m2_rt.earned_count(self, _m2_geom_n, s.shape_geom_sig, "geom")
+            cross_geom = -min(3, _m2_geom_n)
             inert_pen = (
                 1
                 if (
@@ -19201,7 +19697,16 @@ class MyAgent(Agent):
                         == 0
                     )
                     else 0,
-                    0 if 6 <= s.click_y <= 60 else 1,
+                    0
+                    if (
+                        (
+                            s.click_y not in self.hud_rows
+                            and (doc.height // 10) <= s.click_y <= (doc.height - 4)
+                        )
+                        if self.game_specific_solvers_disabled
+                        else (6 <= s.click_y <= 60)
+                    )
+                    else 1,
                     1
                     if ("CLICK", s.click_x, s.click_y) == self.last_click_action
                     else 0,
@@ -22019,6 +22524,14 @@ class MyAgent(Agent):
         return []
 
     def _materialize_action(self, key: ActionKey, reason: str) -> GameAction:
+        rt = getattr(self, "_m2_runtime", None)
+        if rt is not None and not self.replay_mode and reason != "monad1-optimal-skill-replay":
+            try:
+                key = rt.maybe_replace_key(self, key, reason)
+                rt.arm_expectation(self, key)
+            except Exception:
+                pass
+        self.prev_action = key
         self.current_level_executed_actions.append(key)
         if self.prev_grid is not None:
             self.prev_logical_avatar_pos = self._extract_logical_avatar_pos(
@@ -22063,10 +22576,17 @@ class MyAgent(Agent):
                 "specialists": self.inos_meta_engine.last_tonic_report.get("active_specialists", ()),  # Execute INOS meta-reasoning operation: "specialists": self.inos_meta_engine.last_toni
                 "nnc_op": self.inos_meta_engine.last_differential_report.get("nnc_operation", "NNC_FACT_COMMITTED"),  # Commit verified @nnc_fact record & Stepping-Stone G_mid on positive causal efficacy
             }                                                                               # Close structured composite expression or container literal
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        _m2_coord_on = bool(
+            _m2_rt is not None
+            and hasattr(_m2_rt, "on")
+            and _m2_rt.on("MONAD2_COORDINATE")
+            and not _m2_rt.has_active_tier1_macro(self)
+        )
         if key[0] == "CLICK":                                                               # Control / block header: if key[0] == "CLICK":
             _, x, y = key                                                                   # Execute INOS meta-reasoning operation: _, x, y = key
-            rx = (63 - int(x)) if self.click_mirror_x else int(x)                           # Execute INOS meta-reasoning operation: rx = (63 - int(x)) if self.click_mirror_x else
-            ry = (63 - int(y)) if self.click_mirror_y else int(y)                           # Execute INOS meta-reasoning operation: ry = (63 - int(y)) if self.click_mirror_y else
+            rx = (63 - int(x)) if (self.click_mirror_x and not _m2_coord_on) else int(x)
+            ry = (63 - int(y)) if (self.click_mirror_y and not _m2_coord_on) else int(y)
             self._pending_action_data = {"x": rx, "y": ry}                                  # Execute INOS meta-reasoning operation: self._pending_action_data = {"x": rx, "y": ry}
             meta_info = (                                                                   # Execute INOS meta-reasoning operation: meta_info = (
                 self.second_order_canvas.summary_metrics()                                  # Execute INOS meta-reasoning operation: self.second_order_canvas.summary_metrics()
@@ -23022,6 +23542,8 @@ class MyAgent(Agent):
     ) -> list[list[int]]:
         """Organ 1 (SCP Sensory Membrane): Projects split-panel games (`split_switch_gate`) under arbitrary
         S_16 palette permutations (`palette_17`, `palette_83`, etc.) into canonical role gauge."""
+        if self.game_specific_solvers_disabled:
+            return grid
         if len(grid) != 64 or len(grid[0]) != 64:
             return grid
         if int(grid[0][0]) == 3 and int(grid[2][2]) == 4 and int(grid[16][40]) == 5:
@@ -23170,6 +23692,8 @@ class MyAgent(Agent):
         with counterfactual procedural affordance (`_try_solve_node_graph_sentries`).
         Boards where the gauge unlocks a valid causal trajectory are reinforced via LTP (`0x0900 -> 0xFFFF`);
         boards where the gauge yields zero causal affordance are inhibited via LTD (`0x0080 < 0x0200`)."""
+        if self.game_specific_solvers_disabled:
+            return grid
         if not grid or len(grid) != 64 or len(grid[0]) != 64:                               # Guard non-64x64 frames
             return grid                                                                     # Return unaltered grid
         if getattr(self, "_scp_split_gate_color_map", None) or getattr(self, "_scp_split_gate_locked_map", None):  # Skip if split-panel gauge is already locked
@@ -23359,6 +23883,11 @@ class MyAgent(Agent):
         """Executes the Bidirectional Bottom-Up -> Small Qwen A & B -> Associative Merkle Sift ->
         Conscious Observer Top-Down Loop on arrival of sensory frame S_t.
         Returns True if the Conscious Observer issued a top-down control gauge recalibration."""
+        if os.getenv("MONAD2_SKIP_DEAD_ORGANS", "0") == "1":
+            stats = getattr(self, "m2", None)
+            if isinstance(stats, dict):
+                stats["dead_skipped"] = int(stats.get("dead_skipped", 0)) + 1
+            return False
         cur_av_info = self._extract_logical_avatar_pos(grid)                                # Execute collaborative step: cur_av_info = self._extract_logical_avatar_pos(grid)
         cur_pos = cur_av_info[1] if cur_av_info is not None else None                       # Execute collaborative step: cur_pos = cur_av_info[1] if cur_av_info is not None 
         open_dirs = self._extract_visibly_open_corridor_dirs(grid, cur_av_info)             # Execute collaborative step: open_dirs = self._extract_visibly_open_corridor_dirs
@@ -23473,8 +24002,18 @@ class MyAgent(Agent):
             0.55 * float(top_down_field_state.top_down_omega_hz) + 0.45 * gohst_omega       # 55% Top-Down Observer Klein-Gordon wave + 45% Gohst MST carrier
         )                                                                                   # Close frequency blend
         gohst_sharpness = 4.0 if gohst_tsp_report.get("coupling_mode") == "COUPLED_SYNCHRONIZED_EXECUTION" else 2.5  # Set PLL resonance sharpness exponent n
+        _m2_surprise = None
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        if _m2_rt is not None:
+            try:
+                _m2_surprise = _m2_rt.pll_observation(self, outcome_delta.actual_changed_pixels)
+            except Exception:
+                _m2_surprise = None
+        # Legacy PLL targets the live signature, so it locks on every step. Surprise mode
+        # compares the pre-action prediction to the observed change and only locks on a match.
+        _pll_target = live_sig32 if _m2_surprise is None or _m2_surprise.get("locked") else (live_sig32 ^ 0x1F)
         self.resonant_pll.inject_resonant_probe(                                            # Radiate Top-Down Observer resonant probe into low-level PLL modulator
-            live_sig32,                                                                     # Target 32-bit fuzzy signature fragment
+            _pll_target,                                                                    # Predicted signature, or the live signature when surprise mode is off
             target_omega_hz=blended_top_down_omega,                                         # Top-down modulated target carrier frequency
             sharpness_exponent=gohst_sharpness,                                             # Resonance sharpness exponent n
             reason=f"top_down_field:{outcome_delta.tension_regime}",                        # Audit tag recording top-down field probe origin
@@ -23484,6 +24023,9 @@ class MyAgent(Agent):
             live_fuzzy_sig32=live_sig32,                                                    # Live 32-bit stream signature
             live_packed_u64=packed_u64,                                                     # Live 64-bit packed Merkle node
         )                                                                                   # Close PLL stream evaluation
+        if _m2_surprise is not None:
+            pll_report["phase_locked"] = bool(_m2_surprise["locked"])
+            pll_report["source_epoch"] = "PREDICTED_VS_OBSERVED"
         observer_field_report = self.observer_field_engine.compute_bidirectional_standing_wave(  # Compute Bidirectional Top-Down <-> Bottom-Up Standing-Wave Interference
             field_state=top_down_field_state,                                               # Top-Down Conscious Observer wave state Psi_TD(t)
             bottom_up_omega_hz=float(pll_report.get("omega_t_hz", blended_top_down_omega)),  # Bottom-Up PLL modulated frequency omega_BU(t)
@@ -23502,9 +24044,14 @@ class MyAgent(Agent):
         expanded_payload = self.associative_merkle_tree.dynamic_merkle_graph.expand_node_payload_on_demand(  # Execute collaborative step: expanded_payload = self.associative_merkle_tree.dyna
             matched_u64, self.associative_merkle_tree.parent_id16_to_parent                 # Execute collaborative step: matched_u64, self.associative_merkle_tree.parent_id1
         )                                                                                   # Close structured composite expression or container literal
-        if not merkle_trace.get("recalled") and expanded_payload.get("parent_primitive_id"):  # Control / block header: if not merkle_trace.get("recalled") and expanded_pay
+        unhashed_merkle = self.associative_merkle_tree.unhash_packed_node(
+            matched_u64, relational_sig16=last_causal_ep.post_board_sig16
+        )
+        self.last_unhashed_merkle_packet = unhashed_merkle
+        if self.game_specific_solvers_disabled and not merkle_trace.get("recalled") and expanded_payload.get("parent_primitive_id"):  # Control / block header: if not merkle_trace.get("recalled") and expanded_pay
             merkle_trace["parent_primitive_id"] = expanded_payload["parent_primitive_id"]   # Execute collaborative step: merkle_trace["parent_primitive_id"] = expanded_paylo
             merkle_trace["top_down_operator"] = expanded_payload.get("top_down_operator", "OBSERVE")  # Execute collaborative step: merkle_trace["top_down_operator"] = expanded_payload
+        merkle_trace["unhashed_merkle"] = unhashed_merkle
         merkle_trace["packed_node_u64_hex"] = f"0x{matched_u64:016x}"                       # Execute collaborative step: merkle_trace["packed_node_u64_hex"] = f"0x{matched_u
         merkle_trace["dynamic_node_op"] = node_op                                           # Execute collaborative step: merkle_trace["dynamic_node_op"] = node_op
         merkle_trace["adaptive_epsilon_bits"] = adaptive_eps                                # Execute collaborative step: merkle_trace["adaptive_epsilon_bits"] = adaptive_eps
@@ -23561,7 +24108,10 @@ class MyAgent(Agent):
 
         if (                                                                                # Control / block header: if (
             verdict == "CHALLENGE_CONTROL_GAUGE"                                            # Execute collaborative step: verdict == "CHALLENGE_CONTROL_GAUGE"
-            and top_down_cmd == "INVERT_CANONICAL_DPAD_ON_OPEN_CORRIDOR_NOOP"               # Execute collaborative step: and top_down_cmd == "INVERT_CANONICAL_DPAD_ON_OPEN_C
+            and top_down_cmd in (
+                "INVERT_CANONICAL_DPAD_ON_OPEN_CORRIDOR_NOOP",
+                "INVERT_CANONICAL_DPAD_IMMEDIATELY",
+            )
             and self.last_intent_spec is not None                                           # Execute collaborative step: and self.last_intent_spec is not None
             and self.last_intent_spec.intended_canonical_dir in (1, 2, 3, 4)                # Execute collaborative step: and self.last_intent_spec.intended_canonical_dir in 
             and self.canonical_to_raw_dpad == {1: 1, 2: 2, 3: 3, 4: 4}                      # Update or query top-down D4 control gauge mapping between canonical and raw actions
@@ -23569,13 +24119,18 @@ class MyAgent(Agent):
         ):                                                                                  # Close structured composite expression or container literal
             intended_d = int(self.last_intent_spec.intended_canonical_dir)                  # Execute collaborative step: intended_d = int(self.last_intent_spec.intended_cano
             opp_d = OPPOSITE_DIR[intended_d]                                                # Execute collaborative step: opp_d = OPPOSITE_DIR[intended_d]
-            if intended_d in open_dirs and opp_d not in open_dirs:                          # Control / block header: if intended_d in open_dirs and opp_d not in open_dir
+            if intended_d in open_dirs and opp_d not in open_dirs:
                 self.control_probe_swapped.update({(1, 2), (3, 4)})                         # Execute collaborative step: self.control_probe_swapped.update({(1, 2), (3, 4)})
                 self.canonical_to_raw_dpad = {1: 2, 2: 1, 3: 4, 4: 3}                       # Update or query top-down D4 control gauge mapping between canonical and raw actions
                 self.raw_to_canonical_dpad = {2: 1, 1: 2, 4: 3, 3: 4}                       # Update or query top-down D4 control gauge mapping between canonical and raw actions
                 self.control_inversions_detected += 1                                       # Execute collaborative step: self.control_inversions_detected += 1
                 self.verified_solid_walls.clear()                                           # Clear or query Layer-2 solid barrier memory (flushed upon control gauge inversion)
                 self.planned_queue.clear()                                                  # Access or flush open-loop action queue so Conscious Observer replans under new gauge
+                _m2_st = getattr(self, "_m2_coord", None)
+                if isinstance(_m2_st, dict):
+                    _m2_st["route_blocks"] = []
+                    _m2_st["conditional_blocks"] = []
+                    _m2_st["route_prefix"] = []
                 self.controller_state = ControllerState.RECALIBRATE                         # Transition executive ControllerState (USE, RECALIBRATE, or extreme-stress FALL_BACK)
                 self.observer_unresolved_tension_streak = 0                                 # Execute collaborative step: self.observer_unresolved_tension_streak = 0
                 top_down_recalibrated = True                                                # Execute collaborative step: top_down_recalibrated = True
@@ -24438,6 +24993,21 @@ class MyAgent(Agent):
                     }
                     return GameAction.RESET
                 self._consecutive_game_over_resets += 1
+                _m2_rt = getattr(self, "_m2_runtime", None)
+                if (
+                    _m2_rt is not None
+                    and _m2_rt.on("MONAD2_COORDINATE")
+                    and not _m2_rt.has_active_tier1_macro(self)
+                    and self.prev_hash is not None
+                ):
+                    try:
+                        from monad2.coordinate import observe as _m2_observe
+
+                        if go_grid is not None:
+                            self._m2_grid = [row[:] for row in go_grid]
+                        _m2_observe(self, True)
+                    except Exception:
+                        pass
                 self._last_game_over_grid = (
                     [row[:] for row in go_grid] if go_grid is not None else None
                 )
@@ -24458,7 +25028,11 @@ class MyAgent(Agent):
                     if self.non_reset_steps_in_level <= prev_d + 2:
                         self.dead_actions[self.prev_hash].add(self.prev_action)
                         self.tried[self.prev_hash].add(self.prev_action)
-            if self.ggl_enabled and latest_frame.state is GameState.GAME_OVER:
+            if (
+                self.ggl_enabled
+                and latest_frame.state is GameState.GAME_OVER
+                and not (_m2_rt is not None and _m2_rt.has_active_tier1_macro(self))
+            ):
                 self._ggl_on_game_over()
             if (
                 latest_frame.state is GameState.GAME_OVER
@@ -24499,10 +25073,13 @@ class MyAgent(Agent):
             self._pending_action_data = {}
             self._pending_action_reasoning = {"text": "reset"}
             return GameAction.RESET
+        raw_grid = [row[:] for row in grid]
         grid = self._scp_canonicalize_split_panel_palette(grid)
         grid = self._scp_canonicalize_node_graph_palette(grid)
 
         avail_ids = [a for a in latest_frame.available_actions if a != 0]
+        self._m2_avail = list(avail_ids)
+        self._m2_grid = raw_grid
         has_pointer = 6 in avail_ids
         has_dpad = any(a in (1, 2, 3, 4) for a in avail_ids)
         is_hybrid = any(a not in (6, 7) for a in avail_ids) and has_pointer
@@ -24631,15 +25208,46 @@ class MyAgent(Agent):
             and self.prev_hash is not None
         ):
             h_curr = self.prev_hash
+        self._m2_state_hash = h_curr
+        _m2_rt = getattr(self, "_m2_runtime", None)
+        if _m2_rt is not None and self.prev_hash is not None:
+            try:
+                _m2_rt.note_step(self, h_curr != self.prev_hash, bool(getattr(self, "_m2_plan_active", False)))
+            except Exception:
+                pass
+        if getattr(self, "_m2_pending_level_restore", False):
+            self._m2_pending_level_restore = False
+            try:
+                self._m2_restore_baseline_level()
+            except Exception:
+                pass
+            self._pending_action_data = {}
+            self._pending_action_reasoning = {"text": "monad2-stall-restore-reset"}
+            return GameAction.RESET
         if len(self.state_grids) < 256 or h_curr in self.state_grids:
             self.state_grids[h_curr] = grid
 
         need_doc = True
-        doc = (
-            CanvasDocument(grid, self.hud_rows, self.hud_coords, self.hud_cols)
-            if need_doc
-            else None
-        )
+        doc = None
+        if need_doc and self.game_specific_solvers_disabled:
+            _cached_m2_doc = getattr(self, "_m2_doc_cache", None)
+            if isinstance(_cached_m2_doc, tuple) and len(_cached_m2_doc) == 2 and getattr(_cached_m2_doc[1], "grid", None) == grid:
+                doc = _cached_m2_doc[1]
+        if need_doc and doc is None:
+            doc = CanvasDocument(grid, self.hud_rows, self.hud_coords, self.hud_cols)
+            if self.game_specific_solvers_disabled:
+                try:
+                    self._m2_doc_cache = (
+                        (
+                            tuple(tuple(r) for r in grid),
+                            frozenset(self.hud_rows),
+                            frozenset(self.hud_coords),
+                            frozenset(self.hud_cols),
+                        ),
+                        doc,
+                    )
+                except Exception:
+                    pass
 
         if (
             doc is not None
@@ -24668,7 +25276,17 @@ class MyAgent(Agent):
                     self.mutable_object_sigs.add(s.sig)
                     self.level_interacted_sigs[s.sig] += 1
 
-        from_macro = bool(self.planned_queue or self.active_macro_family is not None)
+        from_macro = bool(
+            not self.game_specific_solvers_disabled
+            and (self.planned_queue or self.last_step_was_planned)
+            and self.active_macro_family
+            not in (
+                None,
+                "online_general_goal",
+                "online_learned_kinematic",
+                "online_learned_switch_gate",
+            )
+        )
         if self.prev_hash is not None and self.prev_action is not None:
             self._record_cnn_experience(
                 self.prev_grid,
@@ -24683,14 +25301,22 @@ class MyAgent(Agent):
             is_hybrid=is_hybrid,
             from_macro_plan=from_macro,
         )
-        if self.ggl_enabled:
+        _tier1_active_now = bool(
+            _m2_rt is not None and _m2_rt.has_active_tier1_macro(self)
+        )
+        if self.ggl_enabled and not _tier1_active_now:
             try:
                 self._ggl_observe(
                     grid, doc, h_curr, is_blackout or was_blackout_last_step
                 )
             except Exception:
                 pass
-        if self.fx_enabled or self.wins_teach or self.rehearse_enabled:
+        if not _tier1_active_now and (
+            self.fx_enabled
+            or self.wins_teach
+            or self.rehearse_enabled
+            or os.getenv("MONAD2_CALLOSUM", "0") == "1"
+        ):
             try:
                 self._fx_on_transition(
                     grid, h_curr, is_blackout or was_blackout_last_step
@@ -25266,6 +25892,8 @@ class MyAgent(Agent):
 
         # Tier 1: Multi-App Structural Model-Based Archetype Solvers
         try:
+            if self.game_specific_solvers_disabled:
+                raise _GameSolversOff()
             if has_pointer and not has_dpad and not self.planned_queue:
                 cegis_plan = self._try_monad1_scp_cegis_panel_solver(
                     grid, doc, avail_ids, self.current_level
@@ -25522,6 +26150,8 @@ class MyAgent(Agent):
                 and not is_blackout
             ):
                 self._sync_warehouse_closed_loop(grid)
+        except _GameSolversOff:
+            pass
         except Exception:
             pass
 
@@ -25574,10 +26204,40 @@ class MyAgent(Agent):
                     self.active_macro_family = "online_learned_switch_gate"
                     self.planned_queue.extend(sw_plan)
 
+            if (
+                not self.planned_queue
+                and self.active_macro_family
+                in (
+                    "online_general_goal",
+                    "online_learned_kinematic",
+                    "online_learned_switch_gate",
+                )
+            ):
+                self.active_macro_family = None
+
+            if _m2_rt is not None and not self.planned_queue:
+                try:
+                    sc_key = _m2_rt.short_circuit_execute(self)
+                except Exception:
+                    sc_key = None
+                if sc_key is not None:
+                    self.prev_grid = grid
+                    self.prev_doc = doc
+                    self.prev_hash = h_curr
+                    self.prev_action = sc_key
+                    return self._materialize_action(sc_key, "monad2-execute-short-circuit")
+
             # Tier 2.6: General Goal Engine (goal hypothesis -> subgoal -> plan -> verify/revise)
             if (
                 self.ggl_enabled
                 and not self.planned_queue
+                and self.active_macro_family
+                in (
+                    None,
+                    "online_general_goal",
+                    "online_learned_kinematic",
+                    "online_learned_switch_gate",
+                )
                 and not is_blackout
                 and not was_blackout_last_step
                 and not self.replay_mode
@@ -25615,6 +26275,18 @@ class MyAgent(Agent):
             self.prev_hash = h_curr
             self.prev_action = chosen
             return self._materialize_action(chosen, "monad1-online-world-model-plan")
+
+        if _m2_rt is not None:
+            try:
+                sc_key = _m2_rt.short_circuit_execute(self)
+            except Exception:
+                sc_key = None
+            if sc_key is not None:
+                self.prev_grid = grid
+                self.prev_doc = doc
+                self.prev_hash = h_curr
+                self.prev_action = sc_key
+                return self._materialize_action(sc_key, "monad2-execute-short-circuit")
 
         if h_curr in self.state_avatar_bbox:
             self.avatar_bbox = self.state_avatar_bbox[h_curr]
@@ -25777,7 +26449,7 @@ class MyAgent(Agent):
                         bfs_shallow, "canvas-vector-id-shallow-bfs"
                     )
                 if (
-                    self.level_resets_in_level < 4
+                    self.level_resets_in_level < 4 * max(1, int(getattr(self, "m2_round_idx", 1) or 1))
                     and h_curr != self.level_start_hash
                 ):
                     start_cands = self.state_actions.get(
@@ -25838,8 +26510,12 @@ class MyAgent(Agent):
                 or (
                     self.level_dpad_successes > 0
                     and (
-                        self.steps_since_last_click <= 3
-                        or len(untried_dpad) >= 2
+                        self.steps_since_last_click
+                        <= (2 if self.hybrid_click_successes > 0 else 3)
+                        or (
+                            self.hybrid_click_successes == 0
+                            and len(untried_dpad) >= 2
+                        )
                     )
                 )
             )
@@ -25880,6 +26556,26 @@ class MyAgent(Agent):
                 return self._materialize_action(
                     top_click, "canvas-vector-hybrid-click"
                 )
+
+        # Tier 0b: Proven or Initial ACTION5 (Interact / Stamp) after playfield changes
+        if (
+            untried_action5
+            and not self.action5_is_reset
+            and self.playfield_changed_since_action5
+            and self.prev_action != ("SIMPLE", 5)
+            and (
+                self.action5_changed_playfield
+                or (
+                    self.steps_in_level >= 3
+                    and ("SIMPLE", 5) not in self.current_level_executed_actions
+                )
+            )
+        ):
+            chosen = untried_action5[0]
+            self.prev_grid = grid
+            self.prev_hash = h_curr
+            self.prev_action = chosen
+            return self._materialize_action(chosen, "canvas-vector-action5")
 
         # Tier 1: Untried D-pad kinematic control actions
         if untried_dpad:

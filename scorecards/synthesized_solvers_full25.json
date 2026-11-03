@@ -1,0 +1,5205 @@
+{
+  "by_slot": {
+    "1": {
+      "solver_family": "SOKOBAN_PUSH",
+      "secondary_families": [
+        "REACH_BFS",
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        1,
+        3,
+        6
+      ],
+      "avatar_parts": [
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          1,
+          3,
+          6
+        ]
+      ],
+      "movable_geoms": [
+        [
+          5,
+          6,
+          9
+        ]
+      ],
+      "goal_geoms": [],
+      "wall_geoms": [
+        [
+          1,
+          3,
+          39
+        ],
+        [
+          1,
+          3,
+          48
+        ],
+        [
+          1,
+          3,
+          60
+        ],
+        [
+          1,
+          3,
+          57
+        ]
+      ],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          5,
+          9,
+          9
+        ]
+      ],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 3,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": true,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            3,
+            6
+          ],
+          "movable_geoms": [
+            [
+              5,
+              6,
+              9
+            ]
+          ],
+          "goal_geoms": [],
+          "wall_geoms": [
+            [
+              1,
+              3,
+              39
+            ],
+            [
+              1,
+              3,
+              48
+            ],
+            [
+              1,
+              3,
+              60
+            ],
+            [
+              1,
+              3,
+              57
+            ]
+          ],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              5,
+              9,
+              9
+            ]
+          ],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 3,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "2": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        1,
+        2,
+        4
+      ],
+      "avatar_parts": [
+        [
+          4,
+          1,
+          2
+        ],
+        [
+          4,
+          2,
+          2
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [
+        [
+          5,
+          12,
+          41
+        ],
+        [
+          1,
+          5,
+          5
+        ],
+        [
+          1,
+          6,
+          41
+        ]
+      ],
+      "quantum": 6,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            2,
+            4
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [
+            [
+              5,
+              12,
+              41
+            ],
+            [
+              1,
+              5,
+              5
+            ],
+            [
+              1,
+              6,
+              41
+            ]
+          ],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "3": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "4": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        5,
+        15,
+        15
+      ],
+      "avatar_parts": [
+        [
+          6,
+          3,
+          3
+        ],
+        [
+          1,
+          3,
+          3
+        ],
+        [
+          6,
+          3,
+          6
+        ],
+        [
+          1,
+          3,
+          6
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          6,
+          3,
+          3
+        ]
+      ],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 3,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 4,
+        "4": 3
+      },
+      "control_inverted": true,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            5,
+            15,
+            15
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              6,
+              3,
+              3
+            ]
+          ],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 3,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "5": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "REACH",
+      "avatar_geom": [
+        4,
+        2,
+        2
+      ],
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          1,
+          6,
+          6
+        ],
+        [
+          1,
+          32,
+          44
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          5,
+          5,
+          13
+        ]
+      ],
+      "quantum": 2,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": [
+        15,
+        7
+      ],
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey",
+        "align"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            4,
+            2,
+            2
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              1,
+              6,
+              6
+            ],
+            [
+              1,
+              32,
+              44
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              5,
+              5,
+              13
+            ]
+          ],
+          "quantum": 2,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "6": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          2,
+          6,
+          6
+        ],
+        [
+          1,
+          6,
+          6
+        ],
+        [
+          1,
+          2,
+          4
+        ],
+        [
+          1,
+          2,
+          6
+        ],
+        [
+          5,
+          30,
+          30
+        ]
+      ],
+      "inert_geoms": [
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          2,
+          6,
+          6
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          5,
+          30,
+          30
+        ],
+        [
+          1,
+          6,
+          6
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey",
+        "align"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              2,
+              6,
+              6
+            ],
+            [
+              1,
+              6,
+              6
+            ],
+            [
+              1,
+              2,
+              4
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              5,
+              30,
+              30
+            ]
+          ],
+          "inert_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              2,
+              6,
+              6
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              5,
+              30,
+              30
+            ],
+            [
+              1,
+              6,
+              6
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "7": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [],
+      "goal_type": "REACH",
+      "avatar_geom": [
+        1,
+        5,
+        5
+      ],
+      "avatar_parts": [
+        [
+          4,
+          1,
+          1
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 6,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": true,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "convey",
+        "toggle"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            5,
+            5
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "8": {
+      "solver_family": "WAYPOINT_TOUR",
+      "secondary_families": [
+        "REACH_BFS",
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "REACH",
+      "avatar_geom": [
+        2,
+        3,
+        3
+      ],
+      "avatar_parts": [
+        [
+          4,
+          1,
+          1
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [
+        [
+          1,
+          3,
+          6
+        ],
+        [
+          1,
+          6,
+          21
+        ],
+        [
+          1,
+          3,
+          9
+        ]
+      ],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [
+        [
+          1,
+          3,
+          3
+        ]
+      ],
+      "refuted_geoms": [
+        [
+          1,
+          3,
+          6
+        ]
+      ],
+      "inert_geoms": [],
+      "responsive_geoms": [
+        [
+          1,
+          15,
+          21
+        ],
+        [
+          2,
+          3,
+          3
+        ],
+        [
+          4,
+          1,
+          1
+        ]
+      ],
+      "quantum": 3,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [
+            [
+              1,
+              3,
+              6
+            ],
+            [
+              1,
+              6,
+              21
+            ],
+            [
+              1,
+              3,
+              9
+            ]
+          ],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "refuted_geoms": [
+            [
+              1,
+              3,
+              6
+            ]
+          ],
+          "inert_geoms": [],
+          "responsive_geoms": [
+            [
+              1,
+              15,
+              21
+            ],
+            [
+              2,
+              3,
+              3
+            ],
+            [
+              4,
+              1,
+              1
+            ]
+          ],
+          "quantum": 3,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "9": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [
+        [
+          2,
+          6,
+          6
+        ]
+      ],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [
+        [
+          2,
+          44,
+          44
+        ],
+        [
+          5,
+          42,
+          42
+        ],
+        [
+          2,
+          6,
+          6
+        ],
+        [
+          2,
+          4,
+          4
+        ],
+        [
+          1,
+          4,
+          4
+        ],
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          5,
+          10,
+          13
+        ],
+        [
+          5,
+          8,
+          12
+        ],
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          5,
+          20,
+          44
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [
+            [
+              2,
+              6,
+              6
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [
+            [
+              2,
+              44,
+              44
+            ],
+            [
+              5,
+              42,
+              42
+            ],
+            [
+              2,
+              6,
+              6
+            ],
+            [
+              2,
+              4,
+              4
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              5,
+              10,
+              13
+            ],
+            [
+              5,
+              8,
+              12
+            ],
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              5,
+              20,
+              44
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "10": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [
+        [
+          4,
+          2,
+          2
+        ]
+      ],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          1,
+          4,
+          4
+        ],
+        [
+          6,
+          2,
+          4
+        ],
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          4,
+          1,
+          2
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          1,
+          41,
+          41
+        ],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              4,
+              2,
+              2
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              6,
+              2,
+              4
+            ],
+            [
+              1,
+              41,
+              41
+            ],
+            [
+              2,
+              3,
+              4
+            ]
+          ],
+          "responsive_geoms": [],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "2c3cc20e4c515d86": [
+              "CLICK_GEOM",
+              1,
+              6,
+              8,
+              0,
+              3,
+              3
+            ],
+            "7516be0e01c0d955": [
+              "CLICK_GEOM",
+              1,
+              6,
+              8,
+              0,
+              3,
+              3
+            ],
+            "89ab350cf6dd9e4f": [
+              "CLICK_GEOM",
+              1,
+              6,
+              8,
+              0,
+              3,
+              3
+            ],
+            "e491452c01e0cd2e": [
+              "CLICK_GEOM",
+              1,
+              6,
+              8,
+              0,
+              3,
+              3
+            ],
+            "9dc2e1c6bb7a7549": [
+              "CLICK_GEOM",
+              1,
+              6,
+              8,
+              0,
+              3,
+              3
+            ]
+          }
+        },
+        "1": {
+          "level_idx": 1,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              4,
+              1,
+              2
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              1,
+              41,
+              41
+            ],
+            [
+              2,
+              3,
+              4
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "11": {
+      "solver_family": "WAYPOINT_TOUR",
+      "secondary_families": [
+        "REACH_BFS"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        1,
+        3,
+        5
+      ],
+      "avatar_parts": [
+        [
+          1,
+          2,
+          5
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [
+        [
+          1,
+          7,
+          7
+        ]
+      ],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [
+        [
+          4,
+          2,
+          2
+        ]
+      ],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 5,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "convey",
+        "toggle"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            3,
+            5
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              7,
+              7
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [
+            [
+              4,
+              2,
+              2
+            ]
+          ],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 5,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "2e0a2910bd0618de": [
+              "SIMPLE",
+              1
+            ],
+            "553f945032a81c7a": [
+              "SIMPLE",
+              1
+            ],
+            "ae5f20101e8e2dc2": [
+              "SIMPLE",
+              1
+            ],
+            "9b25d100bcc1206b": [
+              "SIMPLE",
+              1
+            ],
+            "a348d74f2c4a3704": [
+              "SIMPLE",
+              3
+            ],
+            "182cf679cb038c68": [
+              "SIMPLE",
+              3
+            ],
+            "f19dd0695188311e": [
+              "SIMPLE",
+              2
+            ],
+            "d58134f99deb1fcb": [
+              "SIMPLE",
+              3
+            ],
+            "6198f2243598fedb": [
+              "SIMPLE",
+              1
+            ],
+            "1062879c5b9df1ca": [
+              "SIMPLE",
+              1
+            ],
+            "b70ea9c1e99211ca": [
+              "SIMPLE",
+              4
+            ],
+            "761dcf03ce61fc1a": [
+              "SIMPLE",
+              4
+            ],
+            "cc18f12f8f987b4d": [
+              "SIMPLE",
+              4
+            ],
+            "c4a51b0c546e0329": [
+              "SIMPLE",
+              1
+            ],
+            "00d5b05bdc7a7310": [
+              "SIMPLE",
+              1
+            ],
+            "fb452c6e9bbfedb1": [
+              "SIMPLE",
+              1
+            ]
+          }
+        },
+        "1": {
+          "level_idx": 1,
+          "avatar_geom": [
+            1,
+            3,
+            5
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [
+            [
+              4,
+              2,
+              2
+            ]
+          ],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 5,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "12": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "REACH",
+      "avatar_geom": [
+        1,
+        4,
+        4
+      ],
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [
+        [
+          1,
+          5,
+          10
+        ]
+      ],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          5,
+          32,
+          62
+        ],
+        [
+          6,
+          1,
+          1
+        ]
+      ],
+      "responsive_geoms": [],
+      "quantum": 4,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": true,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "toggle",
+        "convey",
+        "align",
+        "explore"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            5,
+            5
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              5,
+              10
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 5,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "f4c32e7006cda7a0": [
+              "SIMPLE",
+              1
+            ],
+            "45650d9cab729cc2": [
+              "SIMPLE",
+              2
+            ],
+            "dd60376fdf85dca8": [
+              "SIMPLE",
+              2
+            ],
+            "a74d5fc8f5c82e0b": [
+              "SIMPLE",
+              3
+            ],
+            "f3f253433750c18b": [
+              "SIMPLE",
+              3
+            ],
+            "c9f850ff09f81f8a": [
+              "SIMPLE",
+              1
+            ],
+            "e1783724ea8ee725": [
+              "SIMPLE",
+              1
+            ],
+            "d5b95a0e9ada8921": [
+              "SIMPLE",
+              1
+            ],
+            "f3545b773679f2bd": [
+              "SIMPLE",
+              1
+            ],
+            "80e91004d8b54bfd": [
+              "SIMPLE",
+              1
+            ],
+            "2b2f4fdc8e50a689": [
+              "SIMPLE",
+              1
+            ],
+            "be69e9a64759c889": [
+              "SIMPLE",
+              1
+            ],
+            "2d87152b0fca41e1": [
+              "SIMPLE",
+              4
+            ],
+            "83bb5326a0520ab9": [
+              "SIMPLE",
+              1
+            ],
+            "43a14238f507cbaa": [
+              "SIMPLE",
+              1
+            ],
+            "b54dda6eac2d91fc": [
+              "SIMPLE",
+              4
+            ],
+            "b1e4bcb06472f78f": [
+              "SIMPLE",
+              4
+            ],
+            "6078c271356f8852": [
+              "SIMPLE",
+              4
+            ],
+            "897e995654874173": [
+              "SIMPLE",
+              2
+            ],
+            "9b5b5946f29d9950": [
+              "SIMPLE",
+              4
+            ],
+            "93d549b475ca5ee3": [
+              "SIMPLE",
+              2
+            ],
+            "b9092e85eea2a2d3": [
+              "SIMPLE",
+              4
+            ],
+            "12701d6e2385f931": [
+              "SIMPLE",
+              4
+            ],
+            "dd986abde7426a76": [
+              "SIMPLE",
+              2
+            ],
+            "67a7e13aad81c0ba": [
+              "SIMPLE",
+              2
+            ],
+            "92ec5b4c3d4977b3": [
+              "SIMPLE",
+              2
+            ],
+            "8d93f31daaf02ed6": [
+              "SIMPLE",
+              2
+            ],
+            "3ea1ac7dbaf10a66": [
+              "SIMPLE",
+              2
+            ],
+            "35d5d966b1b911ad": [
+              "SIMPLE",
+              3
+            ],
+            "214a2d9d6feaf986": [
+              "SIMPLE",
+              2
+            ],
+            "4985901c96b5d798": [
+              "SIMPLE",
+              2
+            ],
+            "c603f2f2f6210c0e": [
+              "SIMPLE",
+              3
+            ]
+          }
+        },
+        "1": {
+          "level_idx": 1,
+          "avatar_geom": [
+            1,
+            4,
+            4
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              5,
+              32,
+              62
+            ],
+            [
+              6,
+              1,
+              1
+            ]
+          ],
+          "responsive_geoms": [],
+          "quantum": 4,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "13": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [
+        [
+          1,
+          5,
+          5
+        ]
+      ],
+      "switch_geoms": [
+        [
+          1,
+          5,
+          5
+        ]
+      ],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          5,
+          7,
+          12
+        ],
+        [
+          6,
+          1,
+          1
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          5,
+          5,
+          5
+        ],
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          1,
+          5,
+          5
+        ],
+        [
+          3,
+          1,
+          4
+        ],
+        [
+          3,
+          1,
+          3
+        ],
+        [
+          3,
+          1,
+          5
+        ],
+        [
+          4,
+          1,
+          2
+        ],
+        [
+          5,
+          3,
+          4
+        ],
+        [
+          5,
+          5,
+          6
+        ],
+        [
+          3,
+          1,
+          6
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [
+            [
+              1,
+              5,
+              5
+            ]
+          ],
+          "switch_geoms": [
+            [
+              1,
+              5,
+              5
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              5,
+              7,
+              12
+            ],
+            [
+              6,
+              1,
+              1
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              5,
+              5,
+              5
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              1,
+              5,
+              5
+            ],
+            [
+              3,
+              1,
+              4
+            ],
+            [
+              3,
+              1,
+              3
+            ],
+            [
+              3,
+              1,
+              5
+            ],
+            [
+              4,
+              1,
+              2
+            ],
+            [
+              5,
+              3,
+              4
+            ],
+            [
+              5,
+              5,
+              6
+            ],
+            [
+              3,
+              1,
+              6
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "14": {
+      "solver_family": "SOKOBAN_PUSH",
+      "secondary_families": [
+        "REACH_BFS"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        5,
+        2,
+        13
+      ],
+      "avatar_parts": [
+        [
+          5,
+          2,
+          13
+        ]
+      ],
+      "movable_geoms": [
+        [
+          3,
+          1,
+          12
+        ],
+        [
+          3,
+          1,
+          7
+        ]
+      ],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          3,
+          1,
+          8
+        ],
+        [
+          3,
+          1,
+          5
+        ]
+      ],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 3,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "convey",
+        "toggle"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            5,
+            2,
+            13
+          ],
+          "movable_geoms": [
+            [
+              3,
+              1,
+              12
+            ],
+            [
+              3,
+              1,
+              7
+            ]
+          ],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              3,
+              1,
+              8
+            ],
+            [
+              3,
+              1,
+              5
+            ]
+          ],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 3,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "15": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          6,
+          1,
+          1
+        ],
+        [
+          1,
+          3,
+          5
+        ],
+        [
+          1,
+          3,
+          8
+        ],
+        [
+          1,
+          3,
+          11
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          3,
+          14
+        ],
+        [
+          1,
+          3,
+          17
+        ],
+        [
+          1,
+          3,
+          20
+        ],
+        [
+          1,
+          3,
+          23
+        ],
+        [
+          1,
+          3,
+          24
+        ],
+        [
+          5,
+          3,
+          3
+        ],
+        [
+          3,
+          1,
+          3
+        ],
+        [
+          3,
+          1,
+          5
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          2,
+          7,
+          13
+        ],
+        [
+          5,
+          5,
+          5
+        ],
+        [
+          1,
+          3,
+          3
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              6,
+              1,
+              1
+            ],
+            [
+              1,
+              3,
+              5
+            ],
+            [
+              1,
+              3,
+              8
+            ],
+            [
+              1,
+              3,
+              11
+            ],
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              1,
+              3,
+              14
+            ],
+            [
+              1,
+              3,
+              17
+            ],
+            [
+              1,
+              3,
+              20
+            ],
+            [
+              1,
+              3,
+              23
+            ],
+            [
+              1,
+              3,
+              24
+            ],
+            [
+              5,
+              3,
+              3
+            ],
+            [
+              3,
+              1,
+              3
+            ],
+            [
+              3,
+              1,
+              5
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              2,
+              7,
+              13
+            ],
+            [
+              5,
+              5,
+              5
+            ],
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "16": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          5,
+          3,
+          3
+        ],
+        [
+          1,
+          4,
+          4
+        ],
+        [
+          2,
+          6,
+          6
+        ],
+        [
+          2,
+          10,
+          28
+        ],
+        [
+          5,
+          8,
+          29
+        ]
+      ],
+      "inert_geoms": [
+        [
+          5,
+          3,
+          3
+        ],
+        [
+          5,
+          8,
+          29
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          1,
+          4,
+          4
+        ],
+        [
+          2,
+          6,
+          6
+        ],
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          2,
+          10,
+          28
+        ],
+        [
+          6,
+          8,
+          26
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": true,
+      "panel_dims": [
+        6,
+        6
+      ],
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              5,
+              3,
+              3
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              6,
+              6
+            ],
+            [
+              2,
+              10,
+              28
+            ],
+            [
+              5,
+              8,
+              29
+            ]
+          ],
+          "inert_geoms": [
+            [
+              5,
+              3,
+              3
+            ],
+            [
+              5,
+              8,
+              29
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              6,
+              6
+            ],
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              2,
+              10,
+              28
+            ],
+            [
+              6,
+              8,
+              26
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "17": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        1,
+        2,
+        4
+      ],
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [
+        [
+          5,
+          17,
+          17
+        ],
+        [
+          1,
+          3,
+          3
+        ]
+      ],
+      "quantum": 2,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            2,
+            4
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [
+            [
+              5,
+              17,
+              17
+            ],
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "quantum": 2,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "18": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        4,
+        2,
+        2
+      ],
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          5,
+          6,
+          6
+        ]
+      ],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 6,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": true,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            4,
+            2,
+            2
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              5,
+              6,
+              6
+            ]
+          ],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "19": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [
+        "PANEL_ALIGN"
+      ],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        1,
+        4,
+        20
+      ],
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [
+        [
+          1,
+          3,
+          4
+        ]
+      ],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 4,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": true,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            4,
+            20
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              4
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 4,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "a70005dde887d4df": [
+              "SIMPLE",
+              1
+            ],
+            "30b8455b6769418d": [
+              "SIMPLE",
+              4
+            ],
+            "9c6d4a591ad7f696": [
+              "SIMPLE",
+              4
+            ],
+            "0213e46972956aa1": [
+              "SIMPLE",
+              4
+            ],
+            "5b7639aae9590686": [
+              "SIMPLE",
+              5
+            ]
+          }
+        },
+        "1": {
+          "level_idx": 1,
+          "avatar_geom": [
+            1,
+            4,
+            20
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 4,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "20": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          1,
+          10,
+          64
+        ],
+        [
+          5,
+          9,
+          9
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          1,
+          3,
+          3
+        ],
+        [
+          4,
+          1,
+          1
+        ],
+        [
+          5,
+          3,
+          3
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              1,
+              10,
+              64
+            ],
+            [
+              5,
+              9,
+              9
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              1,
+              3,
+              3
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              5,
+              3,
+              3
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "21": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [
+        [
+          6,
+          1,
+          3
+        ]
+      ],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [
+        [
+          1,
+          4,
+          4
+        ],
+        [
+          5,
+          5,
+          6
+        ],
+        [
+          6,
+          4,
+          4
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          5,
+          38,
+          43
+        ],
+        [
+          3,
+          1,
+          3
+        ],
+        [
+          6,
+          1,
+          3
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [
+            [
+              6,
+              1,
+              3
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              5,
+              5,
+              6
+            ],
+            [
+              6,
+              4,
+              4
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              5,
+              38,
+              43
+            ],
+            [
+              3,
+              1,
+              3
+            ],
+            [
+              6,
+              1,
+              3
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "22": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [],
+      "goal_type": "REACH",
+      "avatar_geom": [
+        5,
+        2,
+        5
+      ],
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 7,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "convey",
+        "toggle"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            5,
+            2,
+            5
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 7,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "23": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [],
+      "goal_type": "REACH",
+      "avatar_geom": [
+        2,
+        3,
+        3
+      ],
+      "avatar_parts": [
+        [
+          4,
+          1,
+          1
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [
+        [
+          1,
+          3,
+          3
+        ]
+      ],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 6,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "convey",
+        "toggle"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "57995104e62f36ae": [
+              "SIMPLE",
+              4
+            ],
+            "eb03901ec99946df": [
+              "SIMPLE",
+              2
+            ],
+            "e3cd60578e552844": [
+              "SIMPLE",
+              2
+            ],
+            "5324805faa4883ad": [
+              "SIMPLE",
+              4
+            ],
+            "1f7eb4965fd2b774": [
+              "SIMPLE",
+              1
+            ],
+            "e85df7264c961be7": [
+              "SIMPLE",
+              4
+            ],
+            "7ce8639075d037a8": [
+              "SIMPLE",
+              2
+            ],
+            "19d362399611425d": [
+              "SIMPLE",
+              2
+            ],
+            "b6b638c387817d10": [
+              "SIMPLE",
+              3
+            ],
+            "2d5683c1eaa5603a": [
+              "SIMPLE",
+              3
+            ],
+            "d2c2a9f5ad682ff4": [
+              "SIMPLE",
+              2
+            ],
+            "6116a4f0dcfadd33": [
+              "SIMPLE",
+              4
+            ],
+            "ec0c813da811c4a4": [
+              "SIMPLE",
+              4
+            ],
+            "686b9ecb925a8d1e": [
+              "SIMPLE",
+              2
+            ],
+            "66c8ac4a3efd7f30": [
+              "SIMPLE",
+              4
+            ],
+            "3262d7efcac61b64": [
+              "SIMPLE",
+              1
+            ],
+            "0d5fe3389979ede5": [
+              "SIMPLE",
+              4
+            ],
+            "bfdde772a311692b": [
+              "SIMPLE",
+              2
+            ]
+          }
+        },
+        "1": {
+          "level_idx": 1,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "37f8dd0361cacf11": [
+              "SIMPLE",
+              1
+            ],
+            "9fc3a5cda7a49729": [
+              "SIMPLE",
+              4
+            ],
+            "9b9d23ddbee24048": [
+              "SIMPLE",
+              4
+            ],
+            "cbd044da235be8ce": [
+              "SIMPLE",
+              2
+            ],
+            "63623edfbfa18fbe": [
+              "SIMPLE",
+              4
+            ],
+            "fe1afbe474896f95": [
+              "SIMPLE",
+              4
+            ],
+            "072c6236b1d8c8dc": [
+              "SIMPLE",
+              1
+            ],
+            "d26726736f45e44a": [
+              "SIMPLE",
+              4
+            ],
+            "248c762d1472bf86": [
+              "SIMPLE",
+              4
+            ],
+            "5e0f13eddc179916": [
+              "SIMPLE",
+              1
+            ]
+          }
+        },
+        "2": {
+          "level_idx": 2,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "101eb46b10c8ddaf": [
+              "SIMPLE",
+              1
+            ],
+            "6734068b0333ac7d": [
+              "SIMPLE",
+              1
+            ],
+            "781201673f757467": [
+              "SIMPLE",
+              4
+            ],
+            "8464ac899d496063": [
+              "SIMPLE",
+              1
+            ],
+            "ca9d254ef139bfb1": [
+              "SIMPLE",
+              3
+            ],
+            "a5638b92f501da7a": [
+              "SIMPLE",
+              3
+            ],
+            "6399e50276bfef67": [
+              "SIMPLE",
+              1
+            ],
+            "4dee8383cd13a4c0": [
+              "SIMPLE",
+              3
+            ],
+            "0537fd42653207bc": [
+              "SIMPLE",
+              3
+            ],
+            "2d7748a6b87ecb69": [
+              "SIMPLE",
+              2
+            ],
+            "4d7950241a076ba3": [
+              "SIMPLE",
+              4
+            ],
+            "fe03deae532b0c38": [
+              "SIMPLE",
+              2
+            ],
+            "73b77cee79af9699": [
+              "SIMPLE",
+              3
+            ],
+            "3af6721fb6fe5425": [
+              "SIMPLE",
+              3
+            ],
+            "f9fa431bc2b51181": [
+              "SIMPLE",
+              3
+            ],
+            "db2680d5f6f2f4aa": [
+              "SIMPLE",
+              2
+            ],
+            "20e6fbebf8de3eb6": [
+              "SIMPLE",
+              4
+            ],
+            "c3ed5648ef578d3c": [
+              "SIMPLE",
+              2
+            ],
+            "9408b2ab85fc89a1": [
+              "SIMPLE",
+              4
+            ]
+          }
+        },
+        "3": {
+          "level_idx": 3,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "295244a6f97ae136": [
+              "SIMPLE",
+              4
+            ],
+            "2153f3ee62cdec09": [
+              "SIMPLE",
+              3
+            ],
+            "828243de6709db5b": [
+              "SIMPLE",
+              4
+            ],
+            "febe1efa44cf79b4": [
+              "SIMPLE",
+              3
+            ],
+            "a3e2cbdf2da615d8": [
+              "SIMPLE",
+              4
+            ],
+            "be73898ba8ea4bd2": [
+              "SIMPLE",
+              4
+            ],
+            "f96553f8918eed46": [
+              "SIMPLE",
+              4
+            ],
+            "ab7987a1cdcaa0ee": [
+              "SIMPLE",
+              4
+            ],
+            "e3a84d2f56d9ccca": [
+              "SIMPLE",
+              1
+            ],
+            "4d26376f416e2dff": [
+              "SIMPLE",
+              1
+            ],
+            "a5c801ee926d6799": [
+              "SIMPLE",
+              3
+            ],
+            "0ee36ee1b19b2320": [
+              "SIMPLE",
+              1
+            ],
+            "f25f43b90773b949": [
+              "SIMPLE",
+              1
+            ],
+            "69030dce0ff10740": [
+              "SIMPLE",
+              3
+            ],
+            "9c73465135dfbbde": [
+              "SIMPLE",
+              3
+            ],
+            "87648cf95e6bd03e": [
+              "SIMPLE",
+              2
+            ],
+            "3411a003e91b65e4": [
+              "SIMPLE",
+              3
+            ]
+          }
+        },
+        "4": {
+          "level_idx": 4,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "7c87c42b25af57ff": [
+              "SIMPLE",
+              3
+            ],
+            "3c3f1b5e430fbe89": [
+              "SIMPLE",
+              3
+            ],
+            "215ba56c28fab7ec": [
+              "SIMPLE",
+              3
+            ],
+            "07a48cee3c2120ff": [
+              "SIMPLE",
+              4
+            ],
+            "4b0f0dc0d2746c00": [
+              "SIMPLE",
+              3
+            ],
+            "ad43a6792bf6d4d2": [
+              "SIMPLE",
+              3
+            ],
+            "70038d5d1ac6d14d": [
+              "SIMPLE",
+              3
+            ],
+            "3954945a63abd07c": [
+              "SIMPLE",
+              3
+            ],
+            "2840ff7c3562092c": [
+              "SIMPLE",
+              3
+            ],
+            "c2f5ab0806e98e59": [
+              "SIMPLE",
+              2
+            ],
+            "07f777fdc3f034d5": [
+              "SIMPLE",
+              1
+            ],
+            "a14a94be05f8544f": [
+              "SIMPLE",
+              2
+            ],
+            "c26536974b561220": [
+              "SIMPLE",
+              1
+            ],
+            "af202677902f6b87": [
+              "SIMPLE",
+              2
+            ],
+            "9473d7343c422640": [
+              "SIMPLE",
+              1
+            ],
+            "cf61c8694b55bd08": [
+              "SIMPLE",
+              2
+            ],
+            "cf404ec382269e9e": [
+              "SIMPLE",
+              1
+            ],
+            "c4daceb0a9e52032": [
+              "SIMPLE",
+              2
+            ],
+            "5802588b89e8c6db": [
+              "SIMPLE",
+              2
+            ],
+            "1d46b19e4c4996f2": [
+              "SIMPLE",
+              2
+            ],
+            "084ce6178864b42a": [
+              "SIMPLE",
+              4
+            ],
+            "a18e721069b17ff5": [
+              "SIMPLE",
+              2
+            ],
+            "a6b2f0dd9e3123f0": [
+              "SIMPLE",
+              2
+            ],
+            "74aae8490088e29a": [
+              "SIMPLE",
+              4
+            ],
+            "cb82524e0a2dd9c4": [
+              "SIMPLE",
+              4
+            ],
+            "b57df7c6bb0ef7f0": [
+              "SIMPLE",
+              4
+            ],
+            "5026e82fd746a795": [
+              "SIMPLE",
+              1
+            ],
+            "28d9aefb6cb31ea4": [
+              "SIMPLE",
+              1
+            ],
+            "c6ce9210f655ec3f": [
+              "SIMPLE",
+              3
+            ]
+          }
+        },
+        "5": {
+          "level_idx": 5,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              3,
+              3
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "3dbe7a1c80ca84d2": [
+              "SIMPLE",
+              3
+            ],
+            "7634d588626f2378": [
+              "SIMPLE",
+              3
+            ],
+            "3d889b53356a1a60": [
+              "SIMPLE",
+              2
+            ],
+            "e36e201534b19f70": [
+              "SIMPLE",
+              1
+            ],
+            "81c8910b32e78437": [
+              "SIMPLE",
+              2
+            ],
+            "4172eb13406d1ab3": [
+              "SIMPLE",
+              1
+            ],
+            "88cb39cd1119b401": [
+              "SIMPLE",
+              2
+            ],
+            "aebb6d6a2afe86ee": [
+              "SIMPLE",
+              2
+            ],
+            "e9ddb8639b68732f": [
+              "SIMPLE",
+              3
+            ],
+            "d83f29ba45bfc99c": [
+              "SIMPLE",
+              3
+            ],
+            "0352d53fb15f5eb0": [
+              "SIMPLE",
+              4
+            ],
+            "89b898cbcf30ff14": [
+              "SIMPLE",
+              4
+            ],
+            "5614a3868ee627ad": [
+              "SIMPLE",
+              4
+            ],
+            "ee969f2581329aab": [
+              "SIMPLE",
+              2
+            ],
+            "cb1b293da4a67c0f": [
+              "SIMPLE",
+              2
+            ],
+            "b0f593fe1fbc2d92": [
+              "SIMPLE",
+              3
+            ],
+            "8908dcf05207f659": [
+              "SIMPLE",
+              2
+            ],
+            "8a4a7496f384d5d4": [
+              "SIMPLE",
+              3
+            ],
+            "3ad1c581200128bc": [
+              "SIMPLE",
+              1
+            ],
+            "d743890afe44c93a": [
+              "SIMPLE",
+              2
+            ],
+            "e57b5c617263f716": [
+              "SIMPLE",
+              3
+            ],
+            "7b8ba2ff58c16e51": [
+              "SIMPLE",
+              1
+            ],
+            "ffd21fc2ae523bc8": [
+              "SIMPLE",
+              1
+            ],
+            "e42bec9a90e9276a": [
+              "SIMPLE",
+              3
+            ],
+            "eadb5e331a6eebae": [
+              "SIMPLE",
+              1
+            ],
+            "6c4161b94749fced": [
+              "SIMPLE",
+              1
+            ],
+            "587cb1acfaec05bd": [
+              "SIMPLE",
+              1
+            ],
+            "71bd39482b1f566c": [
+              "SIMPLE",
+              3
+            ]
+          }
+        },
+        "6": {
+          "level_idx": 6,
+          "avatar_geom": [
+            2,
+            3,
+            3
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 6,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "24": {
+      "solver_family": "PANEL_ALIGN",
+      "secondary_families": [],
+      "goal_type": "MATCH",
+      "avatar_geom": null,
+      "avatar_parts": [],
+      "movable_geoms": [],
+      "goal_geoms": [
+        [
+          1,
+          4,
+          4
+        ]
+      ],
+      "wall_geoms": [],
+      "hazard_geoms": [],
+      "switch_geoms": [
+        [
+          1,
+          2,
+          6
+        ]
+      ],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          1,
+          2,
+          6
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          6,
+          10
+        ],
+        [
+          1,
+          2,
+          10
+        ],
+        [
+          1,
+          2,
+          16
+        ],
+        [
+          1,
+          2,
+          17
+        ],
+        [
+          1,
+          2,
+          18
+        ],
+        [
+          4,
+          1,
+          2
+        ],
+        [
+          3,
+          1,
+          3
+        ],
+        [
+          1,
+          8,
+          10
+        ],
+        [
+          1,
+          8,
+          26
+        ]
+      ],
+      "inert_geoms": [
+        [
+          1,
+          19,
+          52
+        ],
+        [
+          1,
+          4,
+          4
+        ],
+        [
+          1,
+          19,
+          48
+        ],
+        [
+          1,
+          19,
+          44
+        ],
+        [
+          1,
+          19,
+          40
+        ],
+        [
+          1,
+          19,
+          36
+        ],
+        [
+          1,
+          19,
+          32
+        ],
+        [
+          1,
+          19,
+          28
+        ],
+        [
+          1,
+          19,
+          24
+        ],
+        [
+          1,
+          19,
+          20
+        ],
+        [
+          1,
+          16,
+          44
+        ],
+        [
+          1,
+          16,
+          40
+        ],
+        [
+          1,
+          16,
+          36
+        ],
+        [
+          1,
+          16,
+          32
+        ],
+        [
+          1,
+          16,
+          28
+        ],
+        [
+          1,
+          2,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          6
+        ],
+        [
+          1,
+          2,
+          10
+        ],
+        [
+          1,
+          2,
+          16
+        ],
+        [
+          1,
+          2,
+          17
+        ],
+        [
+          1,
+          2,
+          18
+        ],
+        [
+          4,
+          1,
+          2
+        ],
+        [
+          3,
+          1,
+          3
+        ]
+      ],
+      "responsive_geoms": [
+        [
+          5,
+          63,
+          64
+        ],
+        [
+          1,
+          6,
+          8
+        ],
+        [
+          4,
+          2,
+          2
+        ],
+        [
+          1,
+          8,
+          8
+        ],
+        [
+          1,
+          4,
+          10
+        ],
+        [
+          5,
+          4,
+          8
+        ],
+        [
+          1,
+          8,
+          10
+        ],
+        [
+          1,
+          6,
+          10
+        ],
+        [
+          1,
+          8,
+          28
+        ],
+        [
+          1,
+          8,
+          26
+        ]
+      ],
+      "quantum": 1,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "approach",
+        "explore",
+        "toggle",
+        "convey"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              4,
+              4
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [
+            [
+              1,
+              2,
+              6
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "300ec05b956e8e2b": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "cac50b31cf6c9833": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "4da6a9681a0403c5": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "15e410fc122b4e71": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ]
+          }
+        },
+        "1": {
+          "level_idx": 1,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [
+            [
+              1,
+              4,
+              4
+            ]
+          ],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [
+            [
+              1,
+              2,
+              6
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [],
+          "inert_geoms": [
+            [
+              1,
+              19,
+              52
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              1,
+              19,
+              48
+            ],
+            [
+              1,
+              19,
+              44
+            ],
+            [
+              1,
+              19,
+              40
+            ],
+            [
+              1,
+              19,
+              36
+            ],
+            [
+              1,
+              19,
+              32
+            ],
+            [
+              1,
+              19,
+              28
+            ],
+            [
+              1,
+              19,
+              24
+            ],
+            [
+              1,
+              19,
+              20
+            ],
+            [
+              1,
+              16,
+              44
+            ],
+            [
+              1,
+              16,
+              40
+            ],
+            [
+              1,
+              16,
+              36
+            ],
+            [
+              1,
+              16,
+              32
+            ],
+            [
+              1,
+              16,
+              28
+            ],
+            [
+              5,
+              63,
+              64
+            ]
+          ],
+          "responsive_geoms": [],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": true,
+          "causal_policy": {
+            "8d14023c1dbd5f88": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "7fa7dcba4257b717": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "e8222d02e6791ccf": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "d12582852ddf48a1": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "368b5d6f13c00482": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "81b052a50ae1aa89": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "3ea4a765476799b7": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "a14e7ed35151ef35": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "f1d0b06d8682a316": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              1,
+              1,
+              1
+            ],
+            "5c238cbe8e914c03": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              3,
+              1,
+              1
+            ],
+            "0739031f841fe631": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              3,
+              1,
+              1
+            ],
+            "460e4e19962516f8": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              3,
+              1,
+              1
+            ],
+            "fc74776f70048cd3": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              3,
+              1,
+              1
+            ],
+            "a86a3172ed3257f7": [
+              "CLICK_GEOM",
+              1,
+              4,
+              4,
+              3,
+              1,
+              1
+            ]
+          }
+        },
+        "2": {
+          "level_idx": 2,
+          "avatar_geom": null,
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [],
+          "hazard_geoms": [],
+          "switch_geoms": [
+            [
+              1,
+              2,
+              6
+            ]
+          ],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              1,
+              6,
+              10
+            ],
+            [
+              1,
+              2,
+              10
+            ],
+            [
+              1,
+              2,
+              16
+            ],
+            [
+              1,
+              2,
+              17
+            ],
+            [
+              1,
+              2,
+              18
+            ],
+            [
+              4,
+              1,
+              2
+            ],
+            [
+              3,
+              1,
+              3
+            ],
+            [
+              1,
+              8,
+              10
+            ],
+            [
+              1,
+              8,
+              26
+            ]
+          ],
+          "inert_geoms": [
+            [
+              1,
+              2,
+              4
+            ],
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              1,
+              2,
+              10
+            ],
+            [
+              1,
+              2,
+              16
+            ],
+            [
+              1,
+              2,
+              17
+            ],
+            [
+              1,
+              2,
+              18
+            ],
+            [
+              4,
+              1,
+              2
+            ],
+            [
+              3,
+              1,
+              3
+            ]
+          ],
+          "responsive_geoms": [
+            [
+              5,
+              63,
+              64
+            ],
+            [
+              1,
+              6,
+              8
+            ],
+            [
+              4,
+              2,
+              2
+            ],
+            [
+              1,
+              8,
+              8
+            ],
+            [
+              1,
+              4,
+              10
+            ],
+            [
+              5,
+              4,
+              8
+            ],
+            [
+              1,
+              8,
+              10
+            ],
+            [
+              1,
+              6,
+              10
+            ],
+            [
+              1,
+              8,
+              28
+            ],
+            [
+              1,
+              8,
+              26
+            ]
+          ],
+          "quantum": 1,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    },
+    "25": {
+      "solver_family": "REACH_BFS",
+      "secondary_families": [],
+      "goal_type": "PLACE",
+      "avatar_geom": [
+        1,
+        3,
+        4
+      ],
+      "avatar_parts": [
+        [
+          3,
+          1,
+          4
+        ]
+      ],
+      "movable_geoms": [],
+      "goal_geoms": [],
+      "wall_geoms": [
+        [
+          1,
+          2,
+          10
+        ],
+        [
+          1,
+          2,
+          7
+        ]
+      ],
+      "hazard_geoms": [],
+      "switch_geoms": [],
+      "portal_geoms": [],
+      "collectible_geoms": [],
+      "refuted_geoms": [
+        [
+          1,
+          2,
+          7
+        ],
+        [
+          5,
+          4,
+          8
+        ]
+      ],
+      "inert_geoms": [],
+      "responsive_geoms": [],
+      "quantum": 4,
+      "dpad_vectors": {
+        "1": [
+          0,
+          -1
+        ],
+        "2": [
+          0,
+          1
+        ],
+        "3": [
+          -1,
+          0
+        ],
+        "4": [
+          1,
+          0
+        ]
+      },
+      "canonical_to_raw_dpad": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4
+      },
+      "control_inverted": false,
+      "has_panel_pair": false,
+      "panel_dims": null,
+      "switch_first": false,
+      "hybrid_corridor_click": false,
+      "interact_aligned": false,
+      "fmf_primitives": [
+        "route",
+        "approach",
+        "explore",
+        "convey",
+        "toggle"
+      ],
+      "schema_id": null,
+      "levels": {
+        "0": {
+          "level_idx": 0,
+          "avatar_geom": [
+            1,
+            3,
+            4
+          ],
+          "movable_geoms": [],
+          "goal_geoms": [],
+          "wall_geoms": [
+            [
+              1,
+              2,
+              10
+            ],
+            [
+              1,
+              2,
+              7
+            ]
+          ],
+          "hazard_geoms": [],
+          "switch_geoms": [],
+          "portal_geoms": [],
+          "collectible_geoms": [],
+          "refuted_geoms": [
+            [
+              1,
+              2,
+              7
+            ],
+            [
+              5,
+              4,
+              8
+            ]
+          ],
+          "inert_geoms": [],
+          "responsive_geoms": [],
+          "quantum": 4,
+          "had_conditional_blocks": false,
+          "cleared": false,
+          "causal_policy": {}
+        }
+      }
+    }
+  }
+}

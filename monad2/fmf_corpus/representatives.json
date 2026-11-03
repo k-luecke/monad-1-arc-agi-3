@@ -1,0 +1,106 @@
+[
+  {
+    "source_file": "2026-10-30_a6de3c94.md",
+    "date": "2026-10-30",
+    "record_kind": "kyle_sot",
+    "step": 3845,
+    "game_id": null,
+    "game_ids": null,
+    "observation": "I think the individual puzzles moves and experiences are good as learned memory but there should really be a bottom up process that feeds through the senses into the small qwen a and b models that feed in to the observer the observer then feeds top down and the tension of intent vs change and Delta of actual outcome from intent is necessary. Otherwise there's not the type of reasoning I was hoping",
+    "hypothesis": "I think the individual puzzles moves and experiences are good as learned memory but there should really be a bottom up process that feeds through the senses into the small qwen a and b models that feed in to the observer the observer then feeds top down and the tension of intent vs change and Delta of actual outcome from intent is necessary. Otherwise there's not the type of reasoning I was hoping to have exists",
+    "inferred_goal": "META_ARCHITECTURE",
+    "goal_types": [
+      "META_ARCHITECTURE"
+    ],
+    "action_plan": null,
+    "outcome": null,
+    "id": "cb753bba33b6"
+  },
+  {
+    "source_file": "2026-10-22_46af046c.md",
+    "date": "2026-10-22",
+    "record_kind": "kyle_sot",
+    "step": 1481,
+    "game_id": null,
+    "game_ids": null,
+    "observation": "My gains seem to have slowed   # Iteration 12 (`INOS v0.5`) \u2014 Final Implementation & 5-Gate Verification Report  **Author:** Kyle W. Luecke (`Drift Bound Labs`)   **Release:** `INOS v0.5` \u2014 *3D Merkle Streets, Optical Wave-Intuition Memory Fields & Semigroup Cancellation Lensing*   **Specification:** [`ITERATION_12_SPEC.md`](file:///c:/Users/Kyle%20W.%20Luecke/arcagi/ITERATION_12_SPEC.md)   **Stat",
+    "hypothesis": "My gains seem to have slowed   # Iteration 12 (`INOS v0.5`) \u2014 Final Implementation & 5-Gate Verification Report  **Author:** Kyle W. Luecke (`Drift Bound Labs`)   **Release:** `INOS v0.5` \u2014 *3D Merkle Streets, Optical Wave-Intuition Memory Fields & Semigroup Cancellation Lensing*   **Specification:** [`ITERATION_12_SPEC.md`](file:///c:/Users/Kyle%20W.%20Luecke/arcagi/ITERATION_12_SPEC.md)   **Status:** **COMPLETE \u2014 ALL 5 MANDATORY GATES PASSED (`0%` Evaluation Leakage)**  ---  ## 1. Architectural Deliverables Implemented  ### Pillar 1 \u2014 3D Merkle Streets Branching Along the $Z$-Axis (`MerkleSt",
+    "inferred_goal": "MATCH",
+    "goal_types": [
+      "MATCH",
+      "UNLOCK",
+      "META_ARCHITECTURE"
+    ],
+    "action_plan": null,
+    "outcome": null,
+    "id": "ff6f57261b33"
+  },
+  {
+    "source_file": "ARCAGI_ALL_WORKSPACE_LOGS_COMBINED.md#monad1_dream_journal",
+    "date": "2026-10-25",
+    "record_kind": "dream_schema",
+    "game_id": null,
+    "task_id": null,
+    "observation": "dream tier=DEEP_SLOW_WAVE cycle=414",
+    "hypothesis": "SCHEMA_REMOTE_AFFORDANCE: Isolated 1x1 switch sprites coupled via ACTION6(r,c) dissolve global phase barriers.; SCHEMA_ANNIHILATION_BRIDGE: Translating a movable block into an impassable chasm cell annihilates both into floor(0).; SCHEMA_NONLOCAL_PORTAL_PAIR: Twin-cardinality sprite colors induce involutive non-local coordinate transport.",
+    "inferred_goal": "SWITCH",
+    "goal_types": [
+      "SWITCH",
+      "PORTAL",
+      "ANNIHILATE"
+    ],
+    "action_plan": [
+      "ACTION4",
+      "ACTION6(2,2)",
+      "ACTION4",
+      "ACTION4",
+      "ACTION4",
+      "ACTION4"
+    ],
+    "outcome": "solved_counterfactual",
+    "id": "1887547f9c2a"
+  },
+  {
+    "source_file": "2026-10-20_c518da67.md",
+    "date": "2026-10-20",
+    "record_kind": "assistant_thought",
+    "game_id": "ft09",
+    "game_ids": [
+      "ft09",
+      "sb26"
+    ],
+    "task_id": null,
+    "observation": "Analyzing failures in the remaining `ARC-AGI-3` games. Investigating how native INOS applications address the encountered challenges. The goal is to understand the core issues and leverage innate application capabilities for resolution.   The game `sb26` failed due to an incorrect `is_hybrid` classification. The presence of `ACTION5` (submit) in the available actions, combined with the pointer, le",
+    "hypothesis": "The goal is to understand the core issues and leverage innate application capabilities for resolution.",
+    "inferred_goal": "NAVIGATE",
+    "goal_types": [
+      "NAVIGATE"
+    ],
+    "action_plan": [
+      "ACTION5"
+    ],
+    "outcome": "failure_analysis",
+    "id": "b3e8ead063af"
+  },
+  {
+    "source_file": "2026-10-20_c518da67.md",
+    "date": "2026-10-20",
+    "record_kind": "assistant_thought",
+    "game_id": "sb26",
+    "game_ids": [
+      "sb26"
+    ],
+    "task_id": null,
+    "observation": "ACTION5 is consistently selected by `sb26` at various steps. The `choose_action` logic directs this selection for `untried` scenarios, explaining the repeated use of `ACTION5`.   The current action selection prioritizes \"SIMPLE\" actions (like ACTION5) even when a d-pad isn't available, overriding the intended click-before-simple logic. The intended Tier 1 behavior of prioritizing simple d-pad acti",
+    "hypothesis": "ACTION5 is consistently selected by `sb26` at various steps. The `choose_action` logic directs this selection for `untried` scenarios, explaining the repeated use of `ACTION5`.   The current action selection prioritizes \"SIMPLE\" actions (like ACTION5) even when a d-pad isn't available, overriding th",
+    "inferred_goal": "ANNIHILATE",
+    "goal_types": [
+      "ANNIHILATE"
+    ],
+    "action_plan": [
+      "ACTION5"
+    ],
+    "outcome": "failure_analysis",
+    "id": "4ced3653a0af"
+  }
+]

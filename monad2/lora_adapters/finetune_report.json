@@ -1,0 +1,65 @@
+{
+  "dataset_size": 949,
+  "holdout_excluded": [
+    "cd82",
+    "ft09",
+    "m0r0",
+    "tn36",
+    "tr87"
+  ],
+  "rank": 16,
+  "epochs": 180,
+  "models": {
+    "a": {
+      "name": "Qwen2.5-0.5B-Instruct",
+      "gguf_base": "C:\\Users\\Kyle W. Luecke\\Desktop\\SCP_Local_LLM\\models\\qwen2.5-0.5b-instruct-q6_k.gguf",
+      "lora_gguf": "C:\\Users\\Kyle W. Luecke\\arcagi\\public_leaderboard_repo\\monad2\\lora_adapters\\monad2_model_a_lora.gguf",
+      "lora_size_bytes": 459488,
+      "gguf_verified": true,
+      "initial_loss": 7.6029,
+      "final_loss": 0.0002,
+      "accuracy": {
+        "primitive": 1.0,
+        "goal": 1.0,
+        "solver_family": 1.0,
+        "verdict": 1.0,
+        "decision": 1.0
+      },
+      "train_seconds": 3.317
+    },
+    "b": {
+      "name": "Qwen2.5-1.5B-Instruct",
+      "gguf_base": "C:\\Users\\Kyle W. Luecke\\Desktop\\SCP_Local_LLM\\models\\qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "lora_gguf": "C:\\Users\\Kyle W. Luecke\\arcagi\\public_leaderboard_repo\\monad2\\lora_adapters\\monad2_model_b_lora.gguf",
+      "lora_size_bytes": 787168,
+      "gguf_verified": true,
+      "initial_loss": 6.8307,
+      "final_loss": 0.0002,
+      "accuracy": {
+        "primitive": 1.0,
+        "goal": 1.0,
+        "solver_family": 1.0,
+        "verdict": 1.0,
+        "decision": 1.0
+      },
+      "train_seconds": 0.915
+    },
+    "executive": {
+      "name": "Mistral-NeMo-Minitron-8B-Instruct",
+      "gguf_base": "C:\\Users\\Kyle W. Luecke\\bsplosive\\models\\pretrained\\Mistral-NeMo-Minitron-8B-Instruct-Q4_K_M.gguf",
+      "lora_gguf": "C:\\Users\\Kyle W. Luecke\\arcagi\\public_leaderboard_repo\\monad2\\lora_adapters\\monad2_executive_lora.gguf",
+      "lora_size_bytes": 2097888,
+      "gguf_verified": true,
+      "initial_loss": 11.3627,
+      "final_loss": 0.0004,
+      "accuracy": {
+        "primitive": 1.0,
+        "goal": 1.0,
+        "solver_family": 1.0,
+        "verdict": 1.0,
+        "decision": 1.0
+      },
+      "train_seconds": 1.003
+    }
+  }
+}
