@@ -295,6 +295,22 @@ def _decision_flags_on() -> bool:
     return any(on(name) for name in FACTORS)
 
 
+_ONLINE_MACRO_FAMILIES = (
+    None,
+    "online_general_goal",
+    "online_learned_kinematic",
+    "online_learned_switch_gate",
+)
+
+
+def has_active_tier1_macro(agent) -> bool:
+    if getattr(agent, "game_specific_solvers_disabled", False):
+        return False
+    if os.getenv("MONAD2_FACTORIAL", "0") == "1":
+        return False
+    return getattr(agent, "active_macro_family", None) not in _ONLINE_MACRO_FAMILIES
+
+
 def _fallback_to_baseline(agent) -> None:
     """Drop Monad(2) decision flags and ask for a level restart.
 
@@ -303,7 +319,7 @@ def _fallback_to_baseline(agent) -> None:
     policy that clears them. The pending restore emits one RESET and rebuilds
     the level world model from the residue captured at level start.
     """
-    if getattr(agent, "game_specific_solvers_disabled", False):
+    if getattr(agent, "game_specific_solvers_disabled", False) or os.getenv("MONAD2_FACTORIAL", "0") != "1":
         agent._m2_unchanged_streak = 0
         coord_st = getattr(agent, "_m2_coord", None)
         if isinstance(coord_st, dict):
@@ -349,6 +365,8 @@ def note_step(agent, changed: bool, plan_active: bool) -> None:
         stats["wasted_noop"] += 1
     if plan_active:
         stats["plan_steps"] += 1
+    if has_active_tier1_macro(agent):
+        return
     # Watch mode records hypotheses and endpoint labels. It is not a decision
     # flag, and it does not write anything the policy reads.
     if on("MONAD2_GOAL_WATCH"):
@@ -575,6 +593,7 @@ def short_circuit_execute(agent):
         or getattr(agent, "_m2_stall_fallback", False)
         or bool(getattr(agent, "planned_queue", None))
         or bool(getattr(agent, "replay_mode", False))
+        or has_active_tier1_macro(agent)
     ):
         return None
     from monad2.coordinate import try_execute_step
@@ -599,7 +618,7 @@ def maybe_replace_key(agent, key, reason: str = ""):
     ``MONAD2_COORDINATE=1`` hands the key to the executive instead. That path
     is not a factorial column and stays off during score runs.
     """
-    if getattr(agent, "_m2_stall_fallback", False):
+    if getattr(agent, "_m2_stall_fallback", False) or has_active_tier1_macro(agent):
         agent._m2_short_circuited = None
         return key
     if on("MONAD2_COORDINATE"):

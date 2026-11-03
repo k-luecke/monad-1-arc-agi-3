@@ -4604,7 +4604,10 @@ class MyAgent(Agent):
             os.getenv("MONAD1_DISABLE_GAME_SOLVERS", "0") == "1"
         )
         self.ggl_enabled = (
-            self.game_specific_solvers_disabled
+            (
+                self.game_specific_solvers_disabled
+                or bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
+            )
             and os.getenv("MONAD1_DISABLE_GOAL_ENGINE", "0") != "1"
         ) or os.getenv("MONAD1_FORCE_GOAL_ENGINE", "0") == "1"
         self._ggl_init_game_state()
@@ -4904,7 +4907,11 @@ class MyAgent(Agent):
         else:
             self.second_order_canvas.reset()
         self.stm_shard = Monad1ShortTermMemoryShard(task_id=f"{self.game_id}_L{self.current_level}", level_idx=self.current_level)
-        if getattr(self, "game_specific_solvers_disabled", False) and os.getenv("MONAD2_FACTORIAL", "0") != "1":
+        if (
+            getattr(self, "game_specific_solvers_disabled", False)
+            or bool(os.getenv("KAGGLE_IS_COMPETITION_RERUN"))
+            or os.getenv("MONAD1_FORCE_GOAL_ENGINE", "0") == "1"
+        ) and os.getenv("MONAD2_FACTORIAL", "0") != "1":
             self._m2_stall_fallback = False
             self._m2_pending_level_restore = False
             self._m2_unchanged_streak = 0
@@ -5326,12 +5333,14 @@ class MyAgent(Agent):
                 self.active_macro_family,
                 True,
             )
-            if getattr(self, "ggl_enabled", False):
+            _m2_rt = getattr(self, "_m2_runtime", None)
+            _tier1_active = bool(_m2_rt is not None and _m2_rt.has_active_tier1_macro(self))
+            if getattr(self, "ggl_enabled", False) and not _tier1_active:
                 try:
                     self._ggl_on_level_completed(lvl_done)
                 except Exception:
                     pass
-            if getattr(self, "wins_teach", False):
+            if getattr(self, "wins_teach", False) and not _tier1_active:
                 try:
                     # Prefer the last in-level board. The completion frame is often
                     # already the next level, which is not the situation that was solved.
@@ -5340,8 +5349,7 @@ class MyAgent(Agent):
                 except Exception:
                     pass
             self.current_level = lvl_done
-            _m2_rt = getattr(self, "_m2_runtime", None)
-            if _m2_rt is not None and _m2_rt.on("MONAD2_COORDINATE") and self.prev_hash is not None:
+            if _m2_rt is not None and _m2_rt.on("MONAD2_COORDINATE") and self.prev_hash is not None and not _tier1_active:
                 try:
                     from monad2.coordinate import observe as _m2_observe
 
@@ -22569,7 +22577,12 @@ class MyAgent(Agent):
                 "nnc_op": self.inos_meta_engine.last_differential_report.get("nnc_operation", "NNC_FACT_COMMITTED"),  # Commit verified @nnc_fact record & Stepping-Stone G_mid on positive causal efficacy
             }                                                                               # Close structured composite expression or container literal
         _m2_rt = getattr(self, "_m2_runtime", None)
-        _m2_coord_on = bool(_m2_rt is not None and hasattr(_m2_rt, "on") and _m2_rt.on("MONAD2_COORDINATE"))
+        _m2_coord_on = bool(
+            _m2_rt is not None
+            and hasattr(_m2_rt, "on")
+            and _m2_rt.on("MONAD2_COORDINATE")
+            and not _m2_rt.has_active_tier1_macro(self)
+        )
         if key[0] == "CLICK":                                                               # Control / block header: if key[0] == "CLICK":
             _, x, y = key                                                                   # Execute INOS meta-reasoning operation: _, x, y = key
             rx = (63 - int(x)) if (self.click_mirror_x and not _m2_coord_on) else int(x)
@@ -24981,7 +24994,12 @@ class MyAgent(Agent):
                     return GameAction.RESET
                 self._consecutive_game_over_resets += 1
                 _m2_rt = getattr(self, "_m2_runtime", None)
-                if _m2_rt is not None and _m2_rt.on("MONAD2_COORDINATE") and self.prev_hash is not None:
+                if (
+                    _m2_rt is not None
+                    and _m2_rt.on("MONAD2_COORDINATE")
+                    and not _m2_rt.has_active_tier1_macro(self)
+                    and self.prev_hash is not None
+                ):
                     try:
                         from monad2.coordinate import observe as _m2_observe
 
@@ -25010,7 +25028,11 @@ class MyAgent(Agent):
                     if self.non_reset_steps_in_level <= prev_d + 2:
                         self.dead_actions[self.prev_hash].add(self.prev_action)
                         self.tried[self.prev_hash].add(self.prev_action)
-            if self.ggl_enabled and latest_frame.state is GameState.GAME_OVER:
+            if (
+                self.ggl_enabled
+                and latest_frame.state is GameState.GAME_OVER
+                and not (_m2_rt is not None and _m2_rt.has_active_tier1_macro(self))
+            ):
                 self._ggl_on_game_over()
             if (
                 latest_frame.state is GameState.GAME_OVER
@@ -25279,14 +25301,17 @@ class MyAgent(Agent):
             is_hybrid=is_hybrid,
             from_macro_plan=from_macro,
         )
-        if self.ggl_enabled:
+        _tier1_active_now = bool(
+            _m2_rt is not None and _m2_rt.has_active_tier1_macro(self)
+        )
+        if self.ggl_enabled and not _tier1_active_now:
             try:
                 self._ggl_observe(
                     grid, doc, h_curr, is_blackout or was_blackout_last_step
                 )
             except Exception:
                 pass
-        if (
+        if not _tier1_active_now and (
             self.fx_enabled
             or self.wins_teach
             or self.rehearse_enabled
@@ -26206,6 +26231,13 @@ class MyAgent(Agent):
             if (
                 self.ggl_enabled
                 and not self.planned_queue
+                and self.active_macro_family
+                in (
+                    None,
+                    "online_general_goal",
+                    "online_learned_kinematic",
+                    "online_learned_switch_gate",
+                )
                 and not is_blackout
                 and not was_blackout_last_step
                 and not self.replay_mode
