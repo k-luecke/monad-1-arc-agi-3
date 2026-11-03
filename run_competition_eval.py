@@ -353,6 +353,21 @@ def play_single_game(
         os.environ["MONAD2_GAME_SLOT"] = str(max(0, int(idx) - 1))
     elif os.getenv("MONAD2_GAME_SLOT_LOCK", "0") != "1":
         os.environ["MONAD2_GAME_SLOT"] = str(int(idx))
+    if os.getenv("MONAD1_DISABLE_GAME_SOLVERS") == "1" and os.getenv("MONAD2_FACTORIAL", "0") != "1":
+        for _flag in (
+            "MONAD2_COORDINATE",
+            "MONAD2_SCP",
+            "MONAD2_GOAL_DISCOVERY",
+            "MONAD2_CALLOSUM",
+            "MONAD2_DLADDER",
+            "MONAD2_REHEARSAL",
+            "MONAD2_TONIC",
+            "MONAD2_GRAFT",
+            "MONAD1_EFFECT_MODEL",
+            "MONAD1_CANVAS_REHEARSAL",
+            "MONAD1_WINS_TEACH",
+        ):
+            os.environ[_flag] = "1"
     goal_report = None
     win_records = None
     monad2_report = None
@@ -823,8 +838,10 @@ def main(argv: list[str] | None = None) -> int:
         os.environ["MONAD1_DISABLE_GAME_SOLVERS"] = "1"
         for _m2_flag in (
             "MONAD2_COORDINATE",
+            "MONAD2_SCP",
             "MONAD2_GOAL_DISCOVERY",
             "MONAD2_CALLOSUM",
+            "MONAD2_DLADDER",
             "MONAD2_REHEARSAL",
             "MONAD2_TONIC",
             "MONAD2_GRAFT",
@@ -1463,6 +1480,11 @@ def run_notebook_entrypoint() -> int:
             except Exception:
                 time.sleep(2.0)
         extra_args = [a for a in os.environ.get("KAGGLE_RERUN_ARGS", "").split() if a]
+        if (
+            os.environ.get("MONAD1_ENABLE_PUBLIC_GAME_SOLVERS", "0") != "1"
+            and "--no-game-solvers" not in extra_args
+        ):
+            extra_args = ["--no-game-solvers", *extra_args]
         return main(["--workers", "1", *extra_args])
     if os.environ.get("ARC_API_KEY", "").strip():
         rc = main([])

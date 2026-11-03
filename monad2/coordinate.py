@@ -1304,6 +1304,9 @@ def _try_synthesized_step(agent, state: dict, legal: list[int], entries: dict, h
         slot_val = int(slot_env) if slot_env.lstrip("-").isdigit() else getattr(agent, "m2_game_slot", None)
         synth_spec = lookup_synthesized_solver(agent, state.get("frame_records") or [], legal, slot=slot_val)
         lv_now = synth_spec.levels.get(cur_lvl_idx) if synth_spec is not None else None
+        if int(state.get("level_steps") or 0) > 120 and not (lv_now and lv_now.causal_policy):
+            state["coop_handoff"] = True
+            return None
         if synth_spec is not None and (
             has_mover
             or synth_spec.has_panel_pair
@@ -1366,6 +1369,10 @@ def try_execute_step(agent):
     state = _state(agent)
     cur_lvl_idx = int(getattr(agent, "current_level", 0) or 0)
     _touch_level(state, cur_lvl_idx)
+    if int(state.get("level_steps") or 0) > 120:
+        state["mode"] = "discover"
+        state["coop_handoff"] = True
+        return None
     if state.get("surprise_pending") or state.get("coop_handoff"):
         return None
     is_pass2 = os.getenv("MONAD2_PASS") == "2" or getattr(agent, "m2_pass_idx", 1) == 2
@@ -1701,6 +1708,33 @@ def decide(agent, key, reason: str = "", backend=None):
         synth_res = _try_synthesized_step(agent, state, legal, entries, heuristic, stream)
         if synth_res is not None:
             return synth_res
+        if (
+            heuristic is not None
+            and reason in (
+                "monad1-online-world-model-plan",
+                "monad1-optimal-skill-replay",
+                "monad1-blind-second-pass-recall",
+                "monad1-symbolic-bfs-plan",
+            )
+            and _ladder_ok(agent, heuristic, legal)[0]
+        ):
+            _bump(agent, "coord_accept")
+            _bump(agent, "infl_heuristic")
+            _bump(agent, "coord_steps")
+            state["pending"] = {
+                "action": heuristic,
+                "expect_change": True,
+                "expectation": "verified world-model or goal-engine plan step",
+                "goal": (state.get("theory") or {}).get("goal"),
+                "features": entries.get("features"),
+                "theory": (state.get("theory") or {}).get("text") or "",
+                "shapes": list((entries.get("scene") or {}).get("records") or []),
+                "primitive": "plan",
+                "predicate": None,
+                "comment": reason,
+            }
+            return heuristic
+    is_pass2 = os.getenv("MONAD2_PASS") == "2" or getattr(agent, "m2_pass_idx", 1) == 2
     max_llm_lvl = 1
     ep_llm_calls = int(_stats(agent).get("llm_calls", 0) or 0)
     if backend is None and _can_coop_handoff(agent, state) and (

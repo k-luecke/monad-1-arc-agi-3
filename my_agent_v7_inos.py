@@ -4904,6 +4904,25 @@ class MyAgent(Agent):
         else:
             self.second_order_canvas.reset()
         self.stm_shard = Monad1ShortTermMemoryShard(task_id=f"{self.game_id}_L{self.current_level}", level_idx=self.current_level)
+        if getattr(self, "game_specific_solvers_disabled", False) and os.getenv("MONAD2_FACTORIAL", "0") != "1":
+            self._m2_stall_fallback = False
+            self._m2_pending_level_restore = False
+            self._m2_unchanged_streak = 0
+            self.ggl_enabled = os.getenv("MONAD1_DISABLE_GOAL_ENGINE", "0") != "1"
+            self.fx_enabled = os.getenv("MONAD1_EFFECT_MODEL", "1") == "1"
+            self.rehearse_enabled = os.getenv("MONAD1_CANVAS_REHEARSAL", "1") == "1"
+            self.wins_teach = os.getenv("MONAD1_WINS_TEACH", "1") == "1"
+            for _m2_flag in (
+                "MONAD2_COORDINATE",
+                "MONAD2_SCP",
+                "MONAD2_GOAL_DISCOVERY",
+                "MONAD2_CALLOSUM",
+                "MONAD2_DLADDER",
+                "MONAD2_REHEARSAL",
+                "MONAD2_TONIC",
+                "MONAD2_GRAFT",
+            ):
+                os.environ[_m2_flag] = "1"
         if hasattr(self, "ggl_enabled"):
             self._ggl_reset_level_state()
         if hasattr(self, "fx_enabled"):
@@ -5010,6 +5029,8 @@ class MyAgent(Agent):
             self.replay_mode
             or self.planned_queue
             or self.last_step_was_planned
+            or self.bfs_route_queue
+            or (getattr(self, "ggl_enabled", False) and getattr(self, "ggl_active", None) is not None)
         )
 
     def _update_dynamic_step_budget(self, latest_frame: FrameData) -> int:
@@ -25379,18 +25400,6 @@ class MyAgent(Agent):
             except Exception:
                 pass
 
-        if _m2_rt is not None:
-            try:
-                sc_key = _m2_rt.short_circuit_execute(self)
-            except Exception:
-                sc_key = None
-            if sc_key is not None:
-                self.prev_grid = grid
-                self.prev_doc = doc
-                self.prev_hash = h_curr
-                self.prev_action = sc_key
-                return self._materialize_action(sc_key, "monad2-execute-short-circuit")
-
         unexpected_avatar_jump = False
         if not is_blackout and not was_blackout_last_step:
             if (
@@ -26201,6 +26210,18 @@ class MyAgent(Agent):
             self.prev_hash = h_curr
             self.prev_action = chosen
             return self._materialize_action(chosen, "monad1-online-world-model-plan")
+
+        if _m2_rt is not None:
+            try:
+                sc_key = _m2_rt.short_circuit_execute(self)
+            except Exception:
+                sc_key = None
+            if sc_key is not None:
+                self.prev_grid = grid
+                self.prev_doc = doc
+                self.prev_hash = h_curr
+                self.prev_action = sc_key
+                return self._materialize_action(sc_key, "monad2-execute-short-circuit")
 
         if h_curr in self.state_avatar_bbox:
             self.avatar_bbox = self.state_avatar_bbox[h_curr]

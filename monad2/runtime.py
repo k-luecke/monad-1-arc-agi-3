@@ -561,7 +561,12 @@ def _goal_delta(agent, key, goal: str) -> float | None:
 
 def short_circuit_execute(agent):
     """Expand an active execute-mode script before GGL, solver tiers, and canvas BFS."""
-    if not on("MONAD2_COORDINATE"):
+    if (
+        not on("MONAD2_COORDINATE")
+        or getattr(agent, "_m2_stall_fallback", False)
+        or bool(getattr(agent, "planned_queue", None))
+        or bool(getattr(agent, "replay_mode", False))
+    ):
         return None
     from monad2.coordinate import try_execute_step
 
@@ -585,6 +590,9 @@ def maybe_replace_key(agent, key, reason: str = ""):
     ``MONAD2_COORDINATE=1`` hands the key to the executive instead. That path
     is not a factorial column and stays off during score runs.
     """
+    if getattr(agent, "_m2_stall_fallback", False):
+        agent._m2_short_circuited = None
+        return key
     if on("MONAD2_COORDINATE"):
         sc = getattr(agent, "_m2_short_circuited", None)
         if sc is not None:
@@ -598,7 +606,16 @@ def maybe_replace_key(agent, key, reason: str = ""):
                 q = getattr(agent, qname, None)
                 if q and hasattr(q, "clear"):
                     q.clear()
-        return chosen
+            return chosen
+        coord_st = getattr(agent, "_m2_coord", None)
+        if not (isinstance(coord_st, dict) and coord_st.get("coop_handoff")) or reason in (
+            "monad1-online-world-model-plan",
+            "monad1-optimal-skill-replay",
+            "monad1-blind-second-pass-recall",
+            "monad1-symbolic-bfs-plan",
+        ):
+            return chosen
+        key = chosen
     ladder = on("MONAD2_DLADDER")
     callosum = on("MONAD2_CALLOSUM")
     discovery = on("MONAD2_GOAL_DISCOVERY")
